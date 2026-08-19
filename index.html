@@ -6,52 +6,56 @@
     <title>Grimório do Bezerro</title>
     <style>
         :root {
-            --cor-vermelha: #7a1414;
-            --cor-azul: #103252;
-            --cor-amarela: #8c6808;
-            --cor-preta: #161616;
-            --cor-branca: #b8b3aa;
-            --cor-mescla: #422659;
-            --fundo-container: #1c1815;
+            --cor-vermelha: #8b0000;
+            --cor-azul: #104e8b;
+            --cor-amarela: #daa520;
+            --cor-preta: #111111;
+            --cor-branca: #dcdcdc;
+            --cor-mescla: #4a235a;
+            --fundo-escuro: #090c10;
+            --painel-fundo: #121821;
             --borda-ouro: #c8aa6d;
-            --borda-ouro-hover: #f0e6d2;
-            --texto: #f0e6d2;
-            --texto-suave: #a09b8c;
+            --borda-ouro-clara: #f0e6d2;
+            --texto-principal: #f0e6d2;
+            --texto-secundario: #a09b8c;
         }
 
         body {
-            font-family: 'Georgia', serif;
-            background-color: #0b0907;
-            color: var(--texto);
+            font-family: 'Cinzel', 'Georgia', serif;
+            background-color: var(--fundo-escuro);
+            color: var(--texto-principal);
             margin: 0;
             padding: 15px;
-            background-image: radial-gradient(circle, #1a1512 0%, #0b0907 100%);
+            background-image: radial-gradient(circle at center, #1b263b 0%, #090c10 100%);
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 650px;
+            max-width: 700px;
             margin: 0 auto;
-            background-color: var(--fundo-container);
+            background-color: var(--painel-fundo);
             padding: 20px;
-            border-radius: 4px;
-            box-shadow: 0 0 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(200, 170, 109, 0.1);
+            border-radius: 8px;
             border: 2px solid var(--borda-ouro);
+            box-shadow: 0 0 25px rgba(200, 170, 109, 0.25), inset 0 0 15px rgba(0,0,0,0.8);
         }
 
         h1 {
             text-align: center;
             color: var(--borda-ouro);
-            font-family: 'Georgia', serif;
+            font-size: 2rem;
+            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-top: 5px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            border-bottom: 1px solid var(--borda-ouro);
+            padding-bottom: 10px;
         }
 
         .info-box { 
-            background: #141210; 
-            padding: 14px; 
-            border-radius: 4px; 
+            background: rgba(18, 24, 33, 0.95); 
+            padding: 15px; 
+            border-radius: 6px; 
             margin-bottom: 20px; 
             font-size: 0.9em; 
             border: 1px solid var(--borda-ouro);
@@ -60,11 +64,11 @@
 
         .info-box p {
             margin: 8px 0;
-            color: var(--texto-suave);
+            color: var(--texto-secundario);
         }
 
         .info-box strong {
-            color: var(--borda-ouro);
+            color: var(--borda-ouro-clara);
         }
 
         .search-bar {
@@ -73,16 +77,17 @@
             margin-bottom: 20px;
             border: 1px solid var(--borda-ouro);
             border-radius: 4px;
-            font-family: 'Georgia', serif;
+            font-family: 'Cinzel', 'Georgia', serif;
             box-sizing: border-box;
-            background: #0b0907;
-            color: var(--texto);
-            font-size: 0.95em;
+            background: #090c10;
+            color: var(--texto-principal);
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s ease;
         }
 
         .search-bar:focus {
-            outline: none;
-            border-color: var(--borda-ouro-hover);
+            border-color: var(--borda-ouro-clara);
             box-shadow: 0 0 8px rgba(200, 170, 109, 0.4);
         }
 
@@ -96,88 +101,115 @@
         }
 
         .grid::-webkit-scrollbar {
-            width: 6px;
+            width: 8px;
         }
+
         .grid::-webkit-scrollbar-track {
-            background: #0b0907;
+            background: #090c10;
+            border-radius: 4px;
         }
+
         .grid::-webkit-scrollbar-thumb {
             background: var(--borda-ouro);
-            border-radius: 3px;
+            border-radius: 4px;
         }
 
         .card {
             padding: 14px;
-            border-radius: 4px;
+            border-radius: 6px;
             color: white;
             text-align: center;
             cursor: pointer;
             font-weight: bold;
             font-size: 0.95em;
             transition: all 0.2s ease;
-            border: 2px solid rgba(200, 170, 109, 0.3);
+            border: 1px solid var(--borda-ouro);
             display: flex;
             align-items: center;
             justify-content: center;
             word-break: break-word;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
         }
 
-        .card:hover {
-            transform: translateY(-2px);
-            border-color: var(--borda-ouro);
-            box-shadow: 0 6px 12px rgba(200, 170, 109, 0.2);
+        .card:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 12px rgba(200, 170, 109, 0.3);
+            border-color: var(--borda-ouro-clara);
         }
 
-        /* Classes de Cor Temáticas */
-        .vermelha { background: linear-gradient(135deg, #7a1414, #4a0a0a); }
-        .azul { background: linear-gradient(135deg, #103252, #081d30); }
-        .amarela { background: linear-gradient(135deg, #8c6808, #543d04); color: #fff; }
-        .preta { background: linear-gradient(135deg, #222222, #0d0d0d); border-color: #444; }
-        .branca { background: linear-gradient(135deg, #b8b3aa, #87827a); color: #111; border-color: #d1cbbd; }
-        .mescla { background: linear-gradient(135deg, #422659, #251433); }
+        /* Classes de Cor com Tema Rúnico / LoL Clássico */
+        .vermelha { background: linear-gradient(135deg, #8b0000, #400000); }
+        .azul { background: linear-gradient(135deg, #104e8b, #051c33); }
+        .amarela { background: linear-gradient(135deg, #b8860b, #594105); color: #fff; }
+        .preta { background: linear-gradient(135deg, #222222, #080808); border-color: #444; }
+        .branca { background: linear-gradient(135deg, #e0e0e0, #888888); color: #111; text-shadow: none; border-color: #fff; }
+        .mescla { background: linear-gradient(135deg, #4a235a, #210f29); border-color: #9b59b6; }
 
-        /* Modal / Popup Estilo Pergaminho Escuro */
+        /* Modal / Popup Estilo LoL/Medieval */
         .modal {
             display: none;
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(3px);
+            background: rgba(5, 7, 10, 0.85);
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            backdrop-filter: blur(3px);
         }
+
         .modal-content {
-            background: #1c1815;
+            background: var(--painel-fundo);
             padding: 25px;
             width: 85%;
             max-width: 400px;
-            border-radius: 6px;
+            border-radius: 8px;
             position: relative;
             text-align: left;
             border: 2px solid var(--borda-ouro);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
-            color: var(--texto);
+            box-shadow: 0 0 30px rgba(200, 170, 109, 0.4), inset 0 0 20px rgba(0,0,0,0.9);
+            color: var(--texto-principal);
         }
-        .modal-content h2 {
-            color: var(--borda-ouro);
-            font-family: 'Georgia', serif;
-            margin-top: 0;
-            border-bottom: 1px solid #3d3429;
-            padding-bottom: 8px;
-        }
+
         .close-btn {
-            position: absolute; right: 15px; top: 12px;
-            font-size: 26px; cursor: pointer; color: var(--borda-ouro);
+            position: absolute; 
+            right: 15px; 
+            top: 12px;
+            font-size: 24px; 
+            cursor: pointer; 
+            color: var(--borda-ouro);
             transition: color 0.2s;
         }
+
         .close-btn:hover {
-            color: var(--borda-ouro-hover);
+            color: var(--borda-ouro-clara);
         }
-        .modal-content p { font-size: 0.95em; margin: 10px 0; color: var(--texto-suave); }
-        .modal-content p strong { color: var(--texto); }
+
+        .modal-content h2 {
+            color: var(--borda-ouro);
+            margin-top: 0;
+            border-bottom: 1px solid var(--borda-ouro);
+            padding-bottom: 8px;
+            font-size: 1.3rem;
+            text-transform: uppercase;
+        }
+
+        .modal-content p { 
+            font-size: 0.95em; 
+            margin: 10px 0; 
+            color: var(--texto-secundario);
+            line-height: 1.4;
+        }
+
+        .modal-content strong {
+            color: var(--borda-ouro-clara);
+        }
+
+        @media (max-width: 500px) {
+            .grid { grid-template-columns: 1fr; }
+            .container { padding: 12px; }
+        }
     </style>
 </head>
 <body>
@@ -186,11 +218,11 @@
     <h1>Grimório do Bezerro</h1>
     <div class="info-box">
         <p>✨ <strong>Passiva (Crítico):</strong> Ao tirar um crítico no dado, canaliza o nada ou a matéria, liberando as tintas <strong>Preta</strong> (Criar) ou <strong>Branca</strong> (Apagar).</p>
-        <p>✨ <strong>Passiva 2:</strong> Qualquer item pode ser armazenado em seu pelo.</p>
-        <p>⚡ <strong>Ativa (Mesclas):</strong> Mesclar tintas gera versatilidade extrema, mas quanto mais tintas misturadas, maior o preço e custo dos componentes.</p>
+        <p>✨ <strong>Passiva 2:</strong> Qualquer item pode ser armazenado em seu pelo místico.</p>
+        <p>⚡ <strong>Ativa (Mesclas):</strong> Mesclar tintas gera versatilidade arcana extrema através de componentes rúnicos avançados.</p>
     </div>
 
-    <input type="text" id="searchInput" class="search-bar" placeholder="Pesquisar efeito ou receita..." onkeyup="filtrarEfeitos()">
+    <input type="text" id="searchInput" class="search-bar" placeholder="Pesquisar efeito ou receita arcana..." onkeyup="filtrarEfeitos()">
     
     <div class="grid" id="lista-efeitos"></div>
 </div>
@@ -201,7 +233,6 @@
         <span class="close-btn" onclick="fecharModal()">&times;</span>
         <h2 id="modal-titulo"></h2>
         <p><strong>Tipo/Cor:</strong> <span id="modal-cor"></span></p>
-        <p><strong>Preço / Custo:</strong> <span id="modal-preco"></span></p>
         <p><strong>Receita:</strong> <span id="modal-receita"></span></p>
         <p><strong>Efeito:</strong> <span id="modal-efeito"></span></p>
     </div>
@@ -210,124 +241,124 @@
 <script>
     const efeitos = [
         // --- TINTA VERMELHA (FOGO) [1 a 10] ---
-        { nome: "Chama Dançante", cor: "vermelha", preco: "5", receita: "Pó de Fogo + Frasco de Óleo", efeito: "Cria um pequeno fogo autônomo que ilumina e causa 1d4 de dano de fogo." },
-        { nome: "Manto de Calor", cor: "vermelha", preco: "10", receita: "Cinzas de Salamandra + Pedaço de Tecido", efeito: "Concede resistência a dano de frio por 1 hora." },
-        { nome: "Projétil Incandescente", cor: "vermelha", preco: "15", receita: "Enxofre + Pedaço de Carvão", efeito: "Dispara um dardo flamejante que causa 2d6 de dano de fogo." },
-        { nome: "Explosão de Brasa", cor: "vermelha", preco: "25", receita: "Pólvora + Rubro Gema menor", efeito: "Cria uma explosão em área de 3 metros que empurra inimigos." },
-        { nome: "Arma Ardente", cor: "vermelha", preco: "20", receita: "Fogo Alquímico + Óleo de Piche", efeito: "Adiciona +1d6 de dano de fogo a uma arma por 1 minuto." },
-        { nome: "Sopro de Fênix", cor: "vermelha", preco: "40", receita: "Pena de Ave de Rapina + Frasco de Óleo Fervente", efeito: "Libera um cone de fogo de 4 metros causando 3d6 de dano." },
-        { nome: "Muro de labaredas", cor: "vermelha", preco: "50", receita: "Carvão de Criatura Elemental + Cinzas", efeito: "Ergue uma barreira de chamas bloqueando a passagem por 2 rodadas." },
-        { nome: "Marca da Brasas", cor: "vermelha", preco: "15", receita: "Pó de Ferro Quente + Tinta comum", efeito: "Deixa uma marca invisível que queima o alvo ao comando do conjurador." },
-        { nome: "Coração Acelerado", cor: "vermelha", preco: "30", receita: "Pó de Rubi + Estimulante Alquímico", efeito: "Aumenta temporariamente a velocidade de movimento em 3 metros." },
-        { nome: "Estilhaço Magmático", cor: "vermelha", preco: "35", receita: "Rocha Vulcânica Triturada + Enxofre", efeito: "Dispara estilhaços quentes que perfuram armaduras leves." },
+        { nome: "Chama Dançante", cor: "vermelha", receita: "Pó de Fogo + Frasco de Óleo", efeito: "Cria um pequeno fogo autônomo que ilumina e causa 1d4 de dano de fogo." },
+        { nome: "Manto de Calor", cor: "vermelha", receita: "Cinzas de Salamandra + Pedaço de Tecido", efeito: "Concede resistência a dano de frio por 1 hora." },
+        { nome: "Projétil Incandescente", cor: "vermelha", receita: "Enxofre + Pedaço de Carvão", efeito: "Dispara um dardo flamejante que causa 2d6 de dano de fogo." },
+        { nome: "Explosão de Brasa", cor: "vermelha", receita: "Pólvora + Rubro Gema menor", efeito: "Cria uma explosão em área de 3 metros que empurra inimigos." },
+        { nome: "Arma Ardente", cor: "vermelha", receita: "Fogo Alquímico + Óleo de Piche", efeito: "Adiciona +1d6 de dano de fogo a uma arma por 1 minuto." },
+        { nome: "Sopro de Fênix", cor: "vermelha", receita: "Pena de Ave de Rapina + Frasco de Óleo Fervente", efeito: "Libera um cone de fogo de 4 metros causando 3d6 de dano." },
+        { nome: "Muro de labaredas", cor: "vermelha", receita: "Carvão de Criatura Elemental + Cinzas", efeito: "Ergue uma barreira de chamas bloqueando a passagem por 2 rodadas." },
+        { nome: "Marca das Brasas", cor: "vermelha", receita: "Pó de Ferro Quente + Tinta comum", efeito: "Deixa uma marca invisível que queima o alvo ao comando do conjurador." },
+        { nome: "Coração Acelerado", cor: "vermelha", receita: "Pó de Rubi + Estimulante Alquímico", efeito: "Aumenta temporariamente a velocidade de movimento em 3 metros." },
+        { nome: "Estilhaço Magmático", cor: "vermelha", receita: "Rocha Vulcânica Triturada + Enxofre", efeito: "Dispara estilhaços quentes que perfuram armaduras leves." },
 
         // --- TINTA AZUL (ÁGUA E ESPIRITUALIDADE) [11 a 20] ---
-        { nome: "Cura das Marés", cor: "azul", preco: "15", receita: "Água Benta + Erva de Heil (Healer's Kit)", efeito: "Recupera 2d4 + modificador de magia de vida do alvo." },
-        { nome: "Bolha de Oxigênio", cor: "azul", preco: "10", receita: "Alga Seca + Concha Marinha", efeito: "Permite respirar debaixo d'água perfeitamente por 1 hora." },
-        { nome: "Passo Sobre Águas", cor: "azul", preco: "20", receita: "Pó de Gelo + Pena de Gaivota", efeito: "Permite caminhar sobre superfícies líquidas por 10 minutos." },
-        { nome: "Sussurro Espiritual", cor: "azul", preco: "25", receita: "Incenso Raro + Olho de Vidro", efeito: "Permite enxergar e conversar com espíritos próximos por 10 minutos." },
-        { nome: "Nevoeiro Purificador", cor: "azul", preco: "15", receita: "Água Purificada + Sal Grosso", efeito: "Remove condições de veneno ou doença leve de um aliado." },
-        { nome: "Escudo de Gelo", cor: "azul", preco: "25", receita: "Essência de Gelo + Cristal Pequeno", efeito: "Bloqueia completamente o próximo ataque corpo a corpo recebido." },
-        { nome: "Lágrima dos Mares", cor: "azul", preco: "30", receita: "Pérola Negra Triturada + Água Benta", efeito: "Cura um aliado atordoado e restaura sua serenidade mental." },
-        { nome: "Voz do Oceano", cor: "azul", preco: "35", receita: "Concha Acústica + Essência Etérea", efeito: "Permite comunicação telepática de longo alcance com aliados." },
-        { nome: "Bênção da Névoa", cor: "azul", preco: "20", receita: "Orvalho da Manhã + Ervas Místicas", efeito: "Cria uma névoa densa ao redor concedendo camuflagem." },
-        { nome: "Onda de Retorno", cor: "azul", preco: "45", receita: "Água de Cachoeira Sagrada + Prata Pura", efeito: "Empurra todos os inimigos ao redor para longe com força hidráulica." },
+        { nome: "Cura das Marés", cor: "azul", receita: "Água Benta + Erva de Cura", efeito: "Recupera 2d4 + modificador de magia de vida do alvo." },
+        { nome: "Bolha de Oxigênio", cor: "azul", receita: "Alga Seca + Concha Marinha", efeito: "Permite respirar debaixo d'água perfeitamente por 1 hora." },
+        { nome: "Passo Sobre Águas", cor: "azul", receita: "Pó de Gelo + Pena de Gaivota", efeito: "Permite caminhar sobre superfícies líquidas por 10 minutos." },
+        { nome: "Sussurro Espiritual", cor: "azul", receita: "Incenso Raro + Olho de Vidro", efeito: "Permite enxergar e conversar com espíritos próximos por 10 minutos." },
+        { nome: "Nevoeiro Purificador", cor: "azul", receita: "Água Purificada + Sal Grosso", efeito: "Remove condições de veneno ou doença leve de um aliado." },
+        { nome: "Escudo de Gelo", cor: "azul", receita: "Essência de Gelo + Cristal Pequeno", efeito: "Bloqueia completamente o próximo ataque corpo a corpo recebido." },
+        { nome: "Lágrima dos Mares", cor: "azul", receita: "Pérola Negra Triturada + Água Benta", efeito: "Cura um aliado atordoado e restaura sua serenidade mental." },
+        { nome: "Voz do Oceano", cor: "azul", receita: "Concha Acústica + Essência Etérea", efeito: "Permite comunicação telepática de longo alcance com aliados." },
+        { nome: "Bênção da Névoa", cor: "azul", receita: "Orvalho da Manhã + Ervas Místicas", efeito: "Cria uma névoa densa ao redor concedendo camuflagem arcana." },
+        { nome: "Onda de Retorno", cor: "azul", receita: "Água de Cachoeira Sagrada + Prata Pura", efeito: "Empurra todos os inimigos ao redor para longe com força hidráulica." },
 
         // --- TINTA AMARELA (LUZ) [21 a 30] ---
-        { nome: "Clarão Ofuscante", cor: "amarela", preco: "15", receita: "Pó de Diamante + Fósforo Alquímico", efeito: "Cega temporariamente inimigos em um raio de 5 metros." },
-        { nome: "Lâmina de Luz", cor: "amarela", preco: "25", receita: "Pó de Ouro + Luz Solar Engarrafada", efeito: "Infunde uma arma com luz radiante, causando extra dano em mortos-vivos." },
-        { nome: "Faro da Verdade", cor: "amarela", preco: "20", receita: "Lente de Aumento + Ervas da Verdade", efeito: "Revela ilusões, Doppelgangers e invisibilidade em até 10 metros." },
-        { nome: "Aura de Proteção", cor: "amarela", preco: "30", receita: "Pó de Prata Pura + Mel Silvestre", efeito: "Concede +2 na Classe de Armadura (CA) do alvo por 3 rodadas." },
-        { nome: "Feixe Solar", cor: "amarela", preco: "40", receita: "Lente de Cristal + Foco Arcano", efeito: "Dispara um raio de luz concentrada em linha reta ignorando armaduras leves." },
-        { nome: "Luz Guia", cor: "amarela", preco: "10", receita: "Vaga-lume Gigante (secado) + Pedrinha Brilhante", efeito: "Cria uma esfera de luz flutuante que ilumina caminhos escuros." },
-        { nome: "Claridade Mental", cor: "amarela", preco: "20", receita: "Incenso de Sândalo + Essência de Luz", efeito: "Remove efeitos de medo ou confusão mental de um aliado." },
-        { nome: "Selo Solar", cor: "amarela", preco: "35", receita: "Gema de Topázio Triturada + Giz Sagrado", efeito: "Cria uma runa no chão que queima criaturas malignas ao pisarem." },
-        { nome: "Reflexo Espelhado", cor: "amarela", preco: "45", receita: "Pó de Espelho Mágico + Óleo de Limpeza", efeito: "Cria cópias ilusórias de luz para despistar ataques." },
-        { nome: "Toque do Amanhecer", cor: "amarela", preco: "50", receita: "Essência de Sol da Manhã + Água Benta", efeito: "Cura ferimentos médios e restaura pontos de vida temporários." },
+        { nome: "Clarão Ofuscante", cor: "amarela", receita: "Pó de Diamante + Fósforo Alquímico", efeito: "Cega temporariamente inimigos em um raio de 5 metros." },
+        { nome: "Lâmina de Luz", cor: "amarela", receita: "Pó de Ouro + Luz Solar Engarrafada", efeito: "Infunde uma arma com luz radiante, causando extra dano em mortos-vivos." },
+        { nome: "Faro da Verdade", cor: "amarela", receita: "Lente de Aumento + Ervas da Verdade", efeito: "Revela ilusões, metamorfos e invisibilidade em até 10 metros." },
+        { nome: "Aura de Proteção", cor: "amarela", receita: "Pó de Prata Pura + Mel Silvestre", efeito: "Concede +2 na Classe de Armadura (CA) do alvo por 3 rodadas." },
+        { nome: "Feixe Solar", cor: "amarela", receita: "Lente de Cristal + Foco Arcano", efeito: "Dispara um raio de luz concentrada em linha reta ignorando armaduras leves." },
+        { nome: "Luz Guia", cor: "amarela", receita: "Inseto Luminescente (secado) + Pedrinha Brilhante", efeito: "Cria uma esfera de luz flutuante que ilumina caminhos escuros." },
+        { nome: "Claridade Mental", cor: "amarela", receita: "Incenso de Sândalo + Essência de Luz", efeito: "Remove efeitos de medo ou confusão mental de um aliado." },
+        { nome: "Selo Solar", cor: "amarela", receita: "Gema de Topázio Triturada + Giz Sagrado", efeito: "Cria uma runa no chão que queima criaturas malignas ao pisarem." },
+        { nome: "Reflexo Espelhado", cor: "amarela", receita: "Pó de Espelho Mágico + Óleo de Limpeza", efeito: "Cria cópias ilusórias de luz para despistar ataques inimigos." },
+        { nome: "Toque do Amanhecer", cor: "amarela", receita: "Essência de Sol da Manhã + Água Benta", efeito: "Cura ferimentos médios e restaura pontos de vida temporários." },
 
         // --- TINTA PRETA (MATÉRIA - PASSIVA DE CRÍTICO) [31 a 40] ---
-        { nome: "Parede de Ferro", cor: "preta", preco: "Gratuito (Crítico) / 50", receita: "Ferro Puro + Sangue de Criatura", efeito: "Cria uma parede sólida de matéria de 2x2 metros para bloqueio físico." },
-        { nome: "Criação de Ferramentas", cor: "preta", preco: "Gratuito (Crítico) / 20", receita: "Metal Triturado + Madeira Seca", efeito: "Materializa instantaneamente uma ferramenta útil (chave, alavanca, corda)." },
-        { nome: "Armadura Sólida", cor: "preta", preco: "Gratuito (Crítico) / 30", receita: "Pedaços de Couro Duro + Mineral Pesado", efeito: "Concede +3 de bônus na armadura por 1 rodada." },
-        { nome: "Projétil Físico Denso", cor: "preta", preco: "Gratuito (Crítico) / 15", receita: "Pedra Bruta + Osso de Monstro", efeito: "Cria e arremessa um pedregulho maciço com alto dano de impacto." },
-        { nome: "Selo de Prisão Material", cor: "preta", preco: "Gratuito (Crítico) / 40", receita: "Corrente de Ferro + Minério de Chumbo", efeito: "Invoca algemas materiais do chão que prendem os pés do alvo." },
-        { nome: "Pilar de Sustentação", cor: "preta", preco: "Gratuito (Crítico) / 35", receita: "Pedra + Cimento Mágico", efeito: "Cria uma coluna instantânea para sustentar tetos desabando." },
-        { nome: "Bloco de Contenção", cor: "preta", preco: "Gratuito (Crítico) / 30", receita: "Rocha Sólida + Argila Pesada", efeito: "Cria um cubo de pedra ao redor de um item ou inimigo pequeno." },
-        { nome: "Lâmina Materializada", cor: "preta", preco: "Gratuito (Crítico) / 25", receita: "Minério de Ferro Afiado + Cabo de Osso", efeito: "Cria uma espada física improvisada de alta durabilidade." },
-        { nome: "Escudo de Chumbo", cor: "preta", preco: "Gratuito (Crítico) / 35", receita: "Placa de Chumbo + Resina", efeito: "Cria um escudo pesado bloqueando magias baseadas em radiação ou luz." },
-        { nome: "Maciço Colossal", cor: "preta", preco: "Gratuito (Crítico) / 70", receita: "Diamante Negro em pó + Ferro Metálico", efeito: "Cria uma estrutura grossa de metal para bloquear passagens inteiras." },
+        { nome: "Parede de Ferro", cor: "preta", receita: "Ferro Puro + Sangue de Criatura", efeito: "Cria uma parede sólida de matéria de 2x2 metros para bloqueio físico." },
+        { nome: "Criação de Ferramentas", cor: "preta", receita: "Metal Triturado + Madeira Seca", efeito: "Materializa instantaneamente uma ferramenta útil (chave, alavanca, corda)." },
+        { nome: "Armadura Sólida", cor: "preta", receita: "Pedaços de Couro Duro + Mineral Pesado", efeito: "Concede +3 de bônus na armadura do conjurador por 1 rodada." },
+        { nome: "Projétil Físico Denso", cor: "preta", receita: "Pedra Bruta + Osso de Monstro", efeito: "Cria e arremessa um pedregulho maciço com alto dano de impacto." },
+        { nome: "Selo de Prisão Material", cor: "preta", receita: "Corrente de Ferro + Minério de Chumbo", efeito: "Invoca algemas materiais do chão que prendem os pés do alvo." },
+        { nome: "Pilar de Sustentação", cor: "preta", receita: "Pedra + Cimento Mágico", efeito: "Cria uma coluna instantânea para sustentar tetos desabando." },
+        { nome: "Bloco de Contenção", cor: "preta", receita: "Rocha Sólida + Argila Pesada", efeito: "Cria um cubo de pedra ao redor de um item ou inimigo pequeno." },
+        { nome: "Lâmina Materializada", cor: "preta", receita: "Minério de Ferro Afiado + Cabo de Osso", efeito: "Cria uma espada física improvisada de alta durabilidade." },
+        { nome: "Escudo de Chumbo", cor: "preta", receita: "Placa de Chumbo + Resina", efeito: "Cria um escudo pesado bloqueando magias baseadas em radiação ou luz." },
+        { nome: "Maciço Colossal", cor: "preta", receita: "Diamante Negro em pó + Ferro Metálico", efeito: "Cria uma estrutura grossa de metal para bloquear passagens inteiras." },
 
         // --- TINTA BRANCA (APAGAR - PASSIVA DE CRÍTICO) [41 a 50] ---
-        { nome: "Desintegrar Objeto", cor: "branca", preco: "Gratuito (Crítico) / 50", receita: "Cinzas de Morto-Vivo + Água Destilada", efeito: "Apaga e desintegra um objeto pequeno não mágico do cenário." },
-        { nome: "Silêncio Absoluto", cor: "branca", preco: "Gratuito (Crítico) / 30", receita: "Pena de Coruja Mágica + Vácuo Enclausurado", efeito: "Cria uma zona esférica de silêncio mágico onde nenhum som escapa." },
-        { nome: "Apagar Memória Recente", cor: "branca", preco: "Gratuito (Crítico) / 60", receita: "Flor de Esquecimento + Essência Etérea", efeito: "Apaga os últimos 10 segundos da mente de um alvo afetado." },
-        { nome: "Cancelamento de Magia", cor: "branca", preco: "Gratuito (Crítico) / 45", receita: "Cristal Mágico Quebrado + Símbolo Sagrado" , efeito: "Anula um efeito mágico ativo de nível baixo." },
-        { nome: "Invisibilidade Óptica", cor: "branca", preco: "Gratuito (Crítico) / 40", receita: "Pó de Espelho + Essência Etérea", efeito: "Apaga a imagem visível do espectro óptico por 1 minuto." },
-        { nome: "Buraco Vazio", cor: "branca", preco: "Gratuito (Crítico) / 50", receita: "Sombra Pura + Essência do Nada", efeito: "Cria um pequeno vácuo que suga e aprisiona projéteis inimigos." },
-        { nome: "Apagar Traços", cor: "branca", preco: "Gratuito (Crítico) / 15", receita: "Pó de Giz Branco + Água Benta", efeito: "Apaga pegadas, rastros e odores deixados pelo grupo." },
-        { nome: "Nulificação de Efeito", cor: "branca", preco: "Gratuito (Crítico) / 35", receita: "Sal Purificado + Cinzas Raras", efeito: "Remove uma maldição menor ou efeito de veneno persistente." },
-        { nome: "Apagão de Chamas", cor: "branca", preco: "Gratuito (Crítico) / 25", receita: "Gelo Seco Alquímico + Pó Etéreo", efeito: "Extingue instantaneamente qualquer fogo natural ou mágico em área." },
-        { nome: "Vazio de Cor", cor: "branca", preco: "Gratuito (Crítico) / 30", receita: "Pigmento Branco Puro + Essência de Névoa", efeito: "Cria uma área sem cor que desorienta a visão de criaturas comuns." },
+        { nome: "Desintegrar Objeto", cor: "branca", receita: "Cinzas de Morto-Vivo + Água Destilada", efeito: "Apaga e desintegra um objeto pequeno não mágico do cenário." },
+        { nome: "Silêncio Absoluto", cor: "branca", receita: "Pena Mágica + Vácuo Enclausurado", efeito: "Cria uma zona esférica de silêncio mágico onde nenhum som escapa." },
+        { nome: "Apagar Memória Recente", cor: "branca", receita: "Flor de Esquecimento + Essência Etérea", efeito: "Apaga os últimos 10 segundos da mente de um alvo afetado." },
+        { nome: "Cancelamento de Magia", cor: "branca", receita: "Cristal Mágico Quebrado + Símbolo Sagrado", efeito: "Anula um efeito mágico ativo de nível baixo." },
+        { nome: "Invisibilidade Óptica", cor: "branca", receita: "Pó de Espelho + Essência Etérea", efeito: "Apaga a imagem visível do usuário do espectro óptico por 1 minuto." },
+        { nome: "Buraco Vazio", cor: "branca", receita: "Sombra Pura + Essência do Nada", efeito: "Cria um pequeno vácuo que suga e aprisiona projéteis inimigos." },
+        { nome: "Apagar Traços", cor: "branca", receita: "Pó de Giz Branco + Água Benta", efeito: "Apaga pegadas, rastros e odores deixados pelo grupo." },
+        { nome: "Nulificação de Efeito", cor: "branca", receita: "Sal Purificado + Cinzas Raras", efeito: "Remove uma maldição menor ou efeito de veneno persistente." },
+        { nome: "Apagão de Chamas", cor: "branca", receita: "Gelo Seco Alquímico + Pó Etéreo", efeito: "Extingue instantaneamente qualquer fogo natural ou mágico em área." },
+        { nome: "Vazio de Cor", cor: "branca", receita: "Pigmento Branco Puro + Essência de Névoa", efeito: "Cria uma área sem cor que desorienta a visão de criaturas comuns." },
 
         // --- MESCLAS DUPLAS: VERMELHA + AZUL [51 a 60] ---
-        { nome: "Torrente de Vapor Quente", cor: "mescla", preco: "40", receita: "Tinta Vermelha + Tinta Azul + Água Benta", efeito: "Jato de vapor escaldante que causa dano de fogo e cega o alvo." },
-        { nome: "Gêiser Eruptivo", cor: "mescla", preco: "50", receita: "Tinta Vermelha + Tinta Azul + Pó de Fogo", efeito: "Faz brotar água fervente do chão em área de 3 metros (dano misto)." },
-        { nome: "Cura Calcinante", cor: "mescla", preco: "45", receita: "Tinta Vermelha + Tinta Azul + Erva de Cura", efeito: "Cura um aliado, mas cauteriza feridas com calor mágico instantâneo." },
-        { nome: "Nevoeiro Termal", cor: "mescla", preco: "35", receita: "Tinta Vermelha + Tinta Azul + Essência de Gelo", efeito: "Cria uma névoa espessa e quente que confunde sensores térmicos." },
-        { nome: "Escudo de Vapor", cor: "mescla", preco: "40", receita: "Tinta Vermelha + Tinta Azul + Cristal", efeito: "Cria uma barreira defensiva que repele e queima quem se aproxima." },
-        { nome: "Lâmina de Água Fervente", cor: "mescla", preco: "45", receita: "Tinta Vermelha + Tinta Azul + Óleo", efeito: "Envolve a arma em água escaldante, causando dano perfurante e térmico." },
-        { nome: "Chama Líquida", cor: "mescla", preco: "55", receita: "Tinta Vermelha + Tinta Azul + Alquimia Avançada", efeito: "Dispara um fluido pegajoso que queima mesmo sob a água." },
-        { nome: "Purificação Ígnea", cor: "mescla", preco: "50", receita: "Tinta Vermelha + Tinta Azul + Sal", efeito: "Purifica o corpo de doenças queimando impurezas espirituais." },
-        { nome: "Pulso de Vapor", cor: "mescla", preco: "40", receita: "Tinta Vermelha + Tinta Azul + Enxofre", efeito: "Gera uma onda de choque que empurra inimigos e abafa magias." },
-        { nome: "Termoterapia Mágica", cor: "mescla", preco: "45", receita: "Tinta Vermelha + Tinta Azul + Mel", efeito: "Recupera fadiga extrema e cura ferimentos leves simultaneamente." },
+        { nome: "Torrente de Vapor Quente", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Água Benta", efeito: "Jato de vapor escaldante que causa dano de fogo e cega o alvo." },
+        { nome: "Gêiser Eruptivo", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Pó de Fogo", efeito: "Faz brotar água fervente do chão em área de 3 metros (dano misto)." },
+        { nome: "Cura Calcinante", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Erva de Cura", efeito: "Cura um aliado, mas cauteriza feridas com calor mágico instantâneo." },
+        { nome: "Nevoeiro Termal", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Essência de Gelo", efeito: "Cria uma névoa espessa e quente que confunde sensores térmicos." },
+        { nome: "Escudo de Vapor", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Cristal", efeito: "Cria uma barreira defensiva que repele e queima quem se aproxima." },
+        { nome: "Lâmina de Água Fervente", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Óleo", efeito: "Envolve a arma em água escaldante, causando dano perfurante e térmico." },
+        { nome: "Chama Líquida", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Alquimia Avançada", efeito: "Dispara um fluido pegajoso que queima mesmo sob a água." },
+        { nome: "Purificação Ígnea", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Sal", efeito: "Purifica o corpo de doenças queimando impurezas espirituais." },
+        { nome: "Pulso de Vapor", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Enxofre", efeito: "Gera uma onda de choque que empurra inimigos e abafa magias." },
+        { nome: "Termoterapia Mágica", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Mel", efeito: "Recupera fadiga extrema e cura ferimentos leves simultaneamente." },
 
         // --- MESCLAS DUPLAS: VERMELHA + AMARELA [61 a 70] ---
-        { nome: "Plasma Solar", cor: "mescla", preco: "50", receita: "Tinta Vermelha + Tinta Amarela + Pó de Diamante", efeito: "Cria uma esfera de plasma superaquecido que causa dano massivo." },
-        { nome: "Aura de Fogo Sagrado", cor: "mescla", preco: "45", receita: "Tinta Vermelha + Tinta Amarela + Ouro", efeito: "Envolve o conjurador em chamas douradas que blindam contra mortos-vivos." },
-        { nome: "Lança de Radiância Ardente", cor: "mescla", preco: "60", receita: "Tinta Vermelha + Tinta Amarela + Lente", efeito: "Dispara um feixe de luz laser incandescente de altíssima precisão." },
-        { nome: "Explosão Prateada", cor: "mescla", preco: "40", receita: "Tinta Vermelha + Tinta Amarela + Prata", efeito: "Flash explosivo que cega e causa pequenas queimaduras em área." },
-        { nome: "Manto de Ouro Vivo", cor: "mescla", preco: "55", receita: "Tinta Vermelha + Tinta Amarela + Mel", efeito: "Aumenta a CA e concede aura de calor blindada por 2 rodadas." },
-        { nome: "Brilho Magmático", cor: "mescla", preco: "45", receita: "Tinta Vermelha + Tinta Amarela + Rocha", efeito: "Ilumina um ambiente escuro enquanto queima armadilhas próximas." },
-        { nome: "Chama Solar Refletida", cor: "mescla", preco: "50", receita: "Tinta Vermelha + Tinta Amarela + Espelho", efeito: "Reflete feixes de luz concentrada em alvos específicos." },
-        { nome: "Fúria Radiante", cor: "mescla", preco: "65", receita: "Tinta Vermelha + Tinta Amarela + Rubi", efeito: "Dobra o dano de fogo do próximo ataque com brilho estelar." },
-        { nome: "Farol de Combate", cor: "mescla", preco: "40", receita: "Tinta Vermelha + Tinta Amarela + Fósforo", efeito: "Marca um inimigo com luz incandescente visível a longa distância." },
-        { nome: "Supernova Menor", cor: "mescla", preco: "80", receita: "Tinta Vermelha + Tinta Amarela + Diamante", efeito: "Pequena explosão luz-fogo em grande área (uso de emergência)." },
+        { nome: "Plasma Solar", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Pó de Diamante", efeito: "Cria uma esfera de plasma superaquecido que causa dano massivo." },
+        { nome: "Aura de Fogo Sagrado", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Ouro", efeito: "Envolve o usuário em chamas douradas que blindam contra mortos-vivos." },
+        { nome: "Lança de Radiância Ardente", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Lente", efeito: "Dispara um feixe de luz laser incandescente de altíssima precisão." },
+        { nome: "Explosão Prateada", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Prata", efeito: "Flash explosivo que cega e causa pequenas queimaduras em área." },
+        { nome: "Manto de Ouro Vivo", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Mel", efeito: "Aumenta a CA e concede aura de calor blindada por 2 rodadas." },
+        { nome: "Brilho Magmático", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Rocha", efeito: "Ilumina um ambiente escuro enquanto queima armadilhas próximas." },
+        { nome: "Chama Solar Refletida", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Espelho", efeito: "Reflete feixes de luz concentrada em alvos específicos." },
+        { nome: "Fúria Radiante", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Rubi", efeito: "Dobra o dano de fogo do próximo ataque com brilho estelar." },
+        { nome: "Farol de Combate", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Fósforo", efeito: "Marca um inimigo com luz incandescente visível a longa distância." },
+        { nome: "Supernova Menor", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Diamante", efeito: "Pequena explosão luz-fogo em grande área (uso de emergência)." },
 
         // --- MESCLAS DUPLAS: AZUL + AMARELA [71 a 80] ---
-        { nome: "Luz das Marés", cor: "mescla", preco: "40", receita: "Tinta Azul + Tinta Amarela + Pérola", efeito: "Cura ferimentos e ilumina a área ao mesmo tempo com brilho azulado." },
-        { nome: "Prisma Espiritual", cor: "mescla", preco: "45", receita: "Tinta Azul + Tinta Amarela + Cristal", efeito: "Revela espíritos invisíveis banhando-os em luz purificadora." },
-        { nome: "Escudo de Aurora", cor: "mescla", preco: "50", receita: "Tinta Azul + Tinta Amarela + Essência de Gelo", efeito: "Cria uma barreira luminosa que absorve danos mágicos." },
-        { nome: "Água Cristalina Iluminada", cor: "mescla", preco: "35", receita: "Tinta Azul + Tinta Amarela + Água Benta", efeito: "Cria água benta com propriedades de cura aprimoradas." },
-        { nome: "Bênção dos Mares Luminosos", cor: "mescla", preco: "55", receita: "Tinta Azul + Tinta Amarela + Ouro", efeito: "Remove exaustão e restaura feitiços de aliados próximos." },
-        { nome: "Nevoeiro Arco-Íris", cor: "mescla", preco: "40", receita: "Tinta Azul + Tinta Amarela + Orvalho", efeito: "Cria ilusões óticas fantásticas na névoa d'água." },
-        { nome: "Pulso de Cura Astral", cor: "mescla", preco: "60", receita: "Tinta Azul + Tinta Amarela + Incenso Raro", efeito: "Cura em área moderada e afasta presenças espirituais malignas." },
-        { nome: "Olhar da Verdade Oceânica", cor: "mescla", preco: "45", receita: "Tinta Azul + Tinta Amarela + Lente", efeito: "Permite ver através de ilusões na água ou gelo." },
-        { nome: "Cristalização de Luz", cor: "mescla", preco: "50", receita: "Tinta Azul + Tinta Amarela + Quartzo", efeito: "Cria uma lanterna mágica inesgotável baseada em espiritualidade." },
-        { nome: "Onda Radiante", cor: "mescla", preco: "55", receita: "Tinta Azul + Tinta Amarela + Prata", efeito: "Onda de energia mista que empurra e purifica alvos." },
+        { nome: "Luz das Marés", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Pérola", efeito: "Cura ferimentos e ilumina a área ao mesmo tempo com brilho azulado." },
+        { nome: "Prisma Espiritual", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Cristal", efeito: "Revela espíritos invisíveis banhando-os em luz purificadora." },
+        { nome: "Escudo de Aurora", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Essência de Gelo", efeito: "Cria uma barreira luminosa que absorve danos mágicos." },
+        { nome: "Água Cristalina Iluminada", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Água Benta", efeito: "Cria água benta com propriedades de cura aprimoradas." },
+        { nome: "Bênção dos Mares Luminosos", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Ouro", efeito: "Remove exaustão e restaura feitiços de aliados próximos." },
+        { nome: "Nevoeiro Arco-Íris", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Orvalho", efeito: "Cria ilusões óticas fantásticas na névoa d'água." },
+        { nome: "Pulso de Cura Astral", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Incenso Raro", efeito: "Cura em área moderada e afasta presenças espirituais malignas." },
+        { nome: "Olhar da Verdade Oceânica", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Lente", efeito: "Permite ver através de ilusões na água ou gelo." },
+        { nome: "Cristalização de Luz", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Quartzo", efeito: "Cria uma lanterna mágica inesgotável baseada em espiritualidade." },
+        { nome: "Onda Radiante", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Prata", efeito: "Onda de energia mista que empurra e purifica alvos." },
 
         // --- MESCLAS COM PRETA E BRANCA (MATÉRIA E NADA) [81 a 90] ---
-        { nome: "Matéria Vazia", cor: "mescla", preco: "70", receita: "Tinta Preta + Tinta Branca + Essência", efeito: "Cria e desfaz simultaneamente um objeto para abrir fechaduras." },
-        { nome: "Escudo de Antimatéria", cor: "mescla", preco: "80", receita: "Tinta Preta + Tinta Branca + Chumbo", efeito: "Anula o impacto de qualquer projétil físico ou mágico recebido." },
-        { nome: "Criação Silenciosa", cor: "mescla", preco: "65", receita: "Tinta Preta + Tinta Branca + Vácuo", efeito: "Materializa uma estrutura física sem emitir absolutamente nenhum som." },
-        { nome: "Apagar e Substituir", cor: "mescla", preco: "75", receita: "Tinta Preta + Tinta Branca + Ferro", efeito: "Apaga um obstáculo pequeno e cria uma passagem no lugar." },
-        { nome: "Anulação Térmica", cor: "mescla", preco: "60", receita: "Tinta Vermelha + Tinta Branca + Tinta Preta", efeito: "Cria um campo onde o fogo é instantaneamente anulado pelo vazio." },
-        { nome: "Forja Fantasma", cor: "mescla", preco: "85", receita: "Tinta Vermelha + Tinta Preta + Tinta Amarela", efeito: "Cria armas metálicas incandescentes prontas para uso imediato." },
-        { nome: "Cristalização do Vazio", cor: "mescla", preco: "70", receita: "Tinta Azul + Tinta Branca + Tinta Preta", efeito: "Cria um bloco de gelo indestrutível que absorve feitiços." },
-        { nome: "Prisão Absoluta", cor: "mescla", preco: "90", receita: "Tinta Preta + Tinta Branca + Corrente", efeito: "Prende o alvo em uma caixa dimensional de matéria apagada." },
-        { nome: "Silêncio de Ferro", cor: "mescla", preco: "60", receita: "Tinta Preta + Tinta Branca + Pena", efeito: "Cria uma barreira física e sonora intransponível." },
-        { nome: "Correção da Realidade", cor: "mescla", preco: "100", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Habilidade suprema: Altera um pequeno aspecto físico ou mágico do ambiente." },
+        { nome: "Matéria Vazia", cor: "mescla", receita: "Tinta Preta + Tinta Branca + Essência", efeito: "Cria e desfaz simultaneamente um objeto para abrir fechaduras." },
+        { nome: "Escudo de Antimatéria", cor: "mescla", receita: "Tinta Preta + Tinta Branca + Chumbo", efeito: "Anula o impacto de qualquer projétil físico ou mágico recebido." },
+        { nome: "Criação Silenciosa", cor: "mescla", receita: "Tinta Preta + Tinta Branca + Vácuo", efeito: "Materializa uma estrutura física sem emitir absolutamente nenhum som." },
+        { nome: "Apagar e Substituir", cor: "mescla", receita: "Tinta Preta + Tinta Branca + Ferro", efeito: "Apaga um obstáculo pequeno e cria uma passagem no lugar." },
+        { nome: "Anulação Térmica", cor: "mescla", receita: "Tinta Vermelha + Tinta Branca + Tinta Preta", efeito: "Cria um campo onde o fogo é instantaneamente anulado pelo vazio." },
+        { nome: "Forja Fantasma", cor: "mescla", receita: "Tinta Vermelha + Tinta Preta + Tinta Amarela", efeito: "Cria armas metálicas incandescentes prontas para uso imediato." },
+        { nome: "Cristalização do Vazio", cor: "mescla", receita: "Tinta Azul + Tinta Branca + Tinta Preta", efeito: "Cria um bloco de gelo indestrutível que absorve feitiços." },
+        { nome: "Prisão Absoluta", cor: "mescla", receita: "Tinta Preta + Tinta Branca + Corrente", efeito: "Prende o alvo em uma caixa dimensional de matéria apagada." },
+        { nome: "Silêncio de Ferro", cor: "mescla", receita: "Tinta Preta + Tinta Branca + Pena", efeito: "Cria uma barreira física e sonora intransponível." },
+        { nome: "Correção da Realidade", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Habilidade suprema: Altera um pequeno aspecto físico ou mágico do ambiente." },
 
         // --- MESCLAS COMPLEXAS E MULTITINTAS SUPREMAS [91 a 100] ---
-        { nome: "Fúria dos Quatro Elementos", cor: "mescla", preco: "120", receita: "Vermelha + Azul + Amarela + Preta + Gema Suprema", efeito: "Libera uma tempestade elementar massiva ao redor." },
-        { nome: "Cura Total do Pelo Mágico", cor: "mescla", preco: "90", receita: "Azul + Amarela + Branca + Ervas Raras", efeito: "Restaura 100% da vida usando os estoques do seu pelo." },
-        { nome: "Barreira do Armazém Ambulante", cor: "mescla", preco: "85", receita: "Preta + Branca + Vermelha + Ferro Puro", efeito: "Proteje o inventário guardado no pelo contra roubos/danos." },
-        { nome: "Super-Nova de Astolfo", cor: "mescla", preco: "150", receita: "Vermelha + Amarela + Branca + Diamante Puro", efeito: "Explosão gigantesca de luz e calor sob supervisão do bezerro Astolfo." },
-        { nome: "Véu Etéreo Absoluto", cor: "mescla", preco: "95", receita: "Azul + Branca + Preta + Essência Etérea", efeito: "Dá invisibilidade completa e intangibilidade física por 30 segundos." },
-        { nome: "Lança Mestra", cor: "mescla", preco: "110", receita: "Vermelha + Azul + Amarela + Aço Pura", efeito: "Cria uma arma lendária temporária com efeitos elementais combinados." },
-        { nome: "Ressurreição de Tinta", cor: "mescla", preco: "200", receita: "Todas as Tintas + Sangue de Dragão + Diamante", efeito: "Milagre supremo do grimório: Estabiliza um aliado à beira da morte." },
-        { nome: "Campo Anti-Magia Instigado", cor: "mescla", preco: "100", receita: "Branca + Preta + Símbolo Sagrado", efeito: "Anula todas as magias ativas em um raio de 6 metros." },
-        { nome: "Labaredas Espirituais", cor: "mescla", preco: "80", receita: "Vermelha + Azul + Incenso", efeito: "Causa dano de fogo espiritual que ignora defesas físicas comuns." },
-        { nome: "Apotéose Mágica", cor: "mescla", preco: "250", receita: "Tintas Puras + Diamante Bruto + Essência Divina", efeito: "Canaliza a natureza 100% mágica, dobrando o poder de todas as tintas por 3 rodadas." }
+        { nome: "Fúria dos Quatro Elementos", cor: "mescla", receita: "Vermelha + Azul + Amarela + Preta + Gema Suprema", efeito: "Libera uma tempestade elementar massiva ao redor do conjurador." },
+        { nome: "Cura Total do Pelo Mágico", cor: "mescla", receita: "Azul + Amarela + Branca + Ervas Raras", efeito: "Restaura 100% da vida usando os estoques guardados no pelo." },
+        { nome: "Barreira do Armazém Ambulante", cor: "mescla", receita: "Preta + Branca + Vermelha + Ferro Puro", efeito: "Protege o inventário guardado no pelo místico contra roubos e danos." },
+        { nome: "Super-Nova Arcana", cor: "mescla", receita: "Vermelha + Amarela + Branca + Diamante Puro", efeito: "Explosão gigantesca de luz e calor sob supervisão mística." },
+        { nome: "Véu Etéreo Absoluto", cor: "mescla", receita: "Azul + Branca + Preta + Essência Etérea", efeito: "Dá invisibilidade completa e intangibilidade física por 30 segundos." },
+        { nome: "Lança Mestra", cor: "mescla", receita: "Vermelha + Azul + Amarela + Aço Pura", efeito: "Cria uma arma lendária temporária com efeitos elementais combinados." },
+        { nome: "Ressurreição de Tinta", cor: "mescla", receita: "Todas as Tintas + Sangue de Dragão + Diamante", efeito: "Milagre supremo do grimório: Estabiliza um aliado à beira da morte." },
+        { nome: "Campo Anti-Magia", cor: "mescla", receita: "Branca + Preta + Símbolo Sagrado", efeito: "Anula todas as magias ativas em um raio de 6 metros." },
+        { nome: "Labaredas Espirituais", cor: "mescla", receita: "Vermelha + Azul + Incenso", efeito: "Causa dano de fogo espiritual que ignora defesas físicas comuns." },
+        { nome: "Apotéose Mágica", cor: "mescla", receita: "Tintas Puras + Diamante Bruto + Essência Divina", efeito: "Canaliza essência pura, dobrando o poder de todas as tintas por 3 rodadas." }
     ];
 
     const container = document.getElementById('lista-efeitos');
@@ -346,7 +377,6 @@
     function abrirModalOriginal(ef) {
         document.getElementById('modal-titulo').innerText = ef.nome;
         document.getElementById('modal-cor').innerText = ef.cor.toUpperCase();
-        document.getElementById('modal-preco').innerText = ef.preco;
         document.getElementById('modal-receita').innerText = ef.receita;
         document.getElementById('modal-efeito').innerText = ef.efeito;
         document.getElementById('modal').style.display = 'flex';
@@ -366,6 +396,7 @@
         renderizarCards(filtrados);
     }
 
+    // Inicialização
     renderizarCards(efeitos);
 </script>
 
