@@ -1,7 +1,6 @@
 // Importações do Firebase v9 (SDK Modular)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-
+import { getDatabase, ref, onValue, set, push, remove, get, child } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 // ==========================================
 // 1. CONFIGURAÇÃO DO FIREBASE
 // COLOQUE SUAS CHAVES AQUI, MESTRE!
@@ -27,6 +26,7 @@ const db = getDatabase(app);
 let currentUser = "";
 let userGrimoire = [];
 let currentSpellId = null;
+let isMasterAuthenticated = false;
 
 // ==========================================
 // 3. O GRIMÓRIO ORIGINAL DE DIÓGENES
@@ -194,7 +194,7 @@ function login(username) {
     
     DOM.loginScreen.classList.add('hidden');
     DOM.appScreen.classList.remove('hidden');
-
+    registrarLog("Adentrou o grimório.");
     carregarGrimorioDoFirebase();
 }
 
@@ -338,6 +338,8 @@ document.getElementById('btn-roll').addEventListener('click', () => {
         const logEntry = document.createElement('div');
         logEntry.innerText = `[D${sides}] rolou ${roll} ${mod !== 0 ? (mod > 0 ? '+'+mod : mod) : ''} = ${total}`;
         logDisplay.prepend(logEntry);
+
+         registrarLog(`Rolou [D${sides}] e obteve o resultado ${total}`);
     }, 400); // tempo da animação
 });
 
@@ -396,4 +398,161 @@ document.getElementById('btn-share-calc').addEventListener('click', () => {
     
     const zapUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
     window.open(zapUrl, '_blank');
+});
+// ==========================================
+// SISTEMA DE AUDITORIA (LOG DO MESTRE)
+// ==========================================
+function registrarLog(acao) {
+    // Não registra ações se o usuário não estiver logado
+    if (!currentUser) return; 
+    
+    const logRef = push(ref(db, 'system_logs'));
+    const dataAtual = new Date();
+    const horaFormatada = `${dataAtual.getHours().toString().padStart(2, '0')}:${dataAtual.getMinutes().toString().padStart(2, '0')}`;
+    
+    set(logRef, {
+        jogador: currentUser,
+        acao: acao,
+        hora: horaFormatada,
+        timestamp: Date.now()
+    });
+}
+
+// Injetar o log no login existente
+// Onde você tem a função login(username), adicione dentro dela:
+// registrarLog("Adentrou o grimório.");
+
+// ==========================================
+// AUTENTICAÇÃO DO MESTRE E EXIBIÇÃO DE LOGS
+// ==========================================
+const DOM_GM = {
+    modalAuth: document.getElementById('modal-gm-auth'),
+    passInput: document.getElementById('gm-password-input'),
+    btnSubmit: document.getElementById('btn-submit-gm-auth'),
+    closeModal: document.getElementById('close-gm-modal'),
+    logContainer: document.getElementById('master-log-container'),
+    authTitle: document.getElementById('gm-auth-title'),
+    authDesc: document.getElementById('gm-auth-desc')
+};
+
+document.getElementById('btn-tab-gm').addEventListener('click', (e) => {
+    if (!isMasterAuthenticated) {
+        // Impede a abertura da aba imediatamente
+        e.preventDefault();
+        document.getElementById('tab-gm').classList.add('hidden');
+        document.getElementById('btn-tab-gm').classList.remove('active');
+        
+        // Verifica no Firebase se já existe uma senha
+        const dbRef = ref(db);
+        get(child(dbRef, `gm_settings/password`)).then((snapshot) => {
+            if (snapshot.exists()) {
+                DOM_GM.authTitle.innerText = "O Selo do Mestre";
+                DOM_GM.authDesc.innerText = "Digite a senha para acessar os registros.";
+            } else {
+                DOM_GM.authTitle.innerText = "Criar Selo do Mestre";
+                DOM_GM.authDesc.innerText = "Primeiro acesso detectado. Defina a senha mestre.";
+            }
+            DOM_GM.modalAuth.style.display = 'flex';
+        }).catch((error) => {
+            console.error(error);
+            alert("Erro nas correntes mágicas do banco de dados.");
+        });
+    }
+});
+
+DOM_GM.closeModal.onclick = () => DOM_GM.modalAuth.style.display = 'none';
+
+DOM_GM.btnSubmit.addEventListener('click', () => {
+    const inputPass = DOM_GM.passInput.value;
+    if (!inputPass) return alert("A senha não pode ser um vazio.");
+
+    const dbRef = ref(db);
+    get(child(dbRef, `gm_settings/password`)).then((snapshot) => {
+        if (snapshot.exists()) {
+            // Senha já existe, validar
+            if (snapshot.val() === inputPass) {
+                liberarAcessoMestre();
+            } else {
+                alert("Senha incorreta. A magia o rejeita.");
+            }
+        } else {
+            // Criar senha pela primeira vez
+            set(ref(db, 'gm_settings/password'), inputPass).then(() => {
+                alert("Senha mestre forjada com sucesso!");
+                liberarAcessoMestre();
+            });
+        }
+    });
+});
+
+function liberarAcessoMestre() {
+    isMasterAuthenticated = true;
+    DOM_GM.modalAuth.style.display = 'none';
+    DOM_GM.passInput.value = "";
+    
+    // Força a ativação da aba
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    document.getElementById('btn-tab-gm').classList.add('active');
+    document.getElementById('tab-gm').classList.remove('hidden');
+
+    iniciarEscutaDeLogs();
+}
+
+function iniciarEscutaDeLogs() {
+    const logsRef = ref(db, 'system_logs');
+    onValue(logsRef, (snapshot) => {
+        DOM_GM.logContainer.innerHTML = "";
+        const data = snapshot.val();
+        if (data) {
+            // Converte e ordena por tempo (mais recentes no topo)
+            const logsArray = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
+            logsArray.forEach(log => {
+                const div = document.createElement('div');
+                div.className = 'log-entry';
+                div.innerHTML = `<span class="log-time">[${log.hora}]</span> <span class="log-player">${log.jogador.toUpperCase()}</span>: ${log.acao}`;
+                DOM_GM.logContainer.appendChild(div);
+            });
+        } else {
+            DOM_GM.logContainer.innerHTML = "<p class='text-muted'>O Akasha está silencioso. Nenhum registro encontrado.</p>";
+        }
+    });
+}
+
+document.getElementById('btn-clear-log').addEventListener('click', () => {
+    if (confirm("Isto apagará a história. Tem certeza, Mestre?")) {
+        remove(ref(db, 'system_logs'));
+    }
+});
+
+// ==========================================
+// SISTEMA DE FORJA (CRAFTING TABLE)
+// ==========================================
+document.getElementById('btn-craft').addEventListener('click', () => {
+    const ing1 = document.getElementById('craft-item-1').value.trim();
+    const ing2 = document.getElementById('craft-item-2').value.trim();
+    const nomeItem = document.getElementById('craft-result-name').value.trim();
+
+    if (!ing1 || !ing2 || !nomeItem) {
+        return alert("Coloque os dois ingredientes e o nome do item final na mesa!");
+    }
+
+    const receitaCombinada = `${ing1} + ${ing2}`;
+    
+    // Salva o novo item direto no inventário do jogador atual no Firebase
+    const novaMagiaRef = push(ref(db, 'grimoires/' + currentUser));
+    set(novaMagiaRef, { 
+        nome: nomeItem, 
+        cor: "mescla", 
+        receita: receitaCombinada, 
+        efeito: "Item forjado manualmente pelo aventureiro." 
+    }).then(() => {
+        registrarLog(`Forjou o item [${nomeItem}] usando ${receitaCombinada}`);
+        alert(`O item ${nomeItem} foi criado e guardado no seu Grimório!`);
+        
+        // Limpa a mesa de crafting
+        document.getElementById('craft-item-1').value = "";
+        document.getElementById('craft-item-2').value = "";
+        document.getElementById('craft-result-name').value = "";
+    });
 });
