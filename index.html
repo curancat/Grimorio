@@ -13,7 +13,7 @@
     <div id="login-screen" class="screen alive-container">
         <h1>Identifique-se, Viajante</h1>
         <p>A magia antiga exige um nome para revelar seus segredos.</p>
-        <input type="text" id="username-input" placeholder="Seu nome (ex: Diogenes)" autocomplete="off">
+        <input type="text" id="username-input" placeholder="Seu nome" autocomplete="off">
         <button id="btn-login" class="btn-mystic">Selar Contrato</button>
     </div>
 
@@ -63,6 +63,7 @@
                 
                 <div id="dice-result" class="dice-result mt-15">-</div>
                 <div id="dice-log" class="dice-log mt-15"></div>
+               <button id="btn-share-dice" class="btn-mystic mt-15" style="background: linear-gradient(180deg, #128C7E, #075E54); border-color: #25D366; color: #fff;">Enviar pro Zap 📱</button>
             </div>
 
             <!-- ABA: CALCULADORA -->
@@ -72,6 +73,7 @@
                 <input type="text" id="calc-input" class="input-mystic w-full text-center mt-15" placeholder="Expressão...">
                 <button id="btn-calc" class="btn-mystic mt-15">Calcular</button>
                 <div id="calc-result" class="dice-result mt-15">-</div>
+                <button id="btn-share-calc" class="btn-mystic mt-15" style="background: linear-gradient(180deg, #128C7E, #075E54); border-color: #25D366; color: #fff;">Enviar pro Zap 📱</button>
             </div>
         </main>
     </div>
@@ -83,12 +85,12 @@
             <h2>Forjar Nova Magia/Item</h2>
             <input type="text" id="new-nome" class="input-mystic w-full mb-10" placeholder="Nome">
             <select id="new-cor" class="input-mystic w-full mb-10">
-                <option value="vermelha">Vermelha (Fogo/Ataque)</option>
-                <option value="azul">Azul (Água/Espiritual)</option>
-                <option value="amarela">Amarela (Luz/Cura)</option>
-                <option value="preta">Preta (Matéria/Físico)</option>
-                <option value="branca">Branca (Vazio/Apagar)</option>
-                <option value="mescla">Mescla (Suprema/Híbrida)</option>
+                <option value="vermelha">vermelho (Ataque)</option>
+                <option value="azul">Azul (Espiritual</option>
+                <option value="amarela">Amarela (Cura)</option>
+                <option value="preta">Preta (Físico)</option>
+                <option value="branca">Branca (Vazio)</option>
+                <option value="mescla">Mescla (Híbrida)</option>
             </select>
             <input type="text" id="new-receita" class="input-mystic w-full mb-10" placeholder="Receita / Componentes">
             <textarea id="new-efeito" class="input-mystic w-full mb-10" placeholder="Efeito detalhado..." rows="4"></textarea>
