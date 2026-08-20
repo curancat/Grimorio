@@ -78,18 +78,43 @@
                 <button id="btn-share-calc" class="btn-mystic mt-15" style="background: linear-gradient(180deg, #128C7E, #075E54); border-color: #25D366; color: #fff;">Enviar pro Zap 📱</button>
             </div>
             <!-- ABA: FORJA MÍSTICA (CRAFTING) -->
+            <!-- ABA: FORJA MÍSTICA (VISUAL E CANVAS) -->
 <div id="tab-craft" class="tab-content hidden text-center">
     <h2>Mesa de Transmutação</h2>
-    <p class="text-muted">Combine dois materiais para forjar o desconhecido.</p>
-    <div class="actions">
-        <input type="text" id="craft-item-1" class="input-mystic" placeholder="Ingrediente 1 (ex: Pó de Fogo)">
-        <span class="mod-sign">+</span>
-        <input type="text" id="craft-item-2" class="input-mystic" placeholder="Ingrediente 2 (ex: Frasco de Óleo)">
-    </div>
-    <input type="text" id="craft-result-name" class="input-mystic w-full mb-10 mt-15" placeholder="Nome do Item Forjado">
-    <button id="btn-craft" class="btn-mystic w-full mt-15">Transmutar e Guardar no Inventário</button>
-</div>
+    <p class="text-muted">Selecione os itens do inventário para o círculo de fusão.</p>
 
+    <!-- Área de Forja Visual -->
+    <div class="crafting-area" id="crafting-area">
+        <!-- Canvas para a Animação Mágica -->
+        <canvas id="craft-canvas" class="craft-canvas"></canvas>
+
+        <div class="crafting-slots" id="crafting-slots">
+            <div id="slot-1" class="craft-slot" onclick="removerDoSlot(1)">
+                <span class="slot-placeholder">Vazio</span>
+            </div>
+            <span class="mod-sign glow" style="font-size: 2rem;">+</span>
+            <div id="slot-2" class="craft-slot" onclick="removerDoSlot(2)">
+                <span class="slot-placeholder">Vazio</span>
+            </div>
+        </div>
+
+        <div class="craft-result-setup mt-15" style="display: flex; gap: 10px; position: relative; z-index: 2;">
+            <input type="text" id="craft-emoji-input" class="input-mystic" placeholder="Ícone (ex: 🗡️)" maxlength="2" style="width: 100px; text-align: center; font-size: 1.5rem;">
+            <input type="text" id="craft-result-name" class="input-mystic w-full" placeholder="Nome do Item Forjado">
+        </div>
+
+        <button id="btn-craft-visual" class="btn-mystic w-full mt-15" style="position: relative; z-index: 2;">Forjar Item</button>
+    </div>
+
+    <!-- Inventário do Jogador -->
+    <h3 class="mt-15" style="color: var(--borda-ouro); border-bottom: 1px solid var(--borda-ouro); padding-bottom: 5px; text-align: left;">Bolsa de Componentes</h3>
+    
+    <div class="inventory-grid" id="craft-inventory-grid">
+        <!-- Os itens com Emoji aparecerão aqui gerados pelo JS -->
+    </div>
+    
+    <button id="btn-add-material" class="btn-mystic small mt-15" style="background: var(--painel-fundo);">+ Coletar Material Base</button>
+</div>
 <!-- ABA: LOG DO MESTRE -->
 <div id="tab-gm" class="tab-content hidden text-center">
     <h2>Registros do Akasha (Log do Mestre)</h2>
