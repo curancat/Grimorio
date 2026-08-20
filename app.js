@@ -196,6 +196,7 @@ function login(username) {
     DOM.appScreen.classList.remove('hidden');
     registrarLog("Adentrou o grimório.");
     carregarGrimorioDoFirebase();
+    carregarInventarioDoFirebase();
 }
 
 // ==========================================
@@ -243,8 +244,6 @@ function renderizarCards(lista) {
         div.onclick = () => abrirModalView(ef);
         DOM.grid.appendChild(div);
     });
-  // Adicione esta linha no final da função renderizarCards(lista):
-    renderizarInventarioVisual(lista);
 }
 
 // ==========================================
@@ -526,30 +525,53 @@ document.getElementById('btn-clear-log').addEventListener('click', () => {
         remove(ref(db, 'system_logs'));
     }
 });
-
 // ==========================================
-// SISTEMA DE FORJA VISUAL E INVENTÁRIO COM CANVAS
+// 12. SISTEMA DE INVENTÁRIO E FORJA SEPARADOS
 // ==========================================
+let userInventory = []; // Lista separada para Itens/Componentes
 let slot1 = null;
 let slot2 = null;
 
-// Renderiza os itens no grid visual de Crafting
-function renderizarInventarioVisual(lista) {
+// Escuta os itens do Inventário do Firebase (Separado do Grimório)
+function carregarInventarioDoFirebase() {
+    if (!currentUser) return;
+    
+    const invRef = ref(db, 'inventory/' + currentUser);
+    onValue(invRef, (snapshot) => {
+        const data = snapshot.val();
+        userInventory = [];
+        if (data) {
+            Object.keys(data).forEach(id => {
+                userInventory.push({ id, ...data[id] });
+            });
+        }
+        renderizarInventarioVisual(userInventory);
+    });
+}
+
+// Chamar o inventário logo após fazer o login:
+// Adicione a chamada 'carregarInventarioDoFirebase();' na sua função de login()
+
+// Renderiza APENAS os itens do Inventário na Bolsa de Componentes
+function renderizarInventarioVisual(itens) {
     const grid = document.getElementById('craft-inventory-grid');
-    if(!grid) return;
+    if (!grid) return;
     
     grid.innerHTML = "";
     
-    // Filtramos para mostrar tudo ou apenas itens que possuem emojis (para organizar melhor)
-    lista.forEach(item => {
-        // Se a magia/item não tiver emoji salvo, damos um padrão 📜
-        const icone = item.emoji ? item.emoji : "📜";
+    if (itens.length === 0) {
+        grid.innerHTML = "<p class='text-muted w-full text-center' style='grid-column: 1/-1;'>Nenhum material na bolsa. Clique em '+ Coletar Material Base' para adicionar ingredientes.</p>";
+        return;
+    }
+    
+    itens.forEach(item => {
+        const icone = item.emoji ? item.emoji : "📦";
         
         const div = document.createElement('div');
         div.className = 'inv-item';
         div.innerHTML = `<div class="emoji">${icone}</div><div class="name">${item.nome}</div>`;
         
-        // Ao clicar no item do inventário
+        // Ao clicar no item
         div.onclick = () => selecionarParaForja(item, icone);
         
         grid.appendChild(div);
@@ -564,13 +586,11 @@ function selecionarParaForja(item, icone) {
         slot2 = { ...item, emojiVisual: icone };
         atualizarSlotsDOM();
     } else {
-        // Se estiver cheio, substitui o segundo slot
         slot2 = { ...item, emojiVisual: icone };
         atualizarSlotsDOM();
     }
 }
 
-// Essa função precisa ser exposta no escopo global (window) pois está no onclick do HTML
 window.removerDoSlot = function(numeroSlot) {
     if (numeroSlot === 1) slot1 = null;
     if (numeroSlot === 2) slot2 = null;
@@ -598,107 +618,42 @@ function atualizarSlotsDOM() {
     }
 }
 
-// ==========================================
-// MOTOR DE ANIMAÇÃO COM CANVAS (PARTÍCULAS)
-// ==========================================
-function iniciarAnimacaoMagica(callbackFinal) {
-    const canvas = document.getElementById('craft-canvas');
-    const ctx = canvas.getContext('2d');
-    const area = document.getElementById('crafting-area');
-    
-    canvas.width = area.clientWidth;
-    canvas.height = area.clientHeight;
-    
-    const particles = [];
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    let animacaoAtiva = true;
-
-    // Adiciona classe CSS pra tremer os ícones
-    document.getElementById('crafting-slots').classList.add('forjando');
-
-    // Gerador de Partículas
-    for(let i = 0; i < 100; i++) {
-        particles.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            raio: Math.random() * 3 + 1,
-            cor: `hsl(${Math.random() * 60 + 30}, 100%, 70%)`, // Cores místicas (Dourado/Fogo)
-            velocidadeX: (Math.random() - 0.5) * 5,
-            velocidadeY: (Math.random() - 0.5) * 5,
-        });
-    }
-
-    function animar() {
-        if (!animacaoAtiva) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        particles.forEach(p => {
-            // Desenha partícula
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.raio, 0, Math.PI * 2);
-            ctx.fillStyle = p.cor;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = p.cor;
-            ctx.fill();
-            
-            // Movimento puxando pro centro (Buraco negro mágico)
-            p.x += (centerX - p.x) * 0.05 + p.velocidadeX;
-            p.y += (centerY - p.y) * 0.05 + p.velocidadeY;
-        });
-
-        // Flash branco no centro
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, Math.random() * 50 + 20, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-        ctx.fill();
-
-        requestAnimationFrame(animar);
-    }
-
-    animar();
-
-    // Duração da animação mágica (2 segundos)
-    setTimeout(() => {
-        animacaoAtiva = false;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        document.getElementById('crafting-slots').classList.remove('forjando');
-        callbackFinal();
-    }, 2000);
-}
-
-// Botão de Transmutar
+// Botão de Transmutar - Salva no INVENTÁRIO (inventory/) e remove os ingredientes usados
 document.getElementById('btn-craft-visual').addEventListener('click', () => {
-    if (!slot1 || !slot2) return alert("Os dois focos da balança precisam de itens!");
+    if (!slot1 || !slot2) return alert("Coloque dois materiais nos slots para forjar!");
     
     const nomeItem = document.getElementById('craft-result-name').value.trim();
     const emojiItem = document.getElementById('craft-emoji-input').value.trim();
 
-    if (!nomeItem || !emojiItem) return alert("Dê um nome e um ícone (emoji) para o novo item!");
+    if (!nomeItem || !emojiItem) return alert("Defina um nome e um emoji para o novo item!");
 
-    // Trava os botões para não clicar duas vezes
     document.getElementById('btn-craft-visual').disabled = true;
 
-    // Dispara a animação visual épica no Canvas
+    // Inicia a Animação no Canvas
     iniciarAnimacaoMagica(() => {
         const receitaCombinada = `${slot1.nome} + ${slot2.nome}`;
         
-        // Firebase
-        const novaMagiaRef = push(ref(db, 'grimoires/' + currentUser));
-        set(novaMagiaRef, { 
+        // 1. O novo item vai para 'inventory/'
+        const novoItemRef = push(ref(db, 'inventory/' + currentUser));
+        set(novoItemRef, { 
             nome: nomeItem, 
-            emoji: emojiItem, // Salvando o Emoji!
-            cor: "mescla", 
-            receita: receitaCombinada, 
-            efeito: "Item forjado através de alquimia superior." 
+            emoji: emojiItem,
+            criadoEm: Date.now(),
+            receita: receitaCombinada
         }).then(() => {
-            if(typeof registrarLog === "function") {
-                registrarLog(`Forjou [${emojiItem} ${nomeItem}] combinando ${slot1.nome} e ${slot2.nome}`);
+            // 2. Opcional: Consumir/Remover os ingredientes originais do Firebase
+            if (slot1.id) remove(ref(db, `inventory/${currentUser}/${slot1.id}`));
+            if (slot2.id) remove(ref(db, `inventory/${currentUser}/${slot2.id}`));
+
+            if (typeof registrarLog === "function") {
+                registrarLog(`Forjou o item [${emojiItem} ${nomeItem}] combinando ${slot1.nome} + ${slot2.nome}`);
             }
-            alert(`A alquimia foi concluída! ${emojiItem} ${nomeItem} adicionado ao grimório.`);
             
-            // Limpa a mesa
-            slot1 = null; slot2 = null;
+            alert(`Item Criado! ${emojiItem} ${nomeItem} foi adicionado ao seu Inventário.`);
+            
+            // Reseta a mesa
+            slot1 = null; 
+            slot2 = null;
             atualizarSlotsDOM();
             document.getElementById('craft-result-name').value = "";
             document.getElementById('craft-emoji-input').value = "";
@@ -707,21 +662,18 @@ document.getElementById('btn-craft-visual').addEventListener('click', () => {
     });
 });
 
-// Adicionar um material bruto direto do inventário
+// Adicionar Material Base direto ao Inventário
 document.getElementById('btn-add-material').addEventListener('click', () => {
-    const nome = prompt("Nome do Material Base (ex: Flor de Fogo):");
+    const nome = prompt("Nome do Material ou Ingrediente (ex: Minério de Ferro):");
     if (!nome) return;
-    const emoji = prompt("Ícone do Material (cole um Emoji, ex: 🌺):");
-    if (!emoji) return;
+    const emoji = prompt("Ícone / Emoji do Material (ex: 🪨):") || "📦";
 
-    const novaMagiaRef = push(ref(db, 'grimoires/' + currentUser));
-    set(novaMagiaRef, { 
+    const novoMaterialRef = push(ref(db, 'inventory/' + currentUser));
+    set(novoMaterialRef, { 
         nome: nome, 
-        emoji: emoji, 
-        cor: "branca", 
-        receita: "Natureza / Saque", 
-        efeito: "Material bruto de Forja." 
+        emoji: emoji,
+        criadoEm: Date.now()
     }).then(() => {
-        if(typeof registrarLog === "function") registrarLog(`Coletou material: ${emoji} ${nome}`);
+        if (typeof registrarLog === "function") registrarLog(`Adicionou ao Inventário: ${emoji} ${nome}`);
     });
 });
