@@ -1,1 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sandbox Arcana - O Grimório Vivo</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
 
+    <!-- Tela de Login -->
+    <div id="login-screen" class="screen alive-container">
+        <h1>Identifique-se, Viajante</h1>
+        <p>A magia antiga exige um nome para revelar seus segredos.</p>
+        <input type="text" id="username-input" placeholder="Seu nome (ex: Diogenes)" autocomplete="off">
+        <button id="btn-login" class="btn-mystic">Despertar Grimório</button>
+    </div>
+
+    <!-- Tela Principal do App -->
+    <div id="app-screen" class="screen hidden">
+        <header class="alive-container">
+            <h1 id="user-title">Grimório</h1>
+            <button id="btn-logout" class="btn-mystic small">Sair</button>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-target="tab-grimoire">📖 Grimório & Inventário</button>
+            <button class="tab-btn" data-target="tab-dice">🎲 Rolagem de Dados</button>
+            <button class="tab-btn" data-target="tab-calc">🧮 Calculadora Arcana</button>
+        </nav>
+
+        <main class="alive-container">
+            <!-- ABA: GRIMÓRIO -->
+            <div id="tab-grimoire" class="tab-content active">
+                <div class="actions">
+                    <input type="text" id="search-input" class="input-mystic" placeholder="Pesquisar magia, efeito ou item...">
+                    <button id="btn-add-spell" class="btn-mystic">+ Nova Magia/Item</button>
+                </div>
+                
+                <div class="grid" id="lista-efeitos">
+                    <!-- Os cards serão gerados pelo JS -->
+                </div>
+            </div>
+
+            <!-- ABA: DADOS -->
+            <div id="tab-dice" class="tab-content hidden text-center">
+                <h2>Os Dados do Destino</h2>
+                <div class="dice-controls">
+                    <select id="dice-type" class="input-mystic">
+                        <option value="4">D4</option>
+                        <option value="6">D6</option>
+                        <option value="8">D8</option>
+                        <option value="10">D10</option>
+                        <option value="12">D12</option>
+                        <option value="20" selected>D20</option>
+                        <option value="100">D100</option>
+                    </select>
+                    <span class="mod-sign">+</span>
+                    <input type="number" id="dice-mod" class="input-mystic mod-input" placeholder="Mod" value="0">
+                </div>
+                <button id="btn-roll" class="btn-mystic mt-15">Rolar Destino</button>
+                
+                <div id="dice-result" class="dice-result mt-15">-</div>
+                <div id="dice-log" class="dice-log mt-15"></div>
+            </div>
+
+            <!-- ABA: CALCULADORA -->
+            <div id="tab-calc" class="tab-content hidden text-center">
+                <h2>Cálculos de Sistema</h2>
+                <p class="text-muted">Insira expressões matemáticas (ex: 15 * 2 + 10)</p>
+                <input type="text" id="calc-input" class="input-mystic w-full text-center mt-15" placeholder="Expressão...">
+                <button id="btn-calc" class="btn-mystic mt-15">Calcular</button>
+                <div id="calc-result" class="dice-result mt-15">-</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Adicionar Magia -->
+    <div id="modal-add" class="modal">
+        <div class="modal-content alive-container">
+            <span class="close-btn" id="close-add-modal">&times;</span>
+            <h2>Forjar Nova Magia/Item</h2>
+            <input type="text" id="new-nome" class="input-mystic w-full mb-10" placeholder="Nome">
+            <select id="new-cor" class="input-mystic w-full mb-10">
+                <option value="vermelha">Vermelha (Fogo/Ataque)</option>
+                <option value="azul">Azul (Água/Espiritual)</option>
+                <option value="amarela">Amarela (Luz/Cura)</option>
+                <option value="preta">Preta (Matéria/Físico)</option>
+                <option value="branca">Branca (Vazio/Apagar)</option>
+                <option value="mescla">Mescla (Suprema/Híbrida)</option>
+            </select>
+            <input type="text" id="new-receita" class="input-mystic w-full mb-10" placeholder="Receita / Componentes">
+            <textarea id="new-efeito" class="input-mystic w-full mb-10" placeholder="Efeito detalhado..." rows="4"></textarea>
+            <button id="btn-save-spell" class="btn-mystic w-full">Gravar no Grimório</button>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes da Magia -->
+    <div id="modal-view" class="modal">
+        <div class="modal-content alive-container">
+            <span class="close-btn" id="close-view-modal">&times;</span>
+            <h2 id="view-titulo"></h2>
+            <p><strong>Tipo/Cor:</strong> <span id="view-cor"></span></p>
+            <p><strong>Receita:</strong> <span id="view-receita"></span></p>
+            <p><strong>Efeito:</strong> <span id="view-efeito"></span></p>
+            <button id="btn-delete-spell" class="btn-mystic w-full mt-15" style="background: var(--cor-vermelha);">Rasgar Página (Apagar)</button>
+        </div>
+    </div>
+
+    <!-- SDK do Firebase (Módulo v9) e Script Principal -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
