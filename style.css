@@ -169,3 +169,30 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     .actions { flex-direction: column; }
     .tabs { flex-direction: column; }
 }
+
+
+/* Estilos Específicos para o Log do Mestre e Crafting */
+#master-log-container {
+    background: rgba(5, 7, 10, 0.9);
+    border: 1px solid var(--cor-vermelha);
+    padding: 15px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 0.95rem;
+}
+
+.log-entry {
+    border-bottom: 1px solid #333;
+    padding: 5px 0;
+    margin-bottom: 5px;
+}
+
+.log-time {
+    color: var(--borda-ouro);
+    margin-right: 10px;
+}
+
+.log-player {
+    color: var(--borda-ouro-clara);
+    font-weight: bold;
+}
