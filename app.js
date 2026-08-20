@@ -243,6 +243,8 @@ function renderizarCards(lista) {
         div.onclick = () => abrirModalView(ef);
         DOM.grid.appendChild(div);
     });
+  // Adicione esta linha no final da função renderizarCards(lista):
+    renderizarInventarioVisual(lista);
 }
 
 // ==========================================
@@ -526,33 +528,200 @@ document.getElementById('btn-clear-log').addEventListener('click', () => {
 });
 
 // ==========================================
-// SISTEMA DE FORJA (CRAFTING TABLE)
+// SISTEMA DE FORJA VISUAL E INVENTÁRIO COM CANVAS
 // ==========================================
-document.getElementById('btn-craft').addEventListener('click', () => {
-    const ing1 = document.getElementById('craft-item-1').value.trim();
-    const ing2 = document.getElementById('craft-item-2').value.trim();
-    const nomeItem = document.getElementById('craft-result-name').value.trim();
+let slot1 = null;
+let slot2 = null;
 
-    if (!ing1 || !ing2 || !nomeItem) {
-        return alert("Coloque os dois ingredientes e o nome do item final na mesa!");
+// Renderiza os itens no grid visual de Crafting
+function renderizarInventarioVisual(lista) {
+    const grid = document.getElementById('craft-inventory-grid');
+    if(!grid) return;
+    
+    grid.innerHTML = "";
+    
+    // Filtramos para mostrar tudo ou apenas itens que possuem emojis (para organizar melhor)
+    lista.forEach(item => {
+        // Se a magia/item não tiver emoji salvo, damos um padrão 📜
+        const icone = item.emoji ? item.emoji : "📜";
+        
+        const div = document.createElement('div');
+        div.className = 'inv-item';
+        div.innerHTML = `<div class="emoji">${icone}</div><div class="name">${item.nome}</div>`;
+        
+        // Ao clicar no item do inventário
+        div.onclick = () => selecionarParaForja(item, icone);
+        
+        grid.appendChild(div);
+    });
+}
+
+function selecionarParaForja(item, icone) {
+    if (!slot1) {
+        slot1 = { ...item, emojiVisual: icone };
+        atualizarSlotsDOM();
+    } else if (!slot2) {
+        slot2 = { ...item, emojiVisual: icone };
+        atualizarSlotsDOM();
+    } else {
+        // Se estiver cheio, substitui o segundo slot
+        slot2 = { ...item, emojiVisual: icone };
+        atualizarSlotsDOM();
+    }
+}
+
+// Essa função precisa ser exposta no escopo global (window) pois está no onclick do HTML
+window.removerDoSlot = function(numeroSlot) {
+    if (numeroSlot === 1) slot1 = null;
+    if (numeroSlot === 2) slot2 = null;
+    atualizarSlotsDOM();
+}
+
+function atualizarSlotsDOM() {
+    const elSlot1 = document.getElementById('slot-1');
+    const elSlot2 = document.getElementById('slot-2');
+    
+    if (slot1) {
+        elSlot1.innerHTML = slot1.emojiVisual;
+        elSlot1.classList.add('filled');
+    } else {
+        elSlot1.innerHTML = '<span class="slot-placeholder">Vazio</span>';
+        elSlot1.classList.remove('filled');
+    }
+    
+    if (slot2) {
+        elSlot2.innerHTML = slot2.emojiVisual;
+        elSlot2.classList.add('filled');
+    } else {
+        elSlot2.innerHTML = '<span class="slot-placeholder">Vazio</span>';
+        elSlot2.classList.remove('filled');
+    }
+}
+
+// ==========================================
+// MOTOR DE ANIMAÇÃO COM CANVAS (PARTÍCULAS)
+// ==========================================
+function iniciarAnimacaoMagica(callbackFinal) {
+    const canvas = document.getElementById('craft-canvas');
+    const ctx = canvas.getContext('2d');
+    const area = document.getElementById('crafting-area');
+    
+    canvas.width = area.clientWidth;
+    canvas.height = area.clientHeight;
+    
+    const particles = [];
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    let animacaoAtiva = true;
+
+    // Adiciona classe CSS pra tremer os ícones
+    document.getElementById('crafting-slots').classList.add('forjando');
+
+    // Gerador de Partículas
+    for(let i = 0; i < 100; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            raio: Math.random() * 3 + 1,
+            cor: `hsl(${Math.random() * 60 + 30}, 100%, 70%)`, // Cores místicas (Dourado/Fogo)
+            velocidadeX: (Math.random() - 0.5) * 5,
+            velocidadeY: (Math.random() - 0.5) * 5,
+        });
     }
 
-    const receitaCombinada = `${ing1} + ${ing2}`;
+    function animar() {
+        if (!animacaoAtiva) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particles.forEach(p => {
+            // Desenha partícula
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.raio, 0, Math.PI * 2);
+            ctx.fillStyle = p.cor;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = p.cor;
+            ctx.fill();
+            
+            // Movimento puxando pro centro (Buraco negro mágico)
+            p.x += (centerX - p.x) * 0.05 + p.velocidadeX;
+            p.y += (centerY - p.y) * 0.05 + p.velocidadeY;
+        });
+
+        // Flash branco no centro
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, Math.random() * 50 + 20, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.fill();
+
+        requestAnimationFrame(animar);
+    }
+
+    animar();
+
+    // Duração da animação mágica (2 segundos)
+    setTimeout(() => {
+        animacaoAtiva = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        document.getElementById('crafting-slots').classList.remove('forjando');
+        callbackFinal();
+    }, 2000);
+}
+
+// Botão de Transmutar
+document.getElementById('btn-craft-visual').addEventListener('click', () => {
+    if (!slot1 || !slot2) return alert("Os dois focos da balança precisam de itens!");
     
-    // Salva o novo item direto no inventário do jogador atual no Firebase
+    const nomeItem = document.getElementById('craft-result-name').value.trim();
+    const emojiItem = document.getElementById('craft-emoji-input').value.trim();
+
+    if (!nomeItem || !emojiItem) return alert("Dê um nome e um ícone (emoji) para o novo item!");
+
+    // Trava os botões para não clicar duas vezes
+    document.getElementById('btn-craft-visual').disabled = true;
+
+    // Dispara a animação visual épica no Canvas
+    iniciarAnimacaoMagica(() => {
+        const receitaCombinada = `${slot1.nome} + ${slot2.nome}`;
+        
+        // Firebase
+        const novaMagiaRef = push(ref(db, 'grimoires/' + currentUser));
+        set(novaMagiaRef, { 
+            nome: nomeItem, 
+            emoji: emojiItem, // Salvando o Emoji!
+            cor: "mescla", 
+            receita: receitaCombinada, 
+            efeito: "Item forjado através de alquimia superior." 
+        }).then(() => {
+            if(typeof registrarLog === "function") {
+                registrarLog(`Forjou [${emojiItem} ${nomeItem}] combinando ${slot1.nome} e ${slot2.nome}`);
+            }
+            alert(`A alquimia foi concluída! ${emojiItem} ${nomeItem} adicionado ao grimório.`);
+            
+            // Limpa a mesa
+            slot1 = null; slot2 = null;
+            atualizarSlotsDOM();
+            document.getElementById('craft-result-name').value = "";
+            document.getElementById('craft-emoji-input').value = "";
+            document.getElementById('btn-craft-visual').disabled = false;
+        });
+    });
+});
+
+// Adicionar um material bruto direto do inventário
+document.getElementById('btn-add-material').addEventListener('click', () => {
+    const nome = prompt("Nome do Material Base (ex: Flor de Fogo):");
+    if (!nome) return;
+    const emoji = prompt("Ícone do Material (cole um Emoji, ex: 🌺):");
+    if (!emoji) return;
+
     const novaMagiaRef = push(ref(db, 'grimoires/' + currentUser));
     set(novaMagiaRef, { 
-        nome: nomeItem, 
-        cor: "mescla", 
-        receita: receitaCombinada, 
-        efeito: "Item forjado manualmente pelo aventureiro." 
+        nome: nome, 
+        emoji: emoji, 
+        cor: "branca", 
+        receita: "Natureza / Saque", 
+        efeito: "Material bruto de Forja." 
     }).then(() => {
-        registrarLog(`Forjou o item [${nomeItem}] usando ${receitaCombinada}`);
-        alert(`O item ${nomeItem} foi criado e guardado no seu Grimório!`);
-        
-        // Limpa a mesa de crafting
-        document.getElementById('craft-item-1').value = "";
-        document.getElementById('craft-item-2').value = "";
-        document.getElementById('craft-result-name').value = "";
+        if(typeof registrarLog === "function") registrarLog(`Coletou material: ${emoji} ${nome}`);
     });
 });
