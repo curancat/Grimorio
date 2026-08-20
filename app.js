@@ -357,3 +357,43 @@ document.getElementById('btn-calc').addEventListener('click', () => {
         resultDisplay.innerText = "Erro na Formulação";
     }
 });
+
+// ==========================================
+// 10. COMPARTILHAMENTO MÍSTICO (WHATSAPP)
+// ==========================================
+
+// Compartilhar Dados
+document.getElementById('btn-share-dice').addEventListener('click', () => {
+    const total = document.getElementById('dice-result').innerText;
+    
+    // Pega a última rolagem do log para dar mais contexto (Ex: [D20] rolou 15 + 2 = 17)
+    const logElements = document.getElementById('dice-log').children;
+    let detalhe = logElements.length > 0 ? logElements[0].innerText : "";
+
+    // Trava para não compartilhar se não tiver rolado nada
+    if (total === "-" || total === "🎲") {
+        return alert("Role os dados antes de invocar o Zap, mestre!");
+    }
+
+    // Formata a mensagem com o nome do usuário logado
+    const texto = `🎲 *Rolagem do Destino de ${currentUser}* 🎲\n\nResultado Final: *${total}*\nDetalhes: _${detalhe}_\n\n🔮 _Enviado do Grimório Vivo_`;
+    
+    // Abre a URL do WhatsApp
+    const zapUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+    window.open(zapUrl, '_blank');
+});
+
+// Compartilhar Calculadora
+document.getElementById('btn-share-calc').addEventListener('click', () => {
+    const resultado = document.getElementById('calc-result').innerText;
+    const expressao = document.getElementById('calc-input').value;
+
+    if (resultado === "-" || resultado === "Erro na Formulação" || expressao.trim() === "") {
+        return alert("Realize um cálculo válido primeiro!");
+    }
+
+    const texto = `🧮 *Cálculo de Sistema (${currentUser})* 🧮\n\nEquação: ${expressao}\nResultado: *${resultado}*\n\n🔮 _Enviado do Grimório Vivo_`;
+    
+    const zapUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+    window.open(zapUrl, '_blank');
+});
