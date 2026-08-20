@@ -28,6 +28,8 @@
             <button class="tab-btn active" data-target="tab-grimoire">📖 Grimório & Inventário</button>
             <button class="tab-btn" data-target="tab-dice">🎲 Rolagem de Dados</button>
             <button class="tab-btn" data-target="tab-calc">🧮 Calculadora Arcana</button>
+            <button class="tab-btn" data-target="tab-craft">🛠️ Forja Mística</button>
+            <button class="tab-btn" id="btn-tab-gm" data-target="tab-gm">👁️ Olho do Mestre</button>
         </nav>
 
         <main class="alive-container">
@@ -75,6 +77,27 @@
                 <div id="calc-result" class="dice-result mt-15">-</div>
                 <button id="btn-share-calc" class="btn-mystic mt-15" style="background: linear-gradient(180deg, #128C7E, #075E54); border-color: #25D366; color: #fff;">Enviar pro Zap 📱</button>
             </div>
+            <!-- ABA: FORJA MÍSTICA (CRAFTING) -->
+<div id="tab-craft" class="tab-content hidden text-center">
+    <h2>Mesa de Transmutação</h2>
+    <p class="text-muted">Combine dois materiais para forjar o desconhecido.</p>
+    <div class="actions">
+        <input type="text" id="craft-item-1" class="input-mystic" placeholder="Ingrediente 1 (ex: Pó de Fogo)">
+        <span class="mod-sign">+</span>
+        <input type="text" id="craft-item-2" class="input-mystic" placeholder="Ingrediente 2 (ex: Frasco de Óleo)">
+    </div>
+    <input type="text" id="craft-result-name" class="input-mystic w-full mb-10 mt-15" placeholder="Nome do Item Forjado">
+    <button id="btn-craft" class="btn-mystic w-full mt-15">Transmutar e Guardar no Inventário</button>
+</div>
+
+<!-- ABA: LOG DO MESTRE -->
+<div id="tab-gm" class="tab-content hidden text-center">
+    <h2>Registros do Akasha (Log do Mestre)</h2>
+    <div id="master-log-container" class="dice-log mt-15" style="max-height: 400px; text-align: left;">
+        <!-- Logs aparecerão aqui -->
+    </div>
+    <button id="btn-clear-log" class="btn-mystic mt-15" style="background: var(--cor-vermelha);">Purgar Registros</button>
+</div>
         </main>
     </div>
 
@@ -109,7 +132,16 @@
             <button id="btn-delete-spell" class="btn-mystic w-full mt-15" style="background: var(--cor-vermelha);">Rasgar Página (Apagar)</button>
         </div>
     </div>
-
+    <!-- Modal Autenticação do Mestre -->
+<div id="modal-gm-auth" class="modal">
+    <div class="modal-content alive-container text-center">
+        <span class="close-btn" id="close-gm-modal">&times;</span>
+        <h2 id="gm-auth-title">O Selo do Mestre</h2>
+        <p class="text-muted" id="gm-auth-desc">Acesso restrito aos arquitetos do destino.</p>
+        <input type="password" id="gm-password-input" class="input-mystic w-full mb-10" placeholder="Digite a Senha Mestra">
+        <button id="btn-submit-gm-auth" class="btn-mystic w-full">Desbloquear Visão</button>
+    </div>
+</div>
     <!-- SDK do Firebase (Módulo v9) e Script Principal -->
     <script type="module" src="app.js"></script>
 </body>
