@@ -172,6 +172,106 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
 
 
 /* Estilos Específicos para o Log do Mestre e Crafting */
+/* =========================================
+   SISTEMA DE FORJA VISUAL E INVENTÁRIO
+========================================= */
+.crafting-area {
+    position: relative;
+    background: radial-gradient(circle, #1a1a2e 0%, #090c10 100%);
+    border: 1px solid var(--borda-ouro);
+    border-radius: 8px;
+    padding: 30px 20px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+}
+
+.crafting-slots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.craft-slot {
+    width: 80px;
+    height: 80px;
+    border: 2px dashed var(--texto-secundario);
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3rem;
+    background: rgba(0,0,0,0.6);
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.craft-slot:hover { border-color: var(--borda-ouro-clara); background: rgba(255,255,255,0.05); }
+
+.craft-slot.filled {
+    border-style: solid;
+    border-color: var(--borda-ouro);
+    background: rgba(200, 170, 109, 0.15);
+    box-shadow: 0 0 15px rgba(200,170,109,0.4);
+    animation: slot-pulse 2s infinite;
+}
+
+@keyframes slot-pulse {
+    0% { box-shadow: 0 0 10px rgba(200,170,109,0.2); }
+    50% { box-shadow: 0 0 25px rgba(200,170,109,0.6); }
+    100% { box-shadow: 0 0 10px rgba(200,170,109,0.2); }
+}
+
+.slot-placeholder { font-size: 0.8rem; color: #555; text-transform: uppercase; font-weight: bold; }
+
+/* Grid da Bolsa de Itens */
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 10px;
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 10px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 8px;
+    border: 1px solid #222;
+}
+
+.inv-item {
+    aspect-ratio: 1;
+    border: 1px solid var(--texto-secundario);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(180deg, #1a1a1a, #050505);
+    cursor: pointer;
+    transition: 0.2s;
+    user-select: none;
+}
+
+.inv-item:hover { border-color: var(--borda-ouro); transform: translateY(-3px); box-shadow: 0 4px 10px rgba(200, 170, 109, 0.2); }
+.inv-item .emoji { font-size: 2rem; margin-bottom: 2px; }
+.inv-item .name { font-size: 0.6rem; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; padding: 0 4px; color: var(--borda-ouro-clara); }
+
+/* Canvas Animation Overlay */
+.craft-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; /* Para não bloquear cliques */
+    z-index: 1;
+}
+
+/* Estado de Animação de Forja */
+.forjando .craft-slot { border-color: #fff; box-shadow: 0 0 30px #fff; animation: shake 0.5s infinite; }
+.forjando .mod-sign { color: #fff; text-shadow: 0 0 20px #fff; animation: spin 1s infinite linear; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 #master-log-container {
     background: rgba(5, 7, 10, 0.9);
     border: 1px solid var(--cor-vermelha);
