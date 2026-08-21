@@ -319,46 +319,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // ==========================================
 // 8. ROLADOR DE DADOS
 // ==========================================
-document.getElementById('btn-roll').addEventListener('click', () => {
-    const diceDisplay = document.getElementById('dice-result');
-    const logDisplay = document.getElementById('dice-log');
-    const sides = parseInt(document.getElementById('dice-type').value);
-    const mod = parseInt(document.getElementById('dice-mod').value) || 0;
 
-    diceDisplay.classList.add('rolling');
-    diceDisplay.innerText = "🎲";
-
-    setTimeout(() => {
-        diceDisplay.classList.remove('rolling');
-        
-        // Rolagem base puramente aleatória
-        let roll = Math.floor(Math.random() * sides) + 1;
-        
-        // Aplicação do fator cármico (se tirou muito dado baixo, o karma é positivo; se tirou alto, negativo)
-        let rollComKarma = roll + fatorKarma;
-        
-        // Garante que o valor não passe dos limites do dado
-        if (rollComKarma > sides) rollComKarma = sides;
-        if (rollComKarma < 1) rollComKarma = 1;
-
-        // Atualiza o karma de forma dinâmica baseado no quão alto ou baixo foi o resultado puro
-        const metadeDado = sides / 2;
-        if (roll <= metadeDado * 0.4) {
-            fatorKarma += 1; // Acumula karma bom se o dado for baixo
-        } else if (roll >= metadeDado * 1.6) {
-            fatorKarma -= 1; // Acumula karma ruim se o dado for muito alto
-        }
-
-        const total = rollComKarma + mod;
-        diceDisplay.innerText = total;
-
-        const logEntry = document.createElement('div');
-        logEntry.innerText = `[D${sides}] rolou ${roll} (Karma aplicado: ${fatorKarma}) ${mod !== 0 ? (mod > 0 ? '+'+mod : mod) : ''} = ${total}`;
-        logDisplay.prepend(logEntry);
-
-        registrarLog(`Rolou [D${sides}] e obteve o resultado ${total} (Modificado por Karma)`);
-    }, 400);
-});
 
 // ==========================================
 // 9. CALCULADORA ARCANA
@@ -375,6 +336,61 @@ document.getElementById('btn-calc').addEventListener('click', () => {
     } catch (error) {
         resultDisplay.innerText = "Erro na Formulação";
     }
+});document.getElementById('btn-roll').addEventListener('click', () => {
+    const diceDisplay = document.getElementById('dice-result');
+    const logDisplay = document.getElementById('dice-log');
+    
+    // Pega a quantidade de dados informada (padrão é 1 se estiver vazia ou menor que 1)
+    const quantidade = parseInt(document.getElementById('dice-qtd').value) || 1;
+    const sides = parseInt(document.getElementById('dice-type').value);
+    const modSign = document.getElementById('mod-sign').value;
+    const modValue = parseInt(document.getElementById('dice-mod').value) || 0;
+
+    diceDisplay.classList.add('rolling');
+    diceDisplay.innerText = "🎲";
+
+    setTimeout(() => {
+        diceDisplay.classList.remove('rolling');
+        
+        let somaRolagensPuras = 0;
+        let resultadosIndividuais = [];
+
+        // Rolo a quantidade de dados especificada
+        for (let i = 0; i < quantidade; i++) {
+            let roll = Math.floor(Math.random() * sides) + 1;
+            resultadosIndividuais.push(roll);
+            somaRolagensPuras += roll;
+        }
+        
+        // Aplicação do fator cármico opcional na média total
+        let somaComKarma = somaRolagensPuras + (fatorKarma * quantidade);
+        
+        // Limites mínimos e máximos lógicos
+        const valorMinimo = quantidade;
+        const valorMaximo = sides * quantidade;
+        if (somaComKarma > valorMaximo) somaComKarma = valorMaximo;
+        if (somaComKarma < valorMinimo) somaComKarma = valorMinimo;
+
+        // Ajuste do Modificador (+ ou -)
+        let totalFinal = somaComKarma;
+        if (modSign === '+') {
+            totalFinal += modValue;
+        } else {
+            totalFinal -= modValue;
+        }
+
+        diceDisplay.innerText = totalFinal;
+
+        // Formata a string de detalhes para o log e WhatsApp
+        const detalheDados = quantidade > 1 ? `[${resultadosIndividuais.join(', ')}]` : `${resultadosIndividuais[0]}`;
+        const textoMod = modValue !== 0 ? ` ${modSign} ${modValue}` : '';
+        
+        const logEntry = document.createElement('div');
+        logEntry.innerText = `${quantidade}D${sides} rolou ${detalheDados}${textoMod} = ${totalFinal}`;
+        logDisplay.prepend(logEntry);
+
+        registrarLog(`Rolou ${quantidade}D${sides} e obteve o resultado ${totalFinal}`);
+    }, 400);
 });
 
 // ==========================================
