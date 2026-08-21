@@ -27,6 +27,7 @@ let currentUser = "";
 let userGrimoire = [];
 let currentSpellId = null;
 let isMasterAuthenticated = false;
+let fatorKarma = 0;
 
 // ==========================================
 // 3. O GRIMÓRIO ORIGINAL DE DIÓGENES
@@ -324,24 +325,39 @@ document.getElementById('btn-roll').addEventListener('click', () => {
     const sides = parseInt(document.getElementById('dice-type').value);
     const mod = parseInt(document.getElementById('dice-mod').value) || 0;
 
-    // Efeito de rolagem
     diceDisplay.classList.add('rolling');
     diceDisplay.innerText = "🎲";
 
     setTimeout(() => {
         diceDisplay.classList.remove('rolling');
-        const roll = Math.floor(Math.random() * sides) + 1;
-        const total = roll + mod;
         
+        // Rolagem base puramente aleatória
+        let roll = Math.floor(Math.random() * sides) + 1;
+        
+        // Aplicação do fator cármico (se tirou muito dado baixo, o karma é positivo; se tirou alto, negativo)
+        let rollComKarma = roll + fatorKarma;
+        
+        // Garante que o valor não passe dos limites do dado
+        if (rollComKarma > sides) rollComKarma = sides;
+        if (rollComKarma < 1) rollComKarma = 1;
+
+        // Atualiza o karma de forma dinâmica baseado no quão alto ou baixo foi o resultado puro
+        const metadeDado = sides / 2;
+        if (roll <= metadeDado * 0.4) {
+            fatorKarma += 1; // Acumula karma bom se o dado for baixo
+        } else if (roll >= metadeDado * 1.6) {
+            fatorKarma -= 1; // Acumula karma ruim se o dado for muito alto
+        }
+
+        const total = rollComKarma + mod;
         diceDisplay.innerText = total;
 
-        // Adiciona ao Log
         const logEntry = document.createElement('div');
-        logEntry.innerText = `[D${sides}] rolou ${roll} ${mod !== 0 ? (mod > 0 ? '+'+mod : mod) : ''} = ${total}`;
+        logEntry.innerText = `[D${sides}] rolou ${roll} (Karma aplicado: ${fatorKarma}) ${mod !== 0 ? (mod > 0 ? '+'+mod : mod) : ''} = ${total}`;
         logDisplay.prepend(logEntry);
 
-         registrarLog(`Rolou [D${sides}] e obteve o resultado ${total}`);
-    }, 400); // tempo da animação
+        registrarLog(`Rolou [D${sides}] e obteve o resultado ${total} (Modificado por Karma)`);
+    }, 400);
 });
 
 // ==========================================
@@ -546,6 +562,7 @@ function carregarInventarioDoFirebase() {
             });
         }
         renderizarInventarioVisual(userInventory);
+      
     });
 }
 
@@ -677,3 +694,69 @@ document.getElementById('btn-add-material').addEventListener('click', () => {
         if (typeof registrarLog === "function") registrarLog(`Adicionou ao Inventário: ${emoji} ${nome}`);
     });
 });
+function iniciarAnimacaoMagica(callbackFinal) {
+    const canvas = document.getElementById('craft-canvas');
+    if (!canvas) {
+        callbackFinal();
+        return;
+    }
+    const ctx = canvas.getContext('2d');
+    const area = document.getElementById('crafting-area');
+    
+    canvas.width = area.clientWidth;
+    canvas.height = area.clientHeight;
+    
+    const particles = [];
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    let animacaoAtiva = true;
+
+    // Adiciona classe CSS pra tremer os ícones
+    const slots = document.getElementById('crafting-slots');
+    if (slots) slots.classList.add('forjando');
+
+    // Gerador de Partículas
+    for(let i = 0; i < 100; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            raio: Math.random() * 3 + 1,
+            cor: `hsl(${Math.random() * 60 + 30}, 100%, 70%)`,
+            velocidadeX: (Math.random() - 0.5) * 5,
+            velocidadeY: (Math.random() - 0.5) * 5,
+        });
+    }
+
+    function animar() {
+        if (!animacaoAtiva) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particles.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.raio, 0, Math.PI * 2);
+            ctx.fillStyle = p.cor;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = p.cor;
+            ctx.fill();
+            
+            p.x += (centerX - p.x) * 0.05 + p.velocidadeX;
+            p.y += (centerY - p.y) * 0.05 + p.velocidadeY;
+        });
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, Math.random() * 50 + 20, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.fill();
+
+        requestAnimationFrame(animar);
+    }
+
+    animar();
+
+    setTimeout(() => {
+        animacaoAtiva = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (slots) slots.classList.remove('forjando');
+        callbackFinal();
+    }, 2000);
+}
