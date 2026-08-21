@@ -559,7 +559,7 @@ document.getElementById('btn-clear-log').addEventListener('click', () => {
 // ==========================================
 // 12. SISTEMA DE INVENTÁRIO E FORJA SEPARADOS
 // ==========================================
-l// ==========================================
+// ==========================================
 // 12. SISTEMA DE INVENTÁRIO E FORJA DINÂMICA
 // ==========================================
 let userInventory = []; 
