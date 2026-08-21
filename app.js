@@ -374,8 +374,7 @@ document.getElementById('btn-roll').addEventListener('click', () => {
 
         registrarLog(`Rolou ${quantidade}D${sides} e obteve o resultado ${totalFinal}`);
     }, 400);
-});
-
+})
 // ==========================================
 // 9. CALCULADORA ARCANA
 // ==========================================
@@ -391,61 +390,6 @@ document.getElementById('btn-calc').addEventListener('click', () => {
     } catch (error) {
         resultDisplay.innerText = "Erro na Formulação";
     }
-});document.getElementById('btn-roll').addEventListener('click', () => {
-    const diceDisplay = document.getElementById('dice-result');
-    const logDisplay = document.getElementById('dice-log');
-    
-    // Pega a quantidade de dados informada (padrão é 1 se estiver vazia ou menor que 1)
-    const quantidade = parseInt(document.getElementById('dice-qtd').value) || 1;
-    const sides = parseInt(document.getElementById('dice-type').value);
-    const modSign = document.getElementById('mod-sign').value;
-    const modValue = parseInt(document.getElementById('dice-mod').value) || 0;
-
-    diceDisplay.classList.add('rolling');
-    diceDisplay.innerText = "🎲";
-
-    setTimeout(() => {
-        diceDisplay.classList.remove('rolling');
-        
-        let somaRolagensPuras = 0;
-        let resultadosIndividuais = [];
-
-        // Rolo a quantidade de dados especificada
-        for (let i = 0; i < quantidade; i++) {
-            let roll = Math.floor(Math.random() * sides) + 1;
-            resultadosIndividuais.push(roll);
-            somaRolagensPuras += roll;
-        }
-        
-        // Aplicação do fator cármico opcional na média total
-        let somaComKarma = somaRolagensPuras + (fatorKarma * quantidade);
-        
-        // Limites mínimos e máximos lógicos
-        const valorMinimo = quantidade;
-        const valorMaximo = sides * quantidade;
-        if (somaComKarma > valorMaximo) somaComKarma = valorMaximo;
-        if (somaComKarma < valorMinimo) somaComKarma = valorMinimo;
-
-        // Ajuste do Modificador (+ ou -)
-        let totalFinal = somaComKarma;
-        if (modSign === '+') {
-            totalFinal += modValue;
-        } else {
-            totalFinal -= modValue;
-        }
-
-        diceDisplay.innerText = totalFinal;
-
-        // Formata a string de detalhes para o log e WhatsApp
-        const detalheDados = quantidade > 1 ? `[${resultadosIndividuais.join(', ')}]` : `${resultadosIndividuais[0]}`;
-        const textoMod = modValue !== 0 ? ` ${modSign} ${modValue}` : '';
-        
-        const logEntry = document.createElement('div');
-        logEntry.innerText = `${quantidade}D${sides} rolou ${detalheDados}${textoMod} = ${totalFinal}`;
-        logDisplay.prepend(logEntry);
-
-        registrarLog(`Rolou ${quantidade}D${sides} e obteve o resultado ${totalFinal}`);
-    }, 400);
 });
 
 // ==========================================
