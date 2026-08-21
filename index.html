@@ -90,16 +90,11 @@
     <div class="crafting-area" id="crafting-area">
         <!-- Canvas para a Animação Mágica -->
         <canvas id="craft-canvas" class="craft-canvas"></canvas>
-
-        <div class="crafting-slots" id="crafting-slots">
-            <div id="slot-1" class="craft-slot" onclick="removerDoSlot(1)">
-                <span class="slot-placeholder">Vazio</span>
-            </div>
-            <span class="mod-sign glow" style="font-size: 2rem;">+</span>
-            <div id="slot-2" class="craft-slot" onclick="removerDoSlot(2)">
-                <span class="slot-placeholder">Vazio</span>
-            </div>
+        <div id="forja-lista" class="forja-lista">
+        <!-- Itens adicionados aparecerão aqui -->
         </div>
+        <div id="status-forja" class="text-muted">Adicione itens do inventário </div>
+       
 
         <div class="craft-result-setup mt-15" style="display: flex; gap: 10px; position: relative; z-index: 2;">
             <input type="text" id="craft-emoji-input" class="input-mystic" placeholder="Ícone (ex: 🗡️)" maxlength="2" style="width: 100px; text-align: center; font-size: 1.5rem;">
