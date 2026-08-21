@@ -296,3 +296,32 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     color: var(--borda-ouro-clara);
     font-weight: bold;
 }
+/* ==========================================
+   ESTILOS DA FORJA DINÂMICA
+========================================== */
+.forja-lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    min-height: 50px;
+    border: 2px dashed #444;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.item-na-forja {
+    background: #333;
+    padding: 5px 10px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.item-na-forja button {
+    background: transparent;
+    border: none;
+    color: #ff4444;
+    cursor: pointer;
+}
