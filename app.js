@@ -559,11 +559,13 @@ document.getElementById('btn-clear-log').addEventListener('click', () => {
 // ==========================================
 // 12. SISTEMA DE INVENTÁRIO E FORJA SEPARADOS
 // ==========================================
-let userInventory = []; // Lista separada para Itens/Componentes
-let slot1 = null;
-let slot2 = null;
+l// ==========================================
+// 12. SISTEMA DE INVENTÁRIO E FORJA DINÂMICA
+// ==========================================
+let userInventory = []; 
+let listaDeMescla = []; // Lista para múltiplos itens no caldeirão
 
-// Escuta os itens do Inventário do Firebase (Separado do Grimório)
+// Escuta os itens do Inventário do Firebase
 function carregarInventarioDoFirebase() {
     if (!currentUser) return;
     
@@ -577,14 +579,10 @@ function carregarInventarioDoFirebase() {
             });
         }
         renderizarInventarioVisual(userInventory);
-      
     });
 }
 
-// Chamar o inventário logo após fazer o login:
-// Adicione a chamada 'carregarInventarioDoFirebase();' na sua função de login()
-
-// Renderiza APENAS os itens do Inventário na Bolsa de Componentes
+// Renderiza os itens na Bolsa de Componentes
 function renderizarInventarioVisual(itens) {
     const grid = document.getElementById('craft-inventory-grid');
     if (!grid) return;
@@ -603,56 +601,50 @@ function renderizarInventarioVisual(itens) {
         div.className = 'inv-item';
         div.innerHTML = `<div class="emoji">${icone}</div><div class="name">${item.nome}</div>`;
         
-        // Ao clicar no item
+        // Ao clicar no item, ele vai para a lista de mescla
         div.onclick = () => selecionarParaForja(item, icone);
         
         grid.appendChild(div);
     });
 }
 
+// Adiciona itens na lista dinâmica da forja
 function selecionarParaForja(item, icone) {
-    if (!slot1) {
-        slot1 = { ...item, emojiVisual: icone };
-        atualizarSlotsDOM();
-    } else if (!slot2) {
-        slot2 = { ...item, emojiVisual: icone };
-        atualizarSlotsDOM();
-    } else {
-        slot2 = { ...item, emojiVisual: icone };
-        atualizarSlotsDOM();
-    }
+    listaDeMescla.push({ ...item, emojiVisual: icone });
+    renderizarListaDeMescla();
 }
 
-window.removerDoSlot = function(numeroSlot) {
-    if (numeroSlot === 1) slot1 = null;
-    if (numeroSlot === 2) slot2 = null;
-    atualizarSlotsDOM();
-}
-
-function atualizarSlotsDOM() {
-    const elSlot1 = document.getElementById('slot-1');
-    const elSlot2 = document.getElementById('slot-2');
+// Atualiza a visualização dos itens dentro da forja
+function renderizarListaDeMescla() {
+    const container = document.getElementById('forja-lista');
+    if (!container) return;
     
-    if (slot1) {
-        elSlot1.innerHTML = slot1.emojiVisual;
-        elSlot1.classList.add('filled');
-    } else {
-        elSlot1.innerHTML = '<span class="slot-placeholder">Vazio</span>';
-        elSlot1.classList.remove('filled');
-    }
+    container.innerHTML = "";
     
-    if (slot2) {
-        elSlot2.innerHTML = slot2.emojiVisual;
-        elSlot2.classList.add('filled');
-    } else {
-        elSlot2.innerHTML = '<span class="slot-placeholder">Vazio</span>';
-        elSlot2.classList.remove('filled');
+    listaDeMescla.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'item-na-forja';
+        // Botão 'x' para remover um item específico da forja antes de forjar
+        div.innerHTML = `${item.emojiVisual} ${item.nome} <button onclick="removerItemDaForja(${index})" style="background:none; border:none; color:#ff4444; cursor:pointer; font-weight:bold;">x</button>`;
+        container.appendChild(div);
+    });
+    
+    const statusEl = document.getElementById('status-forja');
+    if (statusEl) {
+        statusEl.innerText = listaDeMescla.length > 0 ? `Itens na forja: ${listaDeMescla.length}` : "Adicione itens do inventário para começar a mescla.";
     }
 }
 
-// Botão de Transmutar - Salva no INVENTÁRIO (inventory/) e remove os ingredientes usados
+// Remove item individual da lista de mescla
+window.removerItemDaForja = function(index) {
+    listaDeMescla.splice(index, 1);
+    renderizarListaDeMescla();
+}
+
+// Botão de Transmutar - Salva no INVENTÁRIO e consome os ingredientes usados
 document.getElementById('btn-craft-visual').addEventListener('click', () => {
-    if (!slot1 || !slot2) return alert("Coloque dois materiais nos slots para forjar!");
+    // Exige no mínimo 2 itens para mesclar
+    if (listaDeMescla.length < 2) return alert("Coloque pelo menos 2 materiais no caldeirão para mesclar!");
     
     const nomeItem = document.getElementById('craft-result-name').value.trim();
     const emojiItem = document.getElementById('craft-emoji-input').value.trim();
@@ -663,7 +655,8 @@ document.getElementById('btn-craft-visual').addEventListener('click', () => {
 
     // Inicia a Animação no Canvas
     iniciarAnimacaoMagica(() => {
-        const receitaCombinada = `${slot1.nome} + ${slot2.nome}`;
+        // Junta o nome de todos os ingredientes usados na receita
+        const receitaCombinada = listaDeMescla.map(i => i.nome).join(" + ");
         
         // 1. O novo item vai para 'inventory/'
         const novoItemRef = push(ref(db, 'inventory/' + currentUser));
@@ -673,20 +666,20 @@ document.getElementById('btn-craft-visual').addEventListener('click', () => {
             criadoEm: Date.now(),
             receita: receitaCombinada
         }).then(() => {
-            // 2. Opcional: Consumir/Remover os ingredientes originais do Firebase
-            if (slot1.id) remove(ref(db, `inventory/${currentUser}/${slot1.id}`));
-            if (slot2.id) remove(ref(db, `inventory/${currentUser}/${slot2.id}`));
+            // 2. Remove todos os ingredientes que foram consumidos no Firebase
+            listaDeMescla.forEach(item => {
+                if (item.id) remove(ref(db, `inventory/${currentUser}/${item.id}`));
+            });
 
             if (typeof registrarLog === "function") {
-                registrarLog(`Forjou o item [${emojiItem} ${nomeItem}] combinando ${slot1.nome} + ${slot2.nome}`);
+                registrarLog(`Forjou o item [${emojiItem} ${nomeItem}] combinando ${listaDeMescla.length} ingredientes.`);
             }
             
             alert(`Item Criado! ${emojiItem} ${nomeItem} foi adicionado ao seu Inventário.`);
             
-            // Reseta a mesa
-            slot1 = null; 
-            slot2 = null;
-            atualizarSlotsDOM();
+            // Reseta a forja e limpa os campos
+            listaDeMescla = [];
+            renderizarListaDeMescla();
             document.getElementById('craft-result-name').value = "";
             document.getElementById('craft-emoji-input').value = "";
             document.getElementById('btn-craft-visual').disabled = false;
@@ -709,6 +702,8 @@ document.getElementById('btn-add-material').addEventListener('click', () => {
         if (typeof registrarLog === "function") registrarLog(`Adicionou ao Inventário: ${emoji} ${nome}`);
     });
 });
+
+// Função de Animação Mágica via Canvas
 function iniciarAnimacaoMagica(callbackFinal) {
     const canvas = document.getElementById('craft-canvas');
     if (!canvas) {
@@ -726,11 +721,9 @@ function iniciarAnimacaoMagica(callbackFinal) {
     const centerY = canvas.height / 2;
     let animacaoAtiva = true;
 
-    // Adiciona classe CSS pra tremer os ícones
-    const slots = document.getElementById('crafting-slots');
-    if (slots) slots.classList.add('forjando');
+    const listaContainer = document.getElementById('forja-lista');
+    if (listaContainer) listaContainer.classList.add('forjando');
 
-    // Gerador de Partículas
     for(let i = 0; i < 100; i++) {
         particles.push({
             x: Math.random() * canvas.width,
@@ -771,7 +764,7 @@ function iniciarAnimacaoMagica(callbackFinal) {
     setTimeout(() => {
         animacaoAtiva = false;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (slots) slots.classList.remove('forjando');
+        if (listaContainer) listaContainer.classList.remove('forjando');
         callbackFinal();
     }, 2000);
 }
