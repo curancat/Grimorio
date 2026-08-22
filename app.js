@@ -879,33 +879,34 @@ function renderizarPerfil() {
     const penalidadeGrave = fGraves * -1; 
 
     // Gerar Botões de Atributos (já aplicando a penalidade dos ferimentos)
-    const container = document.getElementById('botoes-atributos');
-    if (container) {
-        container.innerHTML = "";
+// No lugar do flex antigo dentro de renderizarPerfil():
+const container = document.getElementById('botoes-atributos');
+if (container) {
+    container.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; margin-top: 10px;";
+    container.innerHTML = "";
+    
+    for (let attr in fichaAtual.atributos) {
+        const valorBase = fichaAtual.atributos[attr];
+        const valorFinal = valorBase + penalidadeGrave;
         
-        for (let attr in fichaAtual.atributos) {
-            const valorBase = fichaAtual.atributos[attr];
-            const valorFinal = valorBase + penalidadeGrave; // Aplica o modificador negativo do ferimento
-            
-            const btn = document.createElement('button');
-            btn.className = "btn-rolagem-rapida";
-            btn.style.cssText = "background: #555; border: 1px solid #777; padding: 8px; border-radius: 5px; color: white; cursor: pointer; flex: 1 1 30%;";
-            btn.innerText = `🎲 ${attr} (${valorFinal >= 0 ? '+' : ''}${valorFinal}) ${fGraves > 0 ? `[Mod: ${penalidadeGrave}]` : ''}`;
-            
-            btn.onclick = () => {
-                document.getElementById('dice-qtd').value = sys.quantidadeDados;
-                document.getElementById('dice-type').value = sys.tipoDado;
-                document.getElementById('dice-mod').value = Math.abs(valorFinal);
-                document.getElementById('mod-sign').value = valorFinal >= 0 ? '+' : '-';
-                
-                document.getElementById('btn-roll').click();
-
-                alert(`🎲 Rolagem de ${attr} realizada! Confira o resultado nos dados.`);
-                if (typeof registrarLog === "function") registrarLog(`Testou ${attr} (${sys.nome}) com penalidade de ferimentos.`);
-            };
-            container.appendChild(btn);
-        }
+        const btn = document.createElement('button');
+        btn.className = "btn-rolagem-rapida";
+        // Estilo compacto para economizar espaço vertical
+        btn.style.cssText = "background: #2a2a2a; border: 1px solid #444; padding: 6px 4px; border-radius: 4px; color: white; cursor: pointer; font-size: 0.85rem; text-align: center;";
+        btn.innerText = `${attr}\n(${valorFinal >= 0 ? '+' : ''}${valorFinal})`;
+        
+        btn.onclick = () => {
+            document.getElementById('dice-qtd').value = sys.quantidadeDados;
+            document.getElementById('dice-type').value = sys.tipoDado;
+            document.getElementById('dice-mod').value = Math.abs(valorFinal);
+            document.getElementById('mod-sign').value = valorFinal >= 0 ? '+' : '-';
+            document.getElementById('btn-roll').click();
+            alert(`🎲 Resultado do teste de ${attr}: ${totalFinal}\n(Dados: [${resultados.join(', ')}] | Mod: ${valorFinal})\n\n➡️ Dirija-se ao menu/aba de Dados para ver o histórico completo ou compartilhar no WhatsApp!`);
+            if (typeof registrarLog === "function") registrarLog(`Testou ${attr} (${sys.nome}).`);
+        };
+        container.appendChild(btn);
     }
+}
 
     // ==========================================
     // RENDERIZAR PAINEL DE FERIMENTOS NA FICHA
@@ -920,12 +921,13 @@ function renderizarPerfil() {
     }
 
     const fCriticos = fichaAtual.ferimentos ? fichaAtual.ferimentos.criticos : 0;
-
-    painelFerimentos.innerHTML = `
-        <h4 style="color: #ff6b6b; margin-bottom: 5px;">⚠️ Condição Física (Ferimentos)</h4>
-        <p style="font-size: 0.9rem; margin: 3px 0;">Ferimentos Graves: <strong>${fGraves} / 4</strong> ${fGraves > 0 ? `(Penalidade de <strong>${penalidadeGrave}</strong> nos testes)` : ''}</p>
-        <p style="font-size: 0.9rem; margin: 3px 0;">Ferimentos Críticos: <strong style="color: ${fCriticos > 0 ? 'red' : 'inherit'}">${fCriticos} / 1</strong> ${fCriticos > 0 ? '⚠️ PERIGO DE MORTE OU DESMAIO!' : ''}</p>
-    `;
+painelFerimentos.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+        <span>⚠️ Graves: <strong>${fGraves}/4</strong> ${fGraves > 0 ? `(Mod: ${penalidadeGrave})` : ''}</span>
+        <span style="color: ${fCriticos > 0 ? '#ff4444' : 'inherit'}">💀 Críticos: <strong>${fCriticos}/1</strong></span>
+    </div>
+`;
+painelFerimentos.style.cssText = "margin: 10px 0; padding: 6px 10px; background: rgba(50,0,0,0.3); border: 1px solid #600; border-radius: 4px;";
     
     // Revelar controles do Mestre caso esteja autenticado
     if (isMasterAuthenticated) {
