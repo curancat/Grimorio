@@ -144,19 +144,19 @@
            <div id="botoes-atributos" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;"></div>
 
             <!-- EDITOR JSON DIRETO (Ótimo para Mobile) -->
-            <details class="painel-retratil" style="margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; border: 1px solid #444;">
-          <summary style="cursor: pointer; color: #aaa; font-weight: bold;">⚙️ Opções Avançadas (Editor JSON & Importação)</summary>
+            <!-- EDITOR VISUAL DE ATRIBUTOS -->
+<details class="painel-retratil" style="margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; border: 1px solid #444;">
+    <summary style="cursor: pointer; color: #aaa; font-weight: bold;">⚙️ Editar Atributos da Ficha</summary>
     
-       <div style="margin-top: 10px;">
-        <label style="font-size: 0.85rem; color: #bbb;">Importar Ficha (.json/.txt):</label>
-        <input type="file" id="upload-ficha" accept=".json, .txt" style="font-size: 0.8rem; margin-bottom: 8px; display: block;">
-        <span id="status-importacao" style="font-size: 0.8rem; color: #4af;"></span>
-        
-        <label style="font-size: 0.85rem; color: #bbb; display: block; margin-top: 5px;">Editor JSON Direto:</label>
-        <textarea id="json-editor-ficha" rows="4" style="width: 100%; background: #111; color: #0f0; font-family: monospace; font-size: 0.75rem; padding: 5px; border-radius: 4px;"></textarea>
-        <button id="btn-salvar-json" style="margin-top: 5px; padding: 5px 10px; background: #333; color: white; border: 1px solid #666; border-radius: 3px; cursor: pointer;">Salvar Alterações JSON</button>
-      </div>
-   </details>
+    <div id="lista-editor-atributos" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;">
+        <!-- Os campos de atributos vão aparecer aqui -->
+    </div>
+    
+    <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button id="btn-novo-atributo" class="btn-mystic small" style="flex: 1; background: var(--painel-fundo);">+ Novo Atributo</button>
+        <button id="btn-salvar-editor" class="btn-mystic small" style="flex: 1; background: #224422;">💾 Salvar Ficha</button>
+    </div>
+</details>
         </div>
 
         <!-- Coluna da Direita: Missões e Painel do Mestre -->
