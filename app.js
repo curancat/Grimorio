@@ -931,31 +931,98 @@ document.getElementById('btn-upar-atributo').onclick = () => {
 // 15. FERRAMENTAS DO MESTRE E QUADRO DE MISSÕES
 // ==========================================
 
-// Mestre modifica Dano/Cura
-document.getElementById('btn-gm-dano').onclick = () => {
+// ==========================================
+// 15. FERRAMENTAS DO MESTRE E QUADRO DE MISSÕES
+// ==========================================
+
+// Variável para armazenar o último alvo selecionado pelo Mestre
+let jogadorAlvoGm = "";
+
+// Função auxiliar para o Mestre escolher o alvo dinamicamente
+async function selecionarAlvoGm() {
+    try {
+        const snapshot = await get(child(ref(db), 'characters'));
+        if (!snapshot.exists()) {
+            alert("Nenhum personagem encontrado no banco de dados.");
+            return null;
+        }
+        const personagens = Object.keys(snapshot.val());
+        
+        // Pede para o Mestre digitar o nome do alvo (mostrando os disponíveis)
+        const escolha = prompt(
+            `Personagens cadastrados: ${personagens.join(", ")}\n\nDigite o nome exato do jogador alvo:`, 
+            jogadorAlvoGm || personagens[0]
+        );
+        
+        if (!escolha) return null;
+        jogadorAlvoGm = escolha.toLowerCase().trim();
+        return jogadorAlvoGm;
+    } catch (error) {
+        console.error(error);
+        return prompt("Digite o nome do jogador alvo:")?.toLowerCase().trim();
+    }
+}
+
+// Mestre modifica Dano/Cura de qualquer jogador
+document.getElementById('btn-gm-dano').onclick = async () => {
     const valor = parseInt(document.getElementById('gm-mod-valor').value);
-    if (!valor || !fichaAtual) return;
+    if (isNaN(valor)) return alert("Digite um valor numérico válido no campo de modificação.");
     
-    const novoHp = fichaAtual.hpAtual + valor; // Valor negativo tira vida, positivo cura
-    update(ref(db, `characters/${currentUser}`), { hpAtual: novoHp });
-    if (typeof registrarLog === "function") registrarLog(`GM alterou o HP de ${fichaAtual.nome} em ${valor}.`);
+    const alvo = await selecionarAlvoGm();
+    if (!alvo) return;
+    
+    const charRef = ref(db, `characters/${alvo}`);
+    const snapshot = await get(charRef);
+    
+    if (!snapshot.exists()) {
+        return alert(`O personagem '${alvo}' não foi encontrado no Firebase.`);
+    }
+    
+    const dadosChar = snapshot.val();
+    const novoHp = (dadosChar.hpAtual || 0) + valor; // Negativo tira vida, positivo cura
+    
+    update(charRef, { hpAtual: novoHp }).then(() => {
+        alert(`HP de ${alvo.toUpperCase()} alterado em ${valor}. Novo HP: ${novoHp}`);
+        if (typeof registrarLog === "function") {
+            registrarLog(`GM alterou o HP de ${alvo} em ${valor}.`);
+        }
+    });
 };
 
-// Mestre concede XP
-document.getElementById('btn-gm-xp').onclick = () => {
+// Mestre concede XP para qualquer jogador
+document.getElementById('btn-gm-xp').onclick = async () => {
     const valor = parseInt(document.getElementById('gm-mod-valor').value);
-    if (!valor || !fichaAtual) return;
+    if (isNaN(valor)) return alert("Digite um valor numérico válido no campo de modificação.");
     
-    const novoXp = fichaAtual.xp + Math.abs(valor); 
-    update(ref(db, `characters/${currentUser}`), { xp: novoXp });
-    if (typeof registrarLog === "function") registrarLog(`GM concedeu ${valor} XP para ${fichaAtual.nome}.`);
+    const alvo = await selecionarAlvoGm();
+    if (!alvo) return;
+    
+    const charRef = ref(db, `characters/${alvo}`);
+    const snapshot = await get(charRef);
+    
+    if (!snapshot.exists()) {
+        return alert(`O personagem '${alvo}' não foi encontrado no Firebase.`);
+    }
+    
+    const dadosChar = snapshot.val();
+    const qtdXp = Math.abs(valor);
+    const novoXp = (dadosChar.xp || 0) + qtdXp; 
+    
+    update(charRef, { xp: novoXp }).then(() => {
+        alert(`${qtdXp} XP concedido para ${alvo.toUpperCase()}. Total XP: ${novoXp}`);
+        if (typeof registrarLog === "function") {
+            registrarLog(`GM concedeu ${qtdXp} XP para ${alvo}.`);
+        }
+    });
 };
 
-// Sincronização do Quadro de Missões
+// Sincronização do Quadro de Missões (Global para todos os jogadores)
 const missoesRef = ref(db, 'quests');
 onValue(missoesRef, (snapshot) => {
     const data = snapshot.val();
     const lista = document.getElementById('lista-missoes');
+    if (!lista) return;
+    
     lista.innerHTML = "";
     
     if (data) {
@@ -964,7 +1031,7 @@ onValue(missoesRef, (snapshot) => {
             const div = document.createElement('div');
             div.style.cssText = "padding: 5px; border-bottom: 1px solid #555; display: flex; justify-content: space-between;";
             
-            let btnApagar = isMasterAuthenticated ? `<button onclick="apagarMissao('${key}')" style="color:red; background:none; border:none; cursor:pointer;">X</button>` : "";
+            let btnApagar = isMasterAuthenticated ? `<button onclick="apagarMissao('${key}')" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold;">X</button>` : "";
             div.innerHTML = `<span>${m.texto}</span> ${btnApagar}`;
             lista.appendChild(div);
         });
@@ -974,17 +1041,23 @@ onValue(missoesRef, (snapshot) => {
 });
 
 document.getElementById('btn-add-missao').onclick = () => {
-    const texto = document.getElementById('gm-missao-texto').value;
+    const textoInput = document.getElementById('gm-missao-texto');
+    const texto = textoInput.value.trim();
     if (texto) {
-        push(ref(db, 'quests'), { texto, data: Date.now() });
-        document.getElementById('gm-missao-texto').value = "";
+        push(ref(db, 'quests'), { texto, data: Date.now() }).then(() => {
+            textoInput.value = "";
+            if (typeof registrarLog === "function") registrarLog(`GM adicionou uma nova missão ao mural.`);
+        });
+    } else {
+        alert("Escreva o texto da missão antes de fixá-la!");
     }
 };
 
 window.apagarMissao = function(key) {
-    remove(ref(db, `quests/${key}`));
+    if (confirm("Deseja remover esta missão do mural?")) {
+        remove(ref(db, `quests/${key}`));
+    }
 };
-
 // Modificação final: Chame carregarFichaDoFirebase() dentro da sua função login() existente.
 
 // ==========================================
