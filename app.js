@@ -881,9 +881,10 @@ function renderizarPerfil() {
     // Gerar Botões de Atributos (já aplicando a penalidade dos ferimentos)
 // No lugar do flex antigo dentro de renderizarPerfil():
 const container = document.getElementById('botoes-atributos');
+const container = document.getElementById('botoes-atributos');
 if (container) {
-    // Força 2 colunas para economizar espaço vertical no celular
-    container.style.cssText = "display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 10px;";
+    // Layout anti-estique: 3 colunas e margens/espaçamentos mínimos para celular
+    container.style.cssText = "display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 5px;";
     container.innerHTML = "";
     
     for (let attr in fichaAtual.atributos) {
@@ -892,7 +893,8 @@ if (container) {
         
         const btn = document.createElement('button');
         btn.className = "btn-rolagem-rapida";
-        btn.style.cssText = "background: #2a2a2a; border: 1px solid #444; padding: 6px 4px; border-radius: 4px; color: white; cursor: pointer; font-size: 0.85rem; text-align: center;";
+        // Estilo ultra-compacto para economizar espaço vertical no mobile
+        btn.style.cssText = "background: #2a2a2a; border: 1px solid #444; padding: 4px 2px; border-radius: 4px; color: white; cursor: pointer; font-size: 0.75rem; line-height: 1.1; text-align: center;";
         btn.innerText = `${attr}\n(${valorFinal >= 0 ? '+' : ''}${valorFinal})`;
         
         btn.onclick = () => {
@@ -905,10 +907,47 @@ if (container) {
             // 2. Dispara a rolagem nativa do app.js
             document.getElementById('btn-roll').click();
             
-            // 3. Lê o resultado calculado pelo próprio app.js e joga no alert
+            // 3. Lê o resultado do app.js e cria o Popup customizado na tela
             setTimeout(() => {
                 const resultadoApp = document.getElementById('dice-result') ? document.getElementById('dice-result').innerText : "Processado";
-                alert(`🎲 Resultado do teste de ${attr}: ${resultadoApp}\n\n➡️ Dirija-se ao menu de dados para ver o histórico completo ou compartilhar no WhatsApp!`);
+                const textoMensagem = `🎲 Testei ${attr} (${sys.nome}) e tirei: ${resultadoApp}!`;
+                
+                // Remove modal anterior se houver para evitar duplicatas
+                const modalAntigo = document.getElementById('modal-rolagem-custom');
+                if (modalAntigo) modalAntigo.remove();
+                
+                // Cria a estrutura do Popup
+                const modal = document.createElement('div');
+                modal.id = 'modal-rolagem-custom';
+                modal.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 15px;";
+                
+                modal.innerHTML = `
+                    <div style="background: #1e1e1e; border: 1px solid #444; padding: 20px; border-radius: 8px; width: 100%; max-width: 300px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.6);">
+                        <h3 style="margin-top: 0; color: #4af; font-size: 1.1rem; margin-bottom: 5px;">Resultado do Teste</h3>
+                        <p style="font-size: 0.85rem; color: #bbb; margin: 0 0 10px 0;">${attr} (${sys.nome})</p>
+                        
+                        <div style="font-size: 2rem; font-weight: bold; background: #111; padding: 12px; border-radius: 6px; margin: 10px 0; color: #0f0; border: 1px solid #333;">
+                            ${resultadoApp}
+                        </div>
+                        
+                        <p style="font-size: 0.75rem; color: #888; margin-bottom: 15px;">➡️ O histórico foi salvo no menu de dados.</p>
+                        
+                        <div style="display: flex; gap: 8px; justify-content: center;">
+                            <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(textoMensagem)}" target="_blank" style="flex: 1; background: #25d366; color: white; padding: 8px; border-radius: 4px; text-decoration: none; font-size: 0.8rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 4px;">📲 Zap</a>
+                            <button id="btn-fechar-modal" style="flex: 1; background: #444; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">Fechar</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Fechar ao clicar no botão
+                document.getElementById('btn-fechar-modal').onclick = () => modal.remove();
+                
+                // Fechar ao clicar fora da caixa do modal
+                modal.onclick = (e) => {
+                    if (e.target === modal) modal.remove();
+                };
             }, 50);
             
             if (typeof registrarLog === "function") registrarLog(`Testou ${attr} (${sys.nome}).`);
