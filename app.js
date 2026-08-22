@@ -199,6 +199,19 @@ function login(username) {
     carregarGrimorioDoFirebase();
     carregarInventarioDoFirebase();
     carregarFichaDoFirebase();
+  // Adicione isso dentro da sua função de login, logo após definir quem é o usuário!
+
+// Se o usuário digitado for "Mestre" (ou o nome que você usa para o GM)
+if (currentUser === "Mestre" || currentUser === "GM") { 
+    document.getElementById("gm-controls").classList.remove("hidden");
+    
+    // Opcional: Ocultar a área de HP/XP do jogador, já que o Mestre não joga com ficha
+    document.querySelector(".card-perfil").style.display = "none"; 
+} else {
+    // Se for um jogador normal, garante que os controles do GM fiquem escondidos
+    document.getElementById("gm-controls").classList.add("hidden");
+    document.querySelector(".card-perfil").style.display = "block";
+}
 }
 
 // ==========================================
