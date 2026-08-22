@@ -198,7 +198,7 @@ function login(username) {
     registrarLog("Adentrou o grimório.");
     carregarGrimorioDoFirebase();
     carregarInventarioDoFirebase();
-     arregarFichaDoFirebase();
+    carregarFichaDoFirebase();
 }
 
 // ==========================================
