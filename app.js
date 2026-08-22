@@ -405,11 +405,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // ==========================================
 // 8. ROLADOR DE DADOS
 // ==========================================
+// ==========================================
+// 8. ROLADOR DE DADOS
+// ==========================================
 document.getElementById('btn-roll').addEventListener('click', () => {
     const diceDisplay = document.getElementById('dice-result');
     const logDisplay = document.getElementById('dice-log');
     
-    // Pega a quantidade de dados informada (padrão é 1 se estiver vazia ou menor que 1)
     const quantidade = parseInt(document.getElementById('dice-qtd').value) || 1;
     const sides = parseInt(document.getElementById('dice-type').value);
     const modSign = document.getElementById('mod-sign').value;
@@ -423,46 +425,45 @@ document.getElementById('btn-roll').addEventListener('click', () => {
         
         let somaRolagensPuras = 0;
         let resultadosIndividuais = [];
-      // Verifica se tirou dois números iguais (duplo) para desbloquear tinta Preta/Branca
-        if (currentUser && currentUser.toLowerCase() === 'diogenes' && resultadosIndividuais.length >= 2) {
-    const temDuplo = resultadosIndividuais.some((val, i, arr) => arr.indexOf(val) !== i);
-    if (temDuplo) {
-        tintaEspecialLiberada = true;
         
-        // REABASTECIMENTO: Recupera cargas para todas as tintas com base na capacidade máxima atual
-        Object.keys(estoqueTintasDiogenes).forEach(cor => {
-            if (cor !== 'preta' && cor !== 'branca') {
-                estoqueTintasDiogenes[cor] = limiteTintaDiogenes; // Enche de volta pelo limite da qualidade!
-            } else if (tintaEspecialLiberada) {
-                estoqueTintasDiogenes[cor] = Math.floor(limiteTintaDiogenes / 2); // Preto e branco ganham metade
-            }
-        });
-        
-        alert("✨ DUPLO NOS DIAS DE SORTE! Suas tintas foram reabastecidas e o P/B foi liberado!");
-        
-        atualizarPainelTintasVisual();
-        salvarEstoqueNoFirebase();
-        renderizarCards(userGrimoire);
-    }
-}
-
-        // Rolo a quantidade de dados especificada
+        // 1. Rolo a quantidade de dados especificada PRIMEIRO
         for (let i = 0; i < quantidade; i++) {
             let roll = Math.floor(Math.random() * sides) + 1;
             resultadosIndividuais.push(roll);
             somaRolagensPuras += roll;
         }
         
+        // 2. AGORA SIM: Verifica se tirou dois números iguais (duplo) para desbloquear tinta Preta/Branca
+        if (currentUser && currentUser.toLowerCase() === 'diogenes' && resultadosIndividuais.length >= 2) {
+            const temDuplo = resultadosIndividuais.some((val, i, arr) => arr.indexOf(val) !== i);
+            if (temDuplo) {
+                tintaEspecialLiberada = true;
+                
+                // REABASTECIMENTO: Recupera cargas para todas as tintas com base na capacidade máxima atual
+                Object.keys(estoqueTintasDiogenes).forEach(cor => {
+                    if (cor !== 'preta' && cor !== 'branca') {
+                        estoqueTintasDiogenes[cor] = limiteTintaDiogenes; // Enche de volta pelo limite da qualidade!
+                    } else if (tintaEspecialLiberada) {
+                        estoqueTintasDiogenes[cor] = Math.floor(limiteTintaDiogenes / 2); // Preto e branco ganham metade
+                    }
+                });
+                
+                alert("✨ DUPLO NOS DIAS DE SORTE! Suas tintas foram reabastecidas e o P/B foi liberado!");
+                
+                atualizarPainelTintasVisual();
+                salvarEstoqueNoFirebase();
+                renderizarCards(userGrimoire);
+            }
+        }
+        
         // Aplicação do fator cármico opcional na média total
         let somaComKarma = somaRolagensPuras + (fatorKarma * quantidade);
         
-        // Limites mínimos e máximos lógicos
         const valorMinimo = quantidade;
         const valorMaximo = sides * quantidade;
         if (somaComKarma > valorMaximo) somaComKarma = valorMaximo;
         if (somaComKarma < valorMinimo) somaComKarma = valorMinimo;
 
-        // Ajuste do Modificador (+ ou -)
         let totalFinal = somaComKarma;
         if (modSign === '+') {
             totalFinal += modValue;
@@ -472,7 +473,6 @@ document.getElementById('btn-roll').addEventListener('click', () => {
 
         diceDisplay.innerText = totalFinal;
 
-        // Formata a string de detalhes para o log e WhatsApp
         const detalheDados = quantidade > 1 ? `[${resultadosIndividuais.join(', ')}]` : `${resultadosIndividuais[0]}`;
         const textoMod = modValue !== 0 ? ` ${modSign} ${modValue}` : '';
         
@@ -482,7 +482,7 @@ document.getElementById('btn-roll').addEventListener('click', () => {
 
         registrarLog(`Rolou ${quantidade}D${sides} e obteve o resultado ${totalFinal}`);
     }, 400);
-})
+});
 // ==========================================
 // 9. CALCULADORA ARCANA
 // ==========================================
