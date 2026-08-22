@@ -218,9 +218,6 @@ function login(username) {
         if (cardPerfil) cardPerfil.style.display = "block";
     }
   
-    
-    DOM.loginScreen.classList.add('hidden');
-    DOM.appScreen.classList.remove('hidden');
     registrarLog("Adentrou o grimório.");
     carregarGrimorioDoFirebase();
     carregarInventarioDoFirebase();
