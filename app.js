@@ -31,6 +31,14 @@ let fatorKarma = 0;
 let limiteTintaDiogenes = 5;      // Limite padrão pela qualidade (Boa = 5)
 let filtroCorDiogenes = 'todos';   // Filtro de cor ativo
 let tintaEspecialLiberada = false; // Controla se preto/branco foram liberados por dados iguais
+let estoqueTintasDiogenes = {
+    vermelha: 5,
+    azul: 5,
+    amarela: 5,
+    preta: 0,
+    branca: 0,
+    mescla: 2
+};
 
 // ==========================================
 // 3. O GRIMÓRIO ORIGINAL DE DIÓGENES
@@ -390,21 +398,26 @@ document.getElementById('btn-roll').addEventListener('click', () => {
         let resultadosIndividuais = [];
       // Verifica se tirou dois números iguais (duplo) para desbloquear tinta Preta/Branca
         if (currentUser && currentUser.toLowerCase() === 'diogenes' && resultadosIndividuais.length >= 2) {
-            const temDuplo = resultadosIndividuais.some((val, i, arr) => arr.indexOf(val) !== i);
-            if (temDuplo) {
-                tintaEspecialLiberada = true;
-                alert("✨ DUPLO NOS DADOS! As tintas Preta e Branca foram desbloqueadas no seu grimório!");
-                
-                // Atualiza o aviso visual no painel se ele existir
-                const statusEspecial = document.getElementById('status-tinta-especial');
-                if (statusEspecial) {
-                    statusEspecial.innerText = "🔓 P/B Liberadas";
-                    statusEspecial.style.color = "#0f0";
-                }
-                
-                renderizarCards(userGrimoire);
+    const temDuplo = resultadosIndividuais.some((val, i, arr) => arr.indexOf(val) !== i);
+    if (temDuplo) {
+        tintaEspecialLiberada = true;
+        
+        // REABASTECIMENTO: Recupera cargas para todas as tintas com base na capacidade máxima atual
+        Object.keys(estoqueTintasDiogenes).forEach(cor => {
+            if (cor !== 'preta' && cor !== 'branca') {
+                estoqueTintasDiogenes[cor] = limiteTintaDiogenes; // Enche de volta pelo limite da qualidade!
+            } else if (tintaEspecialLiberada) {
+                estoqueTintasDiogenes[cor] = Math.floor(limiteTintaDiogenes / 2); // Preto e branco ganham metade
             }
-        }
+        });
+        
+        alert("✨ DUPLO NOS DIAS DE SORTE! Suas tintas foram reabastecidas e o P/B foi liberado!");
+        
+        atualizarPainelTintasVisual();
+        salvarEstoqueNoFirebase();
+        renderizarCards(userGrimoire);
+    }
+}
 
         // Rolo a quantidade de dados especificada
         for (let i = 0; i < quantidade; i++) {
@@ -1499,4 +1512,41 @@ function carregarTintaDoFirebase() {
             }
         }
     }, { onlyOnce: true });
+}
+// ==========================================
+// 19. CONSUMO DE TINTA (DIÓGENES)
+// ==========================================
+function usarEfeitoDiogenes(efeito) {
+    if (currentUser && currentUser.toLowerCase() === 'diogenes') {
+        const cor = efeito.cor;
+        
+        // Verifica se tem tinta dessa cor no estoque
+        if (estoqueTintasDiogenes[cor] <= 0) {
+            alert(`❌ Sua tinta ${cor.toUpperCase()} acabou! Você precisa recriá-la ou rolar os dados para reabastecer.`);
+            return false; // Impede de usar
+        }
+        
+        // Decrementa o estoque
+        estoqueTintasDiogenes[cor]--;
+        
+        // Atualiza o painel visual se estiver aberto
+        atualizarPainelTintasVisual();
+        
+        // Salva o novo estoque no Firebase
+        salvarEstoqueNoFirebase();
+        
+        registrarLog(`Diógenes usou uma carga de tinta ${cor.toUpperCase()}. Restam: ${estoqueTintasDiogenes[cor]}`);
+    }
+    return true; // Permite usar o efeito
+}
+
+function atualizarPainelTintasVisual() {
+    ['vermelha', 'azul', 'amarela', 'preta', 'branca', 'mescla'].forEach(cor => {
+        const el = document.getElementById(`estoque-${cor}`);
+        if (el) el.innerText = estoqueTintasDiogenes[cor];
+    });
+}
+
+function salvarEstoqueNoFirebase() {
+    set(ref(db, `characters/diogenes/estoqueTintas`), estoqueTintasDiogenes);
 }
