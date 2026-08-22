@@ -841,6 +841,10 @@ function carregarFichaDoFirebase() {
                 xp: 0,
                 hpAtual: 10,
                 nivel: 1,
+                ferimentos: {
+                    graves: 0,   // Máximo 4
+                    criticos: 0  // Máximo 1 (o 2º é fatal/desmaio)
+                },
                 atributos: { ...BibliotecaSistemas["KULT"].atributosBase }
             };
             set(fichaRef, novaFicha);
@@ -897,6 +901,24 @@ function renderizarPerfil() {
         };
         container.appendChild(btn);
     }
+  let painelFerimentos = document.getElementById('painel-ferimentos-jogador');
+    if (!painelFerimentos) {
+        const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
+        painelFerimentos = document.createElement('div');
+        painelFerimentos.id = 'painel-ferimentos-jogador';
+        painelFerimentos.style.cssText = "margin: 15px 0; padding: 10px; background: rgba(50,0,0,0.4); border: 1px solid #800; border-radius: 5px;";
+        containerPerfil.appendChild(painelFerimentos);
+    }
+
+    const fGraves = fichaAtual.ferimentos ? fichaAtual.ferimentos.graves : 0;
+    const fCriticos = fichaAtual.ferimentos ? fichaAtual.ferimentos.criticos : 0;
+    const penalidade = fGraves * -1; 
+
+    painelFerimentos.innerHTML = `
+        <h4 style="color: #ff6b6b; margin-bottom: 5px;">⚠️ Condição Física (Ferimentos)</h4>
+        <p style="font-size: 0.9rem; margin: 3px 0;">Ferimentos Graves: <strong>${fGraves} / 4</strong> ${fGraves > 0 ? `(Penalidade: ${penalidade} nos testes)` : ''}</p>
+        <p style="font-size: 0.9rem; margin: 3px 0;">Ferimentos Críticos: <strong style="color: ${fCriticos > 0 ? 'red' : 'inherit'}">${fCriticos} / 1</strong> ${fCriticos > 0 ? '⚠️ PERIGO DE MORTE!' : ''}</p>
+    `;
     
     // Revelar controles do Mestre caso esteja autenticado
     if (isMasterAuthenticated) {
@@ -1013,6 +1035,56 @@ document.getElementById('btn-gm-xp').onclick = async () => {
         alert(`${qtdXp} XP concedido para ${alvo.toUpperCase()}. Total XP: ${novoXp}`);
         if (typeof registrarLog === "function") {
             registrarLog(`GM concedeu ${qtdXp} XP para ${alvo}.`);
+        }
+    });
+};
+// ==========================================
+// CONTROLE DO MESTRE: APLICAR / CURAR FERIMENTOS
+// ==========================================
+document.getElementById('btn-gm-ferimento').onclick = async () => {
+    const alvo = document.getElementById('gm-select-alvo').value;
+    const tipo = prompt("Qual tipo de ferimento deseja alterar? Digite: 'grave' ou 'critico'");
+    const acao = prompt("Deseja 'adicionar' ou 'curar'?");
+
+    if (!alvo) return alert("Selecione um jogador na lista do Mestre primeiro!");
+    if (tipo !== 'grave' && tipo !== 'critico') return typeError("Tipo inválido. Use 'grave' ou 'critico'.");
+
+    const charRef = ref(db, `characters/${alvo}`);
+    const snapshot = await get(charRef);
+    if (!snapshot.exists()) return alert("Personagem não encontrado.");
+
+    const dados = snapshot.val();
+    let graves = dados.ferimentos ? dados.ferimentos.graves : 0;
+    let criticos = dados.ferimentos ? dados.ferimentos.criticos : 0;
+
+    if (acao === 'adicionar') {
+        if (tipo === 'grave') {
+            if (graves < 4) {
+                graves++;
+            } else {
+                // Regra: Se tiver o máximo de graves e receber outro, vira crítico!
+                graves = 4;
+                criticos++;
+                alert(`⚠️ O limite de Ferimentos Graves estourou! O ferimento se agravou e virou um FERIMENTO CRÍTICO!`);
+            }
+        } else if (tipo === 'critico') {
+            if (criticos >= 1) {
+                alert(`💀 FATALIDADE: ${alvo.toUpperCase()} já possuía um Ferimento Crítico e recebeu outro! O personagem desmaiou ou faleceu.`);
+            }
+            criticos++;
+        }
+    } else if (acao === 'curar') {
+        if (tipo === 'grave' && graves > 0) graves--;
+        if (tipo === 'critico' && criticos > 0) criticos--;
+    }
+
+    // Salva no Firebase
+    update(charRef, {
+        ferimentos: { graves, criticos }
+    }).then(() => {
+        alert(`Ferimentos de ${alvo.toUpperCase()} atualizados com sucesso! (Graves: ${graves}, Críticos: ${criticos})`);
+        if (typeof registrarLog === "function") {
+            registrarLog(`GM alterou os ferimentos de ${alvo} (${tipo}: ${acao}).`);
         }
     });
 };
