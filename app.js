@@ -806,7 +806,7 @@ const BibliotecaSistemas = {
         quantidadeDados: 2,
         atributosBase: {
             "Vontade": 0, "Fortitude": 0, "Reflexos": 0, "Razão": 0,
-            "Intuição": 0, "Percepção": 0, "Carisma": 0, "Alma": 0
+            "Intuição": 0, "Percepção": 0, "Carisma": 0, "Alma": 0,Violencia": 0,"Firmesa": 0
         },
         calcularHpMax: (atributos) => 10 + (atributos["Fortitude"] || 0),
         custoXpPorNivel: 10
@@ -899,6 +899,8 @@ function renderizarPerfil() {
                 document.getElementById('mod-sign').value = valorFinal >= 0 ? '+' : '-';
                 
                 document.getElementById('btn-roll').click();
+
+                alert(`🎲 Rolagem de ${attr} realizada! Confira o resultado nos dados.`);
                 if (typeof registrarLog === "function") registrarLog(`Testou ${attr} (${sys.nome}) com penalidade de ferimentos.`);
             };
             container.appendChild(btn);
@@ -930,7 +932,38 @@ function renderizarPerfil() {
         const gmControls = document.getElementById('gm-controls');
         if (gmControls) gmControls.classList.remove('hidden');
     }
+  // Atualiza o valor do editor JSON móvel automaticamente
+    const jsonEditor = document.getElementById('json-editor-ficha');
+    if (jsonEditor && document.activeElement !== jsonEditor) {
+        jsonEditor.value = JSON.stringify(fichaAtual, null, 2);
+    }
 }
+// Salvar alterações feitas manualmente pelo editor de texto JSON
+document.getElementById('btn-salvar-json').onclick = async () => {
+    const jsonText = document.getElementById('json-editor-ficha').value;
+    
+    try {
+        // Valida se o texto escrito é um JSON válido
+        const novaFichaParsed = JSON.parse(jsonText);
+        
+        if (!currentUser) return alert("Erro: Nenhum usuário logado!");
+        
+        const charRef = ref(db, `characters/${currentUser}`);
+        
+        // Salva diretamente no Firebase
+        await set(charRef, novaFichaParsed);
+        
+        alert("Ficha atualizada e salva com sucesso pelo editor JSON!");
+        fichaAtual = novaFichaParsed;
+        renderizarPerfil();
+        
+        if (typeof registrarLog === "function") {
+            registrarLog(`${currentUser} atualizou sua ficha via editor JSON.`);
+        }
+    } catch (e) {
+        alert("Erro de sintaxe no JSON! Verifique se esqueceu alguma chave ({ }), aspas (\") ou vírgula.\n\nDetalhe do erro: " + e.message);
+    }
+};
 
 // Botão de Upar Atributo (Gasta XP)
 document.getElementById('btn-upar-atributo').onclick = () => {
