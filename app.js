@@ -986,31 +986,6 @@ async function atualizarListaAlvosGm() {
         console.error("Erro ao carregar alvos para o GM:", error);
     }
 }
-// Mestre modifica Dano/Cura de qualquer jogador
-document.getElementById('btn-gm-dano').onclick = async () => {
-    const valor = parseInt(document.getElementById('gm-mod-valor').value);
-    const alvo = document.getElementById('gm-select-alvo').value;
-
-    if (!alvo) return alert("Selecione um jogador válido na lista!");
-    if (isNaN(valor)) return alert("Digite um valor numérico válido no campo de modificação.");
-    
-    const charRef = ref(db, `characters/${alvo}`);
-    const snapshot = await get(charRef);
-    
-    if (!snapshot.exists()) {
-        return alert(`O personagem não foi encontrado no Firebase.`);
-    }
-    
-    const dadosChar = snapshot.val();
-    const novoHp = (dadosChar.hpAtual || 0) + valor; // Negativo tira vida, positivo cura
-    
-    update(charRef, { hpAtual: novoHp }).then(() => {
-        alert(`HP de ${alvo.toUpperCase()} alterado em ${valor}. Novo HP: ${novoHp}`);
-        if (typeof registrarLog === "function") {
-            registrarLog(`GM alterou o HP de ${alvo} em ${valor}.`);
-        }
-    });
-};
 
 // Mestre concede XP para qualquer jogador
 document.getElementById('btn-gm-xp').onclick = async () => {
