@@ -28,6 +28,7 @@ let userGrimoire = [];
 let currentSpellId = null;
 let isMasterAuthenticated = false;
 let fatorKarma = 0;
+let limiteTintaDiogenes = 5; // Padrão inicial (Boa)
 
 // ==========================================
 // 3. O GRIMÓRIO ORIGINAL DE DIÓGENES
@@ -260,12 +261,19 @@ function carregarGrimorioDoFirebase() {
 
 function renderizarCards(lista) {
     DOM.grid.innerHTML = "";
-    if(lista.length === 0) {
-        DOM.grid.innerHTML = "<p class='text-muted' style='grid-column: 1/-1;'>O grimório está em branco... Forje sua primeira magia!</p>";
+    
+    // Se for o Diógenes, limita a quantidade de magias exibidas conforme a qualidade da tinta
+    let listaFinal = lista;
+    if (currentUser && currentUser.toLowerCase() === 'diogenes') {
+        listaFinal = lista.slice(0, limiteTintaDiogenes);
+    }
+
+    if(listaFinal.length === 0) {
+        DOM.grid.innerHTML = "<p class='text-muted' style='grid-column: 1/-1;'>O grimório está em branco ou o limite de tinta esgotou as páginas visíveis!</p>";
         return;
     }
 
-    lista.forEach((ef) => {
+    listaFinal.forEach((ef) => {
         const div = document.createElement('div');
         div.className = `card ${ef.cor}`;
         div.innerText = ef.nome;
@@ -1391,20 +1399,25 @@ function gerenciarMarcadorTintaDiogenes() {
 
 function salvarEAtualizarTinta(qualidade) {
     const limites = { ruim: 2, boa: 5, perfeita: 10 };
-    const limiteAtual = limites[qualidade] || 5;
+    limiteTintaDiogenes = limites[qualidade] || 5;
     
     const statusEl = document.getElementById('status-limite-tinta');
     if (statusEl) {
-        statusEl.innerText = `Capacidade: ${limiteAtual}`;
+        statusEl.innerText = `Capacidade: ${limiteTintaDiogenes}`;
     }
     
-    // Salva a escolha no Firebase na aba do Diógenes
+    // Atualiza os cards na tela imediatamente baseando-se no novo limite
+    if (typeof userGrimoire !== 'undefined') {
+        renderizarCards(userGrimoire);
+    }
+    
+    // Salva a escolha no Firebase
     set(ref(db, `characters/diogenes/qualidadeTinta`), {
         qualidade: qualidade,
-        limite: limiteAtual
+        limite: limiteTintaDiogenes
     }).then(() => {
         if (typeof registrarLog === "function") {
-            registrarLog(`Diógenes ajustou a qualidade da tinta para: ${qualidade.toUpperCase()} (${limiteAtual} efeitos).`);
+            registrarLog(`Diógenes ajustou a qualidade da tinta para: ${qualidade.toUpperCase()} (${limiteTintaDiogenes} efeitos).`);
         }
     });
 }
@@ -1417,8 +1430,14 @@ function carregarTintaDoFirebase() {
             const select = document.getElementById('select-qualidade-tinta');
             if (select) select.value = dados.qualidade;
             
+            limiteTintaDiogenes = dados.limite || 5;
             const statusEl = document.getElementById('status-limite-tinta');
-            if (statusEl) statusEl.innerText = `Capacidade: ${dados.limite || 5}`;
+            if (statusEl) statusEl.innerText = `Capacidade: ${limiteTintaDiogenes}`;
+            
+            // Renderiza o grimório já aplicando o limite carregado
+            if (typeof userGrimoire !== 'undefined') {
+                renderizarCards(userGrimoire);
+            }
         }
     }, { onlyOnce: true });
 }
