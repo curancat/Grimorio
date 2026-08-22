@@ -198,6 +198,7 @@ function login(username) {
     registrarLog("Adentrou o grimório.");
     carregarGrimorioDoFirebase();
     carregarInventarioDoFirebase();
+     arregarFichaDoFirebase();
 }
 
 // ==========================================
@@ -768,3 +769,187 @@ function iniciarAnimacaoMagica(callbackFinal) {
         callbackFinal();
     }, 2000);
 }
+// ==========================================
+// 14. BIBLIOTECA DE SISTEMAS E PERFIL DINÂMICO
+// ==========================================
+
+// Biblioteca Interna de Sistemas de RPG
+const BibliotecaSistemas = {
+    "KULT": {
+        nome: "KULT: Divindade Perdida",
+        tipoDado: 10,
+        quantidadeDados: 2,
+        atributosBase: {
+            "Vontade": 0,
+            "Fortitude": 0,
+            "Reflexos": 0,
+            "Razão": 0,
+            "Intuição": 0,
+            "Percepção": 0,
+            "Carisma": 0,
+            "Alma": 0
+        },
+        calcularHpMax: (atributos) => 10 + (atributos["Fortitude"] || 0),
+        custoXpPorNivel: 10
+    }
+};
+
+let fichaAtual = null;
+
+// Inicializa a ficha do jogador se não existir
+function carregarFichaDoFirebase() {
+    if (!currentUser) return;
+    const fichaRef = ref(db, `characters/${currentUser}`);
+    
+    onValue(fichaRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            fichaAtual = data;
+            renderizarPerfil();
+        } else {
+            // Cria ficha zerada padrão KULT para novos usuários
+            const novaFicha = {
+                nome: currentUser,
+                sistema: "KULT",
+                xp: 0,
+                hpAtual: 10,
+                nivel: 1,
+                atributos: { ...BibliotecaSistemas["KULT"].atributosBase }
+            };
+            set(fichaRef, novaFicha);
+        }
+    });
+}
+
+function renderizarPerfil() {
+    if (!fichaAtual) return;
+    
+    const sys = BibliotecaSistemas[fichaAtual.sistema];
+    const hpMax = sys.calcularHpMax(fichaAtual.atributos);
+    
+    document.getElementById('nome-personagem').innerText = fichaAtual.nome.toUpperCase();
+    document.getElementById('sistema-personagem').innerText = sys.nome;
+    document.getElementById('display-hp').innerText = fichaAtual.hpAtual;
+    document.getElementById('display-hp-max').innerText = hpMax;
+    document.getElementById('display-xp').innerText = fichaAtual.xp;
+
+    // Lógica de Level Up
+    const areaUpar = document.getElementById('area-level-up');
+    if (fichaAtual.xp >= sys.custoXpPorNivel) {
+        areaUpar.classList.remove('hidden');
+    } else {
+        areaUpar.classList.add('hidden');
+    }
+
+    // Gerar Botões de Atributos
+    const container = document.getElementById('botoes-atributos');
+    container.innerHTML = "";
+    
+    for (let attr in fichaAtual.atributos) {
+        const valor = fichaAtual.atributos[attr];
+        const btn = document.createElement('button');
+        btn.className = "btn-rolagem-rapida";
+        btn.style.cssText = "background: #555; border: 1px solid #777; padding: 8px; border-radius: 5px; color: white; cursor: pointer; flex: 1 1 30%;";
+        btn.innerText = `🎲 ${attr} (${valor >= 0 ? '+' : ''}${valor})`;
+        
+        btn.onclick = () => {
+            // Configura a rolagem baseada no sistema (KULT = 2d10)
+            document.getElementById('dice-qtd').value = sys.quantidadeDados;
+            document.getElementById('dice-type').value = sys.tipoDado;
+            document.getElementById('dice-mod').value = Math.abs(valor);
+            document.getElementById('mod-sign').value = valor >= 0 ? '+' : '-';
+            
+            document.getElementById('btn-roll').click();
+            if (typeof registrarLog === "function") registrarLog(`Testou ${attr} (${sys.nome}).`);
+        };
+        container.appendChild(btn);
+    }
+    
+    // Revelar controles do Mestre caso esteja autenticado
+    if (isMasterAuthenticated) {
+        document.getElementById('gm-controls').classList.remove('hidden');
+        document.getElementById('gm-target-player').innerText = fichaAtual.nome.toUpperCase();
+    }
+}
+
+// Botão de Upar Atributo (Gasta XP)
+document.getElementById('btn-upar-atributo').onclick = () => {
+    if (!fichaAtual) return;
+    const sys = BibliotecaSistemas[fichaAtual.sistema];
+    
+    const atributoEscolhido = prompt(`Você subiu de nível! Digite o nome exato do atributo para aumentar +1:\n${Object.keys(fichaAtual.atributos).join(", ")}`);
+    
+    if (atributoEscolhido && fichaAtual.atributos[atributoEscolhido] !== undefined) {
+        const novoXp = fichaAtual.xp - sys.custoXpPorNivel;
+        const novoValorAttr = fichaAtual.atributos[atributoEscolhido] + 1;
+        const novoNivel = fichaAtual.nivel + 1;
+        
+        update(ref(db, `characters/${currentUser}`), {
+            xp: novoXp,
+            nivel: novoNivel,
+            [`atributos/${atributoEscolhido}`]: novoValorAttr
+        }).then(() => alert(`${atributoEscolhido} aprimorado!`));
+    } else {
+        alert("Atributo inválido ou cancelado.");
+    }
+};
+
+// ==========================================
+// 15. FERRAMENTAS DO MESTRE E QUADRO DE MISSÕES
+// ==========================================
+
+// Mestre modifica Dano/Cura
+document.getElementById('btn-gm-dano').onclick = () => {
+    const valor = parseInt(document.getElementById('gm-mod-valor').value);
+    if (!valor || !fichaAtual) return;
+    
+    const novoHp = fichaAtual.hpAtual + valor; // Valor negativo tira vida, positivo cura
+    update(ref(db, `characters/${currentUser}`), { hpAtual: novoHp });
+    if (typeof registrarLog === "function") registrarLog(`GM alterou o HP de ${fichaAtual.nome} em ${valor}.`);
+};
+
+// Mestre concede XP
+document.getElementById('btn-gm-xp').onclick = () => {
+    const valor = parseInt(document.getElementById('gm-mod-valor').value);
+    if (!valor || !fichaAtual) return;
+    
+    const novoXp = fichaAtual.xp + Math.abs(valor); 
+    update(ref(db, `characters/${currentUser}`), { xp: novoXp });
+    if (typeof registrarLog === "function") registrarLog(`GM concedeu ${valor} XP para ${fichaAtual.nome}.`);
+};
+
+// Sincronização do Quadro de Missões
+const missoesRef = ref(db, 'quests');
+onValue(missoesRef, (snapshot) => {
+    const data = snapshot.val();
+    const lista = document.getElementById('lista-missoes');
+    lista.innerHTML = "";
+    
+    if (data) {
+        Object.keys(data).forEach(key => {
+            const m = data[key];
+            const div = document.createElement('div');
+            div.style.cssText = "padding: 5px; border-bottom: 1px solid #555; display: flex; justify-content: space-between;";
+            
+            let btnApagar = isMasterAuthenticated ? `<button onclick="apagarMissao('${key}')" style="color:red; background:none; border:none; cursor:pointer;">X</button>` : "";
+            div.innerHTML = `<span>${m.texto}</span> ${btnApagar}`;
+            lista.appendChild(div);
+        });
+    } else {
+        lista.innerHTML = "<span style='color: #888;'>Nenhuma missão ativa no momento.</span>";
+    }
+});
+
+document.getElementById('btn-add-missao').onclick = () => {
+    const texto = document.getElementById('gm-missao-texto').value;
+    if (texto) {
+        push(ref(db, 'quests'), { texto, data: Date.now() });
+        document.getElementById('gm-missao-texto').value = "";
+    }
+};
+
+window.apagarMissao = function(key) {
+    remove(ref(db, `quests/${key}`));
+};
+
+// Modificação final: Chame carregarFichaDoFirebase() dentro da sua função login() existente.
