@@ -337,7 +337,34 @@ function abrirModalView(ef) {
     document.getElementById('view-cor').innerText = ef.cor.toUpperCase();
     document.getElementById('view-receita').innerText = ef.receita;
     document.getElementById('view-efeito').innerText = ef.efeito;
-    DOM.modalView.style.display = 'flex';
+    
+    let modalContent = document.querySelector('#modal-view .modal-content') || document.getElementById('view-efeito').parentNode;
+    
+    // Remove botão de conjurar antigo se já existir para não duplicar
+    let btnAntigo = document.getElementById('btn-conjurar-magia');
+    if (btnAntigo) btnAntigo.remove();
+    
+    // Cria o botão de conjurar
+    const btnConjurar = document.createElement('button');
+    btnConjurar.id = 'btn-conjurar-magia';
+    btnConjurar.className = 'btn-mystic'; 
+    btnConjurar.style.cssText = "background: #25d366; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px;";
+    btnConjurar.innerText = `✨ Conjurar / Usar Tinta (${ef.cor.toUpperCase()})`;
+    
+    btnConjurar.onclick = () => {
+        // Tenta usar a tinta usando a função que criamos
+        const podeConjurar = usarEfeitoDiogenes(ef);
+        
+        if (podeConjurar) {
+            alert(`✨ Magia "${ef.nome}" conjurada com sucesso! Uma carga de tinta ${ef.cor} foi consumida.`);
+            DOM.modalView.style.display = 'none'; // Fecha o modal só após conjurar com sucesso
+        }
+    };
+    
+    modalContent.appendChild(btnConjurar);
+    
+    // ATENÇÃO AQUI: Deve ser 'flex' para o modal aparecer na tela!
+    DOM.modalView.style.display = 'flex'; 
 }
 
 document.getElementById('btn-delete-spell').onclick = () => {
