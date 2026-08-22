@@ -839,7 +839,6 @@ function carregarFichaDoFirebase() {
                 nome: currentUser,
                 sistema: "KULT",
                 xp: 0,
-                hpAtual: 10,
                 nivel: 1,
                 ferimentos: {
                     graves: 0,   // Máximo 4
@@ -855,53 +854,61 @@ function carregarFichaDoFirebase() {
 function renderizarPerfil() {
     if (!fichaAtual) return;
     
-    // Tenta pegar o sistema da ficha; se não achar, usa KULT como contingência
     let sys = BibliotecaSistemas[fichaAtual.sistema];
     if (!sys) {
-        console.warn(`Sistema '${fichaAtual.sistema}' desconhecido! Usando KULT.`);
         sys = BibliotecaSistemas["KULT"];
     }
     
-    const hpMax = sys.calcularHpMax(fichaAtual.atributos);
-    
+    // Atualiza dados básicos na tela
     document.getElementById('nome-personagem').innerText = fichaAtual.nome.toUpperCase();
     document.getElementById('sistema-personagem').innerText = sys.nome;
-    document.getElementById('display-hp').innerText = fichaAtual.hpAtual;
-    document.getElementById('display-hp-max').innerText = hpMax;
     document.getElementById('display-xp').innerText = fichaAtual.xp;
 
     // Lógica de Level Up
     const areaUpar = document.getElementById('area-level-up');
-    if (fichaAtual.xp >= sys.custoXpPorNivel) {
-        areaUpar.classList.remove('hidden');
-    } else {
-        areaUpar.classList.add('hidden');
+    if (areaUpar) {
+        if (fichaAtual.xp >= sys.custoXpPorNivel) {
+            areaUpar.classList.remove('hidden');
+        } else {
+            areaUpar.classList.add('hidden');
+        }
     }
 
-    // Gerar Botões de Atributos
+    // Calcula penalidade de bônus negativo baseada nos ferimentos graves (-1 por ferimento grave)
+    const fGraves = fichaAtual.ferimentos ? fichaAtual.ferimentos.graves : 0;
+    const penalidadeGrave = fGraves * -1; 
+
+    // Gerar Botões de Atributos (já aplicando a penalidade dos ferimentos)
     const container = document.getElementById('botoes-atributos');
-    container.innerHTML = "";
-    
-    for (let attr in fichaAtual.atributos) {
-        const valor = fichaAtual.atributos[attr];
-        const btn = document.createElement('button');
-        btn.className = "btn-rolagem-rapida";
-        btn.style.cssText = "background: #555; border: 1px solid #777; padding: 8px; border-radius: 5px; color: white; cursor: pointer; flex: 1 1 30%;";
-        btn.innerText = `🎲 ${attr} (${valor >= 0 ? '+' : ''}${valor})`;
+    if (container) {
+        container.innerHTML = "";
         
-        btn.onclick = () => {
-            // Configura a rolagem baseada no sistema dinâmico
-            document.getElementById('dice-qtd').value = sys.quantidadeDados;
-            document.getElementById('dice-type').value = sys.tipoDado;
-            document.getElementById('dice-mod').value = Math.abs(valor);
-            document.getElementById('mod-sign').value = valor >= 0 ? '+' : '-';
+        for (let attr in fichaAtual.atributos) {
+            const valorBase = fichaAtual.atributos[attr];
+            const valorFinal = valorBase + penalidadeGrave; // Aplica o modificador negativo do ferimento
             
-            document.getElementById('btn-roll').click();
-            if (typeof registrarLog === "function") registrarLog(`Testou ${attr} (${sys.nome}).`);
-        };
-        container.appendChild(btn);
+            const btn = document.createElement('button');
+            btn.className = "btn-rolagem-rapida";
+            btn.style.cssText = "background: #555; border: 1px solid #777; padding: 8px; border-radius: 5px; color: white; cursor: pointer; flex: 1 1 30%;";
+            btn.innerText = `🎲 ${attr} (${valorFinal >= 0 ? '+' : ''}${valorFinal}) ${fGraves > 0 ? `[Mod: ${penalidadeGrave}]` : ''}`;
+            
+            btn.onclick = () => {
+                document.getElementById('dice-qtd').value = sys.quantidadeDados;
+                document.getElementById('dice-type').value = sys.tipoDado;
+                document.getElementById('dice-mod').value = Math.abs(valorFinal);
+                document.getElementById('mod-sign').value = valorFinal >= 0 ? '+' : '-';
+                
+                document.getElementById('btn-roll').click();
+                if (typeof registrarLog === "function") registrarLog(`Testou ${attr} (${sys.nome}) com penalidade de ferimentos.`);
+            };
+            container.appendChild(btn);
+        }
     }
-  let painelFerimentos = document.getElementById('painel-ferimentos-jogador');
+
+    // ==========================================
+    // RENDERIZAR PAINEL DE FERIMENTOS NA FICHA
+    // ==========================================
+    let painelFerimentos = document.getElementById('painel-ferimentos-jogador');
     if (!painelFerimentos) {
         const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
         painelFerimentos = document.createElement('div');
@@ -910,20 +917,18 @@ function renderizarPerfil() {
         containerPerfil.appendChild(painelFerimentos);
     }
 
-    const fGraves = fichaAtual.ferimentos ? fichaAtual.ferimentos.graves : 0;
     const fCriticos = fichaAtual.ferimentos ? fichaAtual.ferimentos.criticos : 0;
-    const penalidade = fGraves * -1; 
 
     painelFerimentos.innerHTML = `
         <h4 style="color: #ff6b6b; margin-bottom: 5px;">⚠️ Condição Física (Ferimentos)</h4>
-        <p style="font-size: 0.9rem; margin: 3px 0;">Ferimentos Graves: <strong>${fGraves} / 4</strong> ${fGraves > 0 ? `(Penalidade: ${penalidade} nos testes)` : ''}</p>
-        <p style="font-size: 0.9rem; margin: 3px 0;">Ferimentos Críticos: <strong style="color: ${fCriticos > 0 ? 'red' : 'inherit'}">${fCriticos} / 1</strong> ${fCriticos > 0 ? '⚠️ PERIGO DE MORTE!' : ''}</p>
+        <p style="font-size: 0.9rem; margin: 3px 0;">Ferimentos Graves: <strong>${fGraves} / 4</strong> ${fGraves > 0 ? `(Penalidade de <strong>${penalidadeGrave}</strong> nos testes)` : ''}</p>
+        <p style="font-size: 0.9rem; margin: 3px 0;">Ferimentos Críticos: <strong style="color: ${fCriticos > 0 ? 'red' : 'inherit'}">${fCriticos} / 1</strong> ${fCriticos > 0 ? '⚠️ PERIGO DE MORTE OU DESMAIO!' : ''}</p>
     `;
     
     // Revelar controles do Mestre caso esteja autenticado
     if (isMasterAuthenticated) {
-        document.getElementById('gm-controls').classList.remove('hidden');
-        document.getElementById('gm-target-player').innerText = fichaAtual.nome.toUpperCase();
+        const gmControls = document.getElementById('gm-controls');
+        if (gmControls) gmControls.classList.remove('hidden');
     }
 }
 
