@@ -953,3 +953,45 @@ window.apagarMissao = function(key) {
 };
 
 // Modificação final: Chame carregarFichaDoFirebase() dentro da sua função login() existente.
+
+// ==========================================
+// 16. IMPORTAÇÃO DE FICHA POR ARQUIVO (.TXT / .JSON)
+// ==========================================
+const inputUpload = document.getElementById('upload-ficha');
+const statusImportacao = document.getElementById('status-importacao');
+
+if (inputUpload) {
+    inputUpload.addEventListener('change', function(evento) {
+        const arquivo = evento.target.files[0];
+        if (!arquivo) return;
+
+        statusImportacao.innerText = "Lendo pergaminho místico...";
+        const leitor = new FileReader();
+
+        leitor.onload = function(e) {
+            try {
+                // Lê o arquivo do jogador
+                const fichaLida = JSON.parse(e.target.result);
+                
+                // Sobrescreve a ficha atual no Firebase com os dados do arquivo
+                const fichaRef = ref(db, `characters/${currentUser}`);
+                set(fichaRef, {
+                    nome: currentUser, // Trava o nome da ficha para o nome do jogador logado
+                    sistema: fichaLida.sistema || "Personalizado",
+                    xp: fichaLida.xp || 0,
+                    hpAtual: fichaLida.hpAtual || 10,
+                    nivel: fichaLida.nivel || 1,
+                    atributos: fichaLida.atributos || {}
+                }).then(() => {
+                    statusImportacao.innerText = "Ficha importada com sucesso!";
+                    setTimeout(() => statusImportacao.innerText = "", 4000);
+                });
+                
+            } catch (erro) {
+                statusImportacao.innerText = "Erro: O pergaminho não tem a formatação mágica correta (JSON inválido).";
+                console.error("Erro ao ler ficha:", erro);
+            }
+        };
+        leitor.readAsText(arquivo);
+    });
+}
