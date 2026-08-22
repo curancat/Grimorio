@@ -144,11 +144,19 @@
             <div id="botoes-atributos" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
 
             <!-- EDITOR JSON DIRETO (Ótimo para Mobile) -->
-            <div style="margin-top: 20px; background: #1a1a1a; padding: 10px; border-radius: 5px; border: 1px solid #444;">
-                <label style="font-size: 0.85em; color: #88aaff; display: block; margin-bottom: 5px;">📝 Editor de Ficha</label>
-                <textarea id="json-editor-ficha" rows="10" style="width: 100%; background: #111; color: #00ffcc; font-family: monospace; font-size: 0.75rem; border: 1px solid #555; padding: 8px; border-radius: 4px; resize: vertical;"></textarea>
-                <button id="btn-salvar-json" class="btn-acao" style="margin-top: 8px; width: 100%; background: #0056b3; color: white; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Salvar Alterações do Editor</button>
-            </div>
+            <details class="painel-retratil" style="margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; border: 1px solid #444;">
+          <summary style="cursor: pointer; color: #aaa; font-weight: bold;">⚙️ Opções Avançadas (Editor JSON & Importação)</summary>
+    
+       <div style="margin-top: 10px;">
+        <label style="font-size: 0.85rem; color: #bbb;">Importar Ficha (.json/.txt):</label>
+        <input type="file" id="upload-ficha" accept=".json, .txt" style="font-size: 0.8rem; margin-bottom: 8px; display: block;">
+        <span id="status-importacao" style="font-size: 0.8rem; color: #4af;"></span>
+        
+        <label style="font-size: 0.85rem; color: #bbb; display: block; margin-top: 5px;">Editor JSON Direto:</label>
+        <textarea id="json-editor-ficha" rows="4" style="width: 100%; background: #111; color: #0f0; font-family: monospace; font-size: 0.75rem; padding: 5px; border-radius: 4px;"></textarea>
+        <button id="btn-salvar-json" style="margin-top: 5px; padding: 5px 10px; background: #333; color: white; border: 1px solid #666; border-radius: 3px; cursor: pointer;">Salvar Alterações JSON</button>
+      </div>
+   </details>
         </div>
 
         <!-- Coluna da Direita: Missões e Painel do Mestre -->
