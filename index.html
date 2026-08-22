@@ -118,6 +118,7 @@
 <div id="tab-perfil" class="tab-content hidden">
     <div class="perfil-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
         
+        <!-- Coluna da Esquerda: Ficha do Jogador -->
         <div class="card-perfil" style="background: #2a2a2a; padding: 15px; border-radius: 8px;">
             <h3>Ficha Ativa: <span id="nome-personagem">Nenhum</span></h3>
             <p>Sistema: <span id="sistema-personagem">Nenhum</span></p>
@@ -129,10 +130,6 @@
             </div>
             
             <div style="display: flex; gap: 15px; margin: 15px 0;">
-                <div style="background: #442222; padding: 10px; border-radius: 5px; flex: 1; text-align: center;">
-                    <strong>HP (Vida)</strong><br>
-                    <span id="display-hp" style="font-size: 1.5em; font-weight: bold;">0</span> / <span id="display-hp-max">0</span>
-                </div>
                 <div style="background: #224422; padding: 10px; border-radius: 5px; flex: 1; text-align: center;">
                     <strong>XP (Experiência)</strong><br>
                     <span id="display-xp" style="font-size: 1.5em; font-weight: bold;">0</span>
@@ -141,33 +138,38 @@
 
             <div id="area-level-up" class="hidden" style="background: #aa8800; padding: 10px; color: black; border-radius: 5px; margin-bottom: 15px; text-align: center;">
                 <strong>Subiu de Nível!</strong><br>
-                <button id="btn-upar-atributo" style="margin-top: 5px; padding: 5px;">Distribuir +1 Ponto</button>
+                <button id="btn-upar-atributo" style="margin-top: 5px; padding: 5px; cursor: pointer;">Distribuir +1 Ponto</button>
             </div>
 
             <div id="botoes-atributos" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
         </div>
 
+        <!-- Coluna da Direita: Missões e Painel do Mestre -->
         <div class="card-missoes" style="background: #222233; padding: 15px; border-radius: 8px;">
             <h3>Quadro de Missões</h3>
             <div id="lista-missoes" style="min-height: 100px; margin-bottom: 15px; border: 1px solid #444; padding: 10px; border-radius: 5px;"></div>
-          <div id="gm-controls" class="hidden" style="background: #222; padding: 15px; border: 1px solid #444; margin-top: 15px;">
-    <h3>Painel do Mestre</h3>
-    
-    <label for="gm-select-alvo"><strong>Alvo Selecionado:</strong></label>
-    <select id="gm-select-alvo" style="padding: 5px; background: #333; color: white; border: 1px solid #555; margin-bottom: 10px; width: 100%;">
-        <option value="">Carregando jogadores...</option>
-    </select>
+            
+            <div id="gm-controls" class="hidden" style="background: #222; padding: 15px; border: 1px solid #444; margin-top: 15px; border-radius: 5px;">
+                <h3>Painel do Mestre</h3>
+                
+                <label for="gm-select-alvo"><strong>Alvo Selecionado:</strong></label>
+                <select id="gm-select-alvo" style="padding: 5px; background: #333; color: white; border: 1px solid #555; margin-bottom: 10px; width: 100%;">
+                    <option value="">Carregando jogadores...</option>
+                </select>
 
-    <div style="margin-bottom: 10px;">
-        <input type="number" id="gm-mod-valor" placeholder="Valor (Ex: 5 ou -5)" style="padding: 5px; width: 45%;">
-        <button id="btn-gm-xp" style="padding: 5px; cursor: pointer;">Dar XP</button>
-        <button id="btn-gm-ferimento" class="btn-mestre">Gerenciar Ferimentos</button>
-    </div>
+                <div style="margin-bottom: 10px; display: flex; gap: 5px; align-items: center;">
+                    <input type="number" id="gm-mod-valor" placeholder="Valor (Ex: 1)" style="padding: 5px; width: 35%;">
+                    <button id="btn-gm-xp" style="padding: 5px; cursor: pointer;">Dar XP</button>
+                    <button id="btn-gm-ferimento" class="btn-mestre" style="padding: 5px; cursor: pointer;">Gerenciar Ferimentos</button>
+                </div>
 
-    <!-- ADICIONE ESTES ITENS ABAIXO PARA O QUADRO DE MISSÕES -->
-    <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">
-        <input type="text" id="gm-missao-texto" placeholder="Escreva uma nova missão..." class="input-mystic w-full mb-10" style="margin-bottom: 5px;">
-        <button id="btn-add-missao" class="btn-mystic w-full">Adicionar Missão ao Mural</button>
+                <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">
+                    <input type="text" id="gm-missao-texto" placeholder="Escreva uma nova missão..." class="input-mystic w-full" style="margin-bottom: 5px; width: 100%; padding: 5px; background: #333; color: white; border: 1px solid #555;">
+                    <button id="btn-add-missao" class="btn-mystic w-full" style="width: 100%; padding: 5px; cursor: pointer;">Adicionar Missão ao Mural</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
         </div>
