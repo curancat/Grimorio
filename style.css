@@ -337,3 +337,25 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     flex: 0 0 auto;
     min-width: 85px;
 }
+/* Regras específicas para celulares */
+@media (max-width: 768px) {
+    /* 1. Empilha o painel principal e o quadro de missões verticalmente */
+    .sua-classe-principal, .layout-grid, main {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        padding: 10px !important;
+    }
+
+    /* 2. Deixa os atributos em 2 colunas maiores e mais fáceis de tocar */
+    #botoes-atributos {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    /* 3. Garante que os botões tenham uma altura confortável para o dedo */
+    .btn-rolagem-rapida, #botoes-atributos button {
+        padding: 10px !important;
+        font-size: 0.9rem !important;
+    }
+}
