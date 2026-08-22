@@ -879,8 +879,6 @@ function renderizarPerfil() {
     const penalidadeGrave = fGraves * -1; 
 
     // Gerar Botões de Atributos (já aplicando a penalidade dos ferimentos)
-// No lugar do flex antigo dentro de renderizarPerfil():
-const container = document.getElementById('botoes-atributos');
 const container = document.getElementById('botoes-atributos');
 if (container) {
     // Layout anti-estique: 3 colunas e margens/espaçamentos mínimos para celular
