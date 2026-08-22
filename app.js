@@ -939,43 +939,44 @@ document.getElementById('btn-upar-atributo').onclick = () => {
 let jogadorAlvoGm = "";
 
 // Função auxiliar para o Mestre escolher o alvo dinamicamente
-async function selecionarAlvoGm() {
+async function atualizarListaAlvosGm() {
+    const selectAlvo = document.getElementById('gm-select-alvo');
+    if (!selectAlvo) return;
+
     try {
         const snapshot = await get(child(ref(db), 'characters'));
+        selectAlvo.innerHTML = ""; // Limpa opções antigas
+
         if (!snapshot.exists()) {
-            alert("Nenhum personagem encontrado no banco de dados.");
-            return null;
+            selectAlvo.innerHTML = `<option value="">Nenhum personagem cadastrado</option>`;
+            return;
         }
-        const personagens = Object.keys(snapshot.val());
-        
-        // Pede para o Mestre digitar o nome do alvo (mostrando os disponíveis)
-        const escolha = prompt(
-            `Personagens cadastrados: ${personagens.join(", ")}\n\nDigite o nome exato do jogador alvo:`, 
-            jogadorAlvoGm || personagens[0]
-        );
-        
-        if (!escolha) return null;
-        jogadorAlvoGm = escolha.toLowerCase().trim();
-        return jogadorAlvoGm;
+
+        const personagens = snapshot.val();
+        Object.keys(personagens).forEach(id => {
+            const char = personagens[id];
+            const option = document.createElement('option');
+            option.value = id; // Usa a chave do banco (ex: "dominick")
+            option.innerText = char.nome ? char.nome.toUpperCase() : id.toUpperCase();
+            selectAlvo.appendChild(option);
+        });
     } catch (error) {
-        console.error(error);
-        return prompt("Digite o nome do jogador alvo:")?.toLowerCase().trim();
+        console.error("Erro ao carregar alvos para o GM:", error);
     }
 }
-
 // Mestre modifica Dano/Cura de qualquer jogador
 document.getElementById('btn-gm-dano').onclick = async () => {
     const valor = parseInt(document.getElementById('gm-mod-valor').value);
+    const alvo = document.getElementById('gm-select-alvo').value;
+
+    if (!alvo) return alert("Selecione um jogador válido na lista!");
     if (isNaN(valor)) return alert("Digite um valor numérico válido no campo de modificação.");
-    
-    const alvo = await selecionarAlvoGm();
-    if (!alvo) return;
     
     const charRef = ref(db, `characters/${alvo}`);
     const snapshot = await get(charRef);
     
     if (!snapshot.exists()) {
-        return alert(`O personagem '${alvo}' não foi encontrado no Firebase.`);
+        return alert(`O personagem não foi encontrado no Firebase.`);
     }
     
     const dadosChar = snapshot.val();
@@ -992,16 +993,16 @@ document.getElementById('btn-gm-dano').onclick = async () => {
 // Mestre concede XP para qualquer jogador
 document.getElementById('btn-gm-xp').onclick = async () => {
     const valor = parseInt(document.getElementById('gm-mod-valor').value);
+    const alvo = document.getElementById('gm-select-alvo').value;
+
+    if (!alvo) return alert("Selecione um jogador válido na lista!");
     if (isNaN(valor)) return alert("Digite um valor numérico válido no campo de modificação.");
-    
-    const alvo = await selecionarAlvoGm();
-    if (!alvo) return;
     
     const charRef = ref(db, `characters/${alvo}`);
     const snapshot = await get(charRef);
     
     if (!snapshot.exists()) {
-        return alert(`O personagem '${alvo}' não foi encontrado no Firebase.`);
+        return alert(`O personagem não foi encontrado no Firebase.`);
     }
     
     const dadosChar = snapshot.val();
