@@ -1280,17 +1280,20 @@ if (selectAlvoGm) {
 // ==========================================
 
 // Função para criar uma linha no editor visual
+// Função para criar uma linha no editor visual (Otimizada para Mobile)
 function adicionarLinhaEditor(nome = "", valor = 0) {
     const container = document.getElementById('lista-editor-atributos');
-    if (!container) return; // Proteção extra
+    if (!container) return; 
     
     const div = document.createElement('div');
-    div.style.cssText = "display: flex; gap: 5px; align-items: center;";
+    // Adicionado width: 100% e margin-bottom para separar as linhas
+    div.style.cssText = "display: flex; gap: 5px; align-items: center; width: 100%; margin-bottom: 5px;";
 
+    // Adicionado min-width: 0 e box-sizing nos inputs; flex-shrink: 0 no botão X
     div.innerHTML = `
-        <input type="text" class="input-mystic nome-attr" value="${nome}" placeholder="Nome (Ex: Força)" style="flex: 2; padding: 8px; font-size: 0.9rem;">
-        <input type="number" class="input-mystic valor-attr" value="${valor}" placeholder="Valor" style="flex: 1; text-align: center; padding: 8px; font-size: 0.9rem;">
-        <button class="btn-remover-attr" style="background: #8b0000; color: white; border: none; border-radius: 4px; padding: 8px 12px; cursor: pointer; font-weight: bold;">X</button>
+        <input type="text" class="input-mystic nome-attr" value="${nome}" placeholder="Nome" style="flex: 2; min-width: 0; box-sizing: border-box; padding: 6px; font-size: 0.85rem;">
+        <input type="number" class="input-mystic valor-attr" value="${valor}" placeholder="Valor" style="flex: 1; min-width: 0; box-sizing: border-box; text-align: center; padding: 6px; font-size: 0.85rem;">
+        <button class="btn-remover-attr" style="background: #8b0000; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-weight: bold; flex-shrink: 0;">X</button>
     `;
 
     // Botão de remover a linha
