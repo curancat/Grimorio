@@ -1102,3 +1102,34 @@ if (inputUpload) {
         leitor.readAsText(arquivo);
     });
 }
+// ==========================================
+// SINCRONIZAÇÃO AUTOMÁTICA DOS ALVOS DO MESTRE
+// ==========================================
+const selectAlvoGm = document.getElementById('gm-select-alvo');
+
+if (selectAlvoGm) {
+    const charactersRef = ref(db, 'characters');
+    
+    // Fica escutando o Firebase em tempo real
+    onValue(charactersRef, (snapshot) => {
+        // Limpa as opções atuais para evitar duplicação
+        selectAlvoGm.innerHTML = '<option value="">Selecione um jogador...</option>';
+        
+        if (snapshot.exists()) {
+            const personagens = snapshot.val();
+            
+            // Varre cada personagem salvo no Firebase
+            Object.keys(personagens).forEach(key => {
+                const dados = personagens[key];
+                const option = document.createElement('option');
+                
+                option.value = key; // ID do personagem (ex: "dominick")
+                option.textContent = dados.nome ? dados.nome : key;
+                
+                selectAlvoGm.appendChild(option);
+            });
+        } else {
+            selectAlvoGm.innerHTML = '<option value="">Nenhum personagem cadastrado</option>';
+        }
+    });
+}
