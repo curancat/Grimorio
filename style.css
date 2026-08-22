@@ -325,3 +325,15 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     color: #ff4444;
     cursor: pointer;
 }
+#botoes-atributos {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    white-space: nowrap;
+    scrollbar-width: thin;
+}
+.btn-rolagem-rapida {
+    flex: 0 0 auto;
+    min-width: 85px;
+}
