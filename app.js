@@ -222,6 +222,7 @@ function login(username) {
     carregarGrimorioDoFirebase();
     carregarInventarioDoFirebase();
     carregarFichaDoFirebase();
+   gerenciarMarcadorTintaDiogenes();
   // Adicione isso dentro da sua função de login, logo após definir quem é o usuário!
 }
 
@@ -1338,4 +1339,86 @@ if (btnSalvarEditor) {
             })
             .catch(erro => alert("Erro ao salvar: " + erro));
     });
+}
+// ==========================================
+// 18. MARCADOR DE QUALIDADE DE TINTA (DIÓGENES)
+// ==========================================
+
+function gerenciarMarcadorTintaDiogenes() {
+    let painelTinta = document.getElementById('painel-tinta-diogenes');
+    
+    // Apenas ativa se o usuário logado for o diógenes (independente de maiúsculas/minúsculas)
+    if (currentUser && currentUser.toLowerCase() === 'diogenes') {
+        if (!painelTinta) {
+            const gridMagias = document.getElementById('lista-efeitos');
+            if (gridMagias && gridMagias.parentNode) {
+                painelTinta = document.createElement('div');
+                painelTinta.id = 'painel-tinta-diogenes';
+                painelTinta.style.cssText = "background: rgba(20, 20, 20, 0.95); border: 1px solid #c9b037; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; color: #fff; font-size: 0.85rem; width: 100%; box-sizing: border-box;";
+                
+                painelTinta.innerHTML = `
+                    <div>
+                        🖋️ <strong>Qualidade da Tinta:</strong> 
+                        <select id="select-qualidade-tinta" style="background: #111; color: #fff; border: 1px solid #555; padding: 4px; border-radius: 4px; margin-left: 5px; font-size: 0.85rem;">
+                            <option value="ruim">Ruim (2)</option>
+                            <option value="boa" selected>Boa (5)</option>
+                            <option value="perfeita">Perfeita (10)</option>
+                        </select>
+                    </div>
+                    <div id="status-limite-tinta" style="color: #c9b037; font-weight: bold;">
+                        Capacidade: 5
+                    </div>
+                `;
+                
+                // Insere logo acima do grid de efeitos/magias na primeira aba
+                gridMagias.parentNode.insertBefore(painelTinta, gridMagias);
+                
+                // Evento ao mudar a seleção
+                document.getElementById('select-qualidade-tinta').onchange = (e) => {
+                    salvarEAtualizarTinta(e.target.value);
+                };
+            }
+        } else {
+            painelTinta.style.display = 'flex';
+        }
+        
+        // Carrega o valor salvo anteriormente do Firebase se houver
+        carregarTintaDoFirebase();
+    } else {
+        if (painelTinta) painelTinta.style.display = 'none';
+    }
+}
+
+function salvarEAtualizarTinta(qualidade) {
+    const limites = { ruim: 2, boa: 5, perfeita: 10 };
+    const limiteAtual = limites[qualidade] || 5;
+    
+    const statusEl = document.getElementById('status-limite-tinta');
+    if (statusEl) {
+        statusEl.innerText = `Capacidade: ${limiteAtual}`;
+    }
+    
+    // Salva a escolha no Firebase na aba do Diógenes
+    set(ref(db, `characters/diogenes/qualidadeTinta`), {
+        qualidade: qualidade,
+        limite: limiteAtual
+    }).then(() => {
+        if (typeof registrarLog === "function") {
+            registrarLog(`Diógenes ajustou a qualidade da tinta para: ${qualidade.toUpperCase()} (${limiteAtual} efeitos).`);
+        }
+    });
+}
+
+function carregarTintaDoFirebase() {
+    const tintaRef = ref(db, `characters/diogenes/qualidadeTinta`);
+    onValue(tintaRef, (snapshot) => {
+        const dados = snapshot.val();
+        if (dados && dados.qualidade) {
+            const select = document.getElementById('select-qualidade-tinta');
+            if (select) select.value = dados.qualidade;
+            
+            const statusEl = document.getElementById('status-limite-tinta');
+            if (statusEl) statusEl.innerText = `Capacidade: ${dados.limite || 5}`;
+        }
+    }, { onlyOnce: true });
 }
