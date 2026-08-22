@@ -996,53 +996,51 @@ painelFerimentos.style.cssText = "margin: 10px 0; padding: 6px 10px; background:
     }
 }
 // Salvar alterações feitas manualmente pelo editor de texto JSON
-document.getElementById('btn-salvar-json').onclick = async () => {
-    const jsonText = document.getElementById('json-editor-ficha').value;
-    
-    try {
-        // Valida se o texto escrito é um JSON válido
-        const novaFichaParsed = JSON.parse(jsonText);
-        
-        if (!currentUser) return alert("Erro: Nenhum usuário logado!");
-        
-        const charRef = ref(db, `characters/${currentUser}`);
-        
-        // Salva diretamente no Firebase
-        await set(charRef, novaFichaParsed);
-        
-        alert("Ficha atualizada e salva com sucesso pelo editor JSON!");
-        fichaAtual = novaFichaParsed;
-        renderizarPerfil();
-        
-        if (typeof registrarLog === "function") {
-            registrarLog(`${currentUser} atualizou sua ficha via editor JSON.`);
-        }
-    } catch (e) {
-        alert("Erro de sintaxe no JSON! Verifique se esqueceu alguma chave ({ }), aspas (\") ou vírgula.\n\nDetalhe do erro: " + e.message);
-    }
-};
 
-// Botão de Upar Atributo (Gasta XP)
-document.getElementById('btn-upar-atributo').onclick = () => {
-    if (!fichaAtual) return;
-    const sys = BibliotecaSistemas[fichaAtual.sistema];
-    
-    const atributoEscolhido = prompt(`Você subiu de nível! Digite o nome exato do atributo para aumentar +1:\n${Object.keys(fichaAtual.atributos).join(", ")}`);
-    
-    if (atributoEscolhido && fichaAtual.atributos[atributoEscolhido] !== undefined) {
-        const novoXp = fichaAtual.xp - sys.custoXpPorNivel;
-        const novoValorAttr = fichaAtual.atributos[atributoEscolhido] + 1;
-        const novoNivel = fichaAtual.nivel + 1;
-        
-        update(ref(db, `characters/${currentUser}`), {
-            xp: novoXp,
-            nivel: novoNivel,
-            [`atributos/${atributoEscolhido}`]: novoValorAttr
-        }).then(() => alert(`${atributoEscolhido} aprimorado!`));
-    } else {
-        alert("Atributo inválido ou cancelado.");
-    }
-};
+
+// 1. Salvar alterações feitas manualmente pelo editor de texto JSON
+const btnSalvarJson = document.getElementById('btn-salvar-json');
+if (btnSalvarJson) {
+    btnSalvarJson.onclick = async () => {
+        const jsonText = document.getElementById('json-editor-ficha').value;
+        try {
+            const novaFichaParsed = JSON.parse(jsonText);
+            if (!currentUser) return alert("Erro: Nenhum usuário logado!");
+            const charRef = ref(db, `characters/${currentUser}`);
+            await set(charRef, novaFichaParsed);
+            alert("Ficha atualizada e salva com sucesso pelo editor JSON!");
+            fichaAtual = novaFichaParsed;
+            renderizarPerfil();
+            if (typeof registrarLog === "function") {
+                registrarLog(`${currentUser} atualizou sua ficha via editor JSON.`);
+            }
+        } catch (e) {
+            alert("Erro de sintaxe no JSON! Verifique se esqueceu alguma chave ({ }), aspas (\") ou vírgula.\n\nDetalhe do erro: " + e.message);
+        }
+    };
+}
+
+// 2. Botão de Upar Atributo (Gasta XP)
+const btnUparAttr = document.getElementById('btn-upar-atributo');
+if (btnUparAttr) {
+    btnUparAttr.onclick = () => {
+        if (!fichaAtual) return;
+        const sys = BibliotecaSistemas[fichaAtual.sistema];
+        const atributoEscolhido = prompt(`Você subiu de nível! Digite o nome exato do atributo para aumentar +1:\n${Object.keys(fichaAtual.atributos).join(", ")}`);
+        if (atributoEscolhido && fichaAtual.atributos[atributoEscolhido] !== undefined) {
+            const novoXp = fichaAtual.xp - sys.custoXpPorNivel;
+            const novoValorAttr = fichaAtual.atributos[atributoEscolhido] + 1;
+            const novoNivel = fichaAtual.nivel + 1;
+            update(ref(db, `characters/${currentUser}`), {
+                xp: novoXp,
+                nivel: novoNivel,
+                [`atributos/${atributoEscolhido}`]: novoValorAttr
+            }).then(() => alert(`${atributoEscolhido} aprimorado!`));
+        } else {
+            alert("Atributo inválido ou cancelado.");
+        }
+    };
+}
 
 // ==========================================
 // 15. FERRAMENTAS DO MESTRE E QUADRO DE MISSÕES
@@ -1280,6 +1278,7 @@ if (selectAlvoGm) {
 // ==========================================
 
 // Função para criar uma linha no editor visual
+// Função para criar uma linha no editor visual (Otimizada para Mobile)
 // Função para criar uma linha no editor visual (Otimizada para Mobile)
 function adicionarLinhaEditor(nome = "", valor = 0) {
     const container = document.getElementById('lista-editor-atributos');
