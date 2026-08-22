@@ -982,9 +982,17 @@ painelFerimentos.style.cssText = "margin: 10px 0; padding: 6px 10px; background:
         if (gmControls) gmControls.classList.remove('hidden');
     }
   // Atualiza o valor do editor JSON móvel automaticamente
-    const jsonEditor = document.getElementById('json-editor-ficha');
-    if (jsonEditor && document.activeElement !== jsonEditor) {
-        jsonEditor.value = JSON.stringify(fichaAtual, null, 2);
+   // Preenche o Novo Editor Visual com os atributos atuais da ficha
+    const containerEditor = document.getElementById('lista-editor-atributos');
+    if (containerEditor) {
+        containerEditor.innerHTML = ''; // Limpa as caixinhas antigas
+        
+        // Puxa os atributos da fichaAtual (que veio do Firebase) e cria as linhas
+        if (fichaAtual.atributos) {
+            for (const [nome, valor] of Object.entries(fichaAtual.atributos)) {
+                adicionarLinhaEditor(nome, valor);
+            }
+        }
     }
 }
 // Salvar alterações feitas manualmente pelo editor de texto JSON
@@ -1265,5 +1273,67 @@ if (selectAlvoGm) {
         } else {
             selectAlvoGm.innerHTML = '<option value="">Nenhum personagem cadastrado</option>';
         }
+    });
+}
+// ==========================================
+// 17. EDITOR VISUAL DE ATRIBUTOS
+// ==========================================
+
+// Função para criar uma linha no editor visual
+function adicionarLinhaEditor(nome = "", valor = 0) {
+    const container = document.getElementById('lista-editor-atributos');
+    if (!container) return; // Proteção extra
+    
+    const div = document.createElement('div');
+    div.style.cssText = "display: flex; gap: 5px; align-items: center;";
+
+    div.innerHTML = `
+        <input type="text" class="input-mystic nome-attr" value="${nome}" placeholder="Nome (Ex: Força)" style="flex: 2; padding: 8px; font-size: 0.9rem;">
+        <input type="number" class="input-mystic valor-attr" value="${valor}" placeholder="Valor" style="flex: 1; text-align: center; padding: 8px; font-size: 0.9rem;">
+        <button class="btn-remover-attr" style="background: #8b0000; color: white; border: none; border-radius: 4px; padding: 8px 12px; cursor: pointer; font-weight: bold;">X</button>
+    `;
+
+    // Botão de remover a linha
+    div.querySelector('.btn-remover-attr').onclick = () => div.remove();
+    container.appendChild(div);
+}
+
+// Evento para o botão "+ Novo Atributo"
+const btnNovoAttr = document.getElementById('btn-novo-atributo');
+if (btnNovoAttr) {
+    btnNovoAttr.addEventListener('click', () => {
+        adicionarLinhaEditor("", 0); // Adiciona uma linha em branco
+    });
+}
+
+// Evento para o botão "Salvar Ficha"
+const btnSalvarEditor = document.getElementById('btn-salvar-editor');
+if (btnSalvarEditor) {
+    btnSalvarEditor.addEventListener('click', () => {
+        if (!currentUser) return alert("Erro: Nenhum usuário logado!");
+
+        // 1. Coleta tudo que foi digitado nas caixinhas
+        const novosAtributos = {};
+        const linhas = document.querySelectorAll('#lista-editor-atributos > div');
+        
+        linhas.forEach(linha => {
+            const nome = linha.querySelector('.nome-attr').value.trim();
+            const valor = parseInt(linha.querySelector('.valor-attr').value) || 0;
+            
+            // Só salva se o jogador tiver digitado um nome para o atributo
+            if (nome) {
+                novosAtributos[nome] = valor;
+            }
+        });
+
+        // 2. Salva direto no Firebase
+        set(ref(db, `characters/${currentUser}/atributos`), novosAtributos)
+            .then(() => {
+                alert("Atributos salvos com sucesso!");
+                if (typeof registrarLog === "function") {
+                    registrarLog(`${currentUser} atualizou seus atributos pelo Editor Visual.`);
+                }
+            })
+            .catch(erro => alert("Erro ao salvar: " + erro));
     });
 }
