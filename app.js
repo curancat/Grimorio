@@ -434,21 +434,17 @@ document.getElementById('btn-roll').addEventListener('click', () => {
         }
         
         // 2. AGORA SIM: Verifica se tirou dois números iguais (duplo) para desbloquear tinta Preta/Branca
+        // Verifica se tirou dois números iguais (duplo) para desbloquear/reabastecer SOMENTE Preta e Branca
         if (currentUser && currentUser.toLowerCase() === 'diogenes' && resultadosIndividuais.length >= 2) {
             const temDuplo = resultadosIndividuais.some((val, i, arr) => arr.indexOf(val) !== i);
             if (temDuplo) {
                 tintaEspecialLiberada = true;
                 
-                // REABASTECIMENTO: Recupera cargas para todas as tintas com base na capacidade máxima atual
-                Object.keys(estoqueTintasDiogenes).forEach(cor => {
-                    if (cor !== 'preta' && cor !== 'branca') {
-                        estoqueTintasDiogenes[cor] = limiteTintaDiogenes; // Enche de volta pelo limite da qualidade!
-                    } else if (tintaEspecialLiberada) {
-                        estoqueTintasDiogenes[cor] = Math.floor(limiteTintaDiogenes / 2); // Preto e branco ganham metade
-                    }
-                });
+                // Apenas Preto e Branco recebem cargas com o duplo nos dados
+                estoqueTintasDiogenes['preta'] = Math.floor(limiteTintaDiogenes / 2);
+                estoqueTintasDiogenes['branca'] = Math.floor(limiteTintaDiogenes / 2);
                 
-                alert("✨ DUPLO NOS DIAS DE SORTE! Suas tintas foram reabastecidas e o P/B foi liberado!");
+                alert("✨ DUPLO MÍSTICO! As tintas especiais (Preta e Branca) foram desbloqueadas e abastecidas!");
                 
                 atualizarPainelTintasVisual();
                 salvarEstoqueNoFirebase();
@@ -673,6 +669,30 @@ document.getElementById('btn-clear-log').addEventListener('click', () => {
 let userInventory = []; 
 let listaDeMescla = []; // Lista para múltiplos itens no caldeirão
 
+// Função precisa para verificar e recarregar tintas comuns ao craftar
+function concluirCrafting(nomeItemCriado) {
+    const nomeLower = nomeItemCriado.toLowerCase().trim();
+    let corEncontrada = null;
+
+    if (nomeLower === 'tinta vermelha' || nomeLower === 'frasco de tinta vermelha') {
+        corEncontrada = 'vermelha';
+    } else if (nomeLower === 'tinta azul' || nomeLower === 'frasco de tinta azul') {
+        corEncontrada = 'azul';
+    } else if (nomeLower === 'tinta amarela' || nomeLower === 'frasco de tinta amarela') {
+        corEncontrada = 'amarela';
+    }
+    // Nota: Preta e Branca ficam de fora, pois só entram com dados duplos no rolador!
+
+    if (corEncontrada) {
+        estoqueTintasDiogenes[corEncontrada] = limiteTintaDiogenes;
+        alert(`🧪 Sucesso na Forja! O estoque da Tinta ${corEncontrada.toUpperCase()} foi totalmente restaurado.`);
+        atualizarPainelTintasVisual();
+        if (typeof salvarEstoqueNoFirebase === 'function') {
+            salvarEstoqueNoFirebase();
+        }
+    }
+}
+
 // Escuta os itens do Inventário do Firebase
 function carregarInventarioDoFirebase() {
     if (!currentUser) return;
@@ -709,7 +729,6 @@ function renderizarInventarioVisual(itens) {
         div.className = 'inv-item';
         div.innerHTML = `<div class="emoji">${icone}</div><div class="name">${item.nome}</div>`;
         
-        // Ao clicar no item, ele vai para a lista de mescla
         div.onclick = () => selecionarParaForja(item, icone);
         
         grid.appendChild(div);
@@ -732,7 +751,6 @@ function renderizarListaDeMescla() {
     listaDeMescla.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'item-na-forja';
-        // Botão 'x' para remover um item específico da forja antes de forjar
         div.innerHTML = `${item.emojiVisual} ${item.nome} <button onclick="removerItemDaForja(${index})" style="background:none; border:none; color:#ff4444; cursor:pointer; font-weight:bold;">x</button>`;
         container.appendChild(div);
     });
@@ -751,7 +769,6 @@ window.removerItemDaForja = function(index) {
 
 // Botão de Transmutar - Salva no INVENTÁRIO e consome os ingredientes usados
 document.getElementById('btn-craft-visual').addEventListener('click', () => {
-    // Exige no mínimo 2 itens para mesclar
     if (listaDeMescla.length < 2) return alert("Coloque pelo menos 2 materiais no caldeirão para mesclar!");
     
     const nomeItem = document.getElementById('craft-result-name').value.trim();
@@ -761,12 +778,9 @@ document.getElementById('btn-craft-visual').addEventListener('click', () => {
 
     document.getElementById('btn-craft-visual').disabled = true;
 
-    // Inicia a Animação no Canvas
     iniciarAnimacaoMagica(() => {
-        // Junta o nome de todos os ingredientes usados na receita
         const receitaCombinada = listaDeMescla.map(i => i.nome).join(" + ");
         
-        // 1. O novo item vai para 'inventory/'
         const novoItemRef = push(ref(db, 'inventory/' + currentUser));
         set(novoItemRef, { 
             nome: nomeItem, 
@@ -774,10 +788,12 @@ document.getElementById('btn-craft-visual').addEventListener('click', () => {
             criadoEm: Date.now(),
             receita: receitaCombinada
         }).then(() => {
-            // 2. Remove todos os ingredientes que foram consumidos no Firebase
             listaDeMescla.forEach(item => {
                 if (item.id) remove(ref(db, `inventory/${currentUser}/${item.id}`));
             });
+
+            // 🧪 VERIFICAÇÃO DE CRAFT DE TINTA (AQUI É ONDE ELA É CHAMADA!)
+            concluirCrafting(nomeItem);
 
             if (typeof registrarLog === "function") {
                 registrarLog(`Forjou o item [${emojiItem} ${nomeItem}] combinando ${listaDeMescla.length} ingredientes.`);
@@ -785,7 +801,6 @@ document.getElementById('btn-craft-visual').addEventListener('click', () => {
             
             alert(`Item Criado! ${emojiItem} ${nomeItem} foi adicionado ao seu Inventário.`);
             
-            // Reseta a forja e limpa os campos
             listaDeMescla = [];
             renderizarListaDeMescla();
             document.getElementById('craft-result-name').value = "";
