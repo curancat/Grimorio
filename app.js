@@ -896,25 +896,31 @@ if (container) {
         btn.innerText = `${attr}\n(${valorFinal >= 0 ? '+' : ''}${valorFinal})`;
         
         btn.onclick = () => {
-            // 1. Preenche os campos do app.js
+            // 1. Configura os parâmetros do rolador principal
             document.getElementById('dice-qtd').value = sys.quantidadeDados;
             document.getElementById('dice-type').value = sys.tipoDado;
             document.getElementById('dice-mod').value = Math.abs(valorFinal);
             document.getElementById('mod-sign').value = valorFinal >= 0 ? '+' : '-';
             
-            // 2. Dispara a rolagem nativa do app.js
+            // 2. Dispara a rolagem nativa
             document.getElementById('btn-roll').click();
             
-            // 3. Lê o resultado do app.js e cria o Popup customizado na tela
+            // 3. Espera 450ms (garantindo que o dado já terminou de rodar) para capturar o resultado real
             setTimeout(() => {
-                const resultadoApp = document.getElementById('dice-result') ? document.getElementById('dice-result').innerText : "Processado";
-                const textoMensagem = `🎲 Testei ${attr} (${sys.nome}) e tirei: ${resultadoApp}!`;
+                const resultadoApp = document.getElementById('dice-result').innerText;
                 
-                // Remove modal anterior se houver para evitar duplicatas
+                // Pega os detalhes do último log de dados para ficar idêntico ao menu de dados
+                const logElements = document.getElementById('dice-log').children;
+                let detalheLog = logElements.length > 0 ? logElements[0].innerText : `${sys.quantidadeDados}D${sys.tipoDado}`;
+                
+                // Mensagem formatada para o WhatsApp (idêntica ao sistema de dados)
+                const textoMensagem = `🎲 *Teste de ${attr} (${sys.nome})* 🎲\n\nPersonagem: *${currentUser.toUpperCase()}*\nResultado Final: *${resultadoApp}*\nDetalhes: _${detalheLog}_\n\n🔮 _Enviado do Grimório Vivo_`;
+                
+                // Remove modal anterior se houver
                 const modalAntigo = document.getElementById('modal-rolagem-custom');
                 if (modalAntigo) modalAntigo.remove();
                 
-                // Cria a estrutura do Popup
+                // Cria o Popup customizado
                 const modal = document.createElement('div');
                 modal.id = 'modal-rolagem-custom';
                 modal.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 15px;";
@@ -924,11 +930,11 @@ if (container) {
                         <h3 style="margin-top: 0; color: #4af; font-size: 1.1rem; margin-bottom: 5px;">Resultado do Teste</h3>
                         <p style="font-size: 0.85rem; color: #bbb; margin: 0 0 10px 0;">${attr} (${sys.nome})</p>
                         
-                        <div style="font-size: 2rem; font-weight: bold; background: #111; padding: 12px; border-radius: 6px; margin: 10px 0; color: #0f0; border: 1px solid #333;">
+                        <div style="font-size: 2.5rem; font-weight: bold; background: #111; padding: 12px; border-radius: 6px; margin: 10px 0; color: #0f0; border: 1px solid #333;">
                             ${resultadoApp}
                         </div>
                         
-                        <p style="font-size: 0.75rem; color: #888; margin-bottom: 15px;">➡️ O histórico foi salvo no menu de dados.</p>
+                        <p style="font-size: 0.75rem; color: #888; margin-bottom: 15px;">Detalhes: ${detalheLog}</p>
                         
                         <div style="display: flex; gap: 8px; justify-content: center;">
                             <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(textoMensagem)}" target="_blank" style="flex: 1; background: #25d366; color: white; padding: 8px; border-radius: 4px; text-decoration: none; font-size: 0.8rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 4px;">📲 Zap</a>
@@ -939,14 +945,10 @@ if (container) {
                 
                 document.body.appendChild(modal);
                 
-                // Fechar ao clicar no botão
+                // Eventos para fechar o popup
                 document.getElementById('btn-fechar-modal').onclick = () => modal.remove();
-                
-                // Fechar ao clicar fora da caixa do modal
-                modal.onclick = (e) => {
-                    if (e.target === modal) modal.remove();
-                };
-            }, 50);
+                modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            }, 450); // Tempo sincronizado com o término do dado
             
             if (typeof registrarLog === "function") registrarLog(`Testou ${attr} (${sys.nome}).`);
         };
