@@ -192,6 +192,32 @@ function login(username) {
     
     // Capitaliza o nome para o título
     DOM.userTitle.innerText = `Grimório de ${currentUser.charAt(0).toUpperCase() + currentUser.slice(1)}`;
+    DOM.loginScreen.classList.add('hidden');
+    DOM.appScreen.classList.remove('hidden');
+    console.log("Sistema: Tentando logar como ->", currentUser); // Rastreador 1
+
+    if (currentUser.toLowerCase() === "mestre" || currentUser.toLowerCase() === "gm") { 
+        console.log("Sistema: Mestre detectado! Removendo a invisibilidade..."); // Rastreador 2
+        
+        const gmControls = document.getElementById("gm-controls");
+        if (gmControls) {
+            gmControls.classList.remove("hidden");
+        } else {
+            console.error("Erro: O HTML do gm-controls não foi encontrado na página!");
+        }
+        
+        const cardPerfil = document.querySelector(".card-perfil");
+        if (cardPerfil) cardPerfil.style.display = "none"; 
+        
+    } else {
+        console.log("Sistema: Jogador comum detectado.");
+        const gmControls = document.getElementById("gm-controls");
+        if (gmControls) gmControls.classList.add("hidden");
+        
+        const cardPerfil = document.querySelector(".card-perfil");
+        if (cardPerfil) cardPerfil.style.display = "block";
+    }
+  
     
     DOM.loginScreen.classList.add('hidden');
     DOM.appScreen.classList.remove('hidden');
@@ -200,19 +226,8 @@ function login(username) {
     carregarInventarioDoFirebase();
     carregarFichaDoFirebase();
   // Adicione isso dentro da sua função de login, logo após definir quem é o usuário!
+}
 
-// Se o usuário digitado for "Mestre" (ou o nome que você usa para o GM)
-if (currentUser === "Mestre" || currentUser === "GM") { 
-    document.getElementById("gm-controls").classList.remove("hidden");
-    
-    // Opcional: Ocultar a área de HP/XP do jogador, já que o Mestre não joga com ficha
-    document.querySelector(".card-perfil").style.display = "none"; 
-} else {
-    // Se for um jogador normal, garante que os controles do GM fiquem escondidos
-    document.getElementById("gm-controls").classList.add("hidden");
-    document.querySelector(".card-perfil").style.display = "block";
-}
-}
 
 // ==========================================
 // 5. LÓGICA DO FIREBASE (Sincronização)
