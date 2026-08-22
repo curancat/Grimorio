@@ -118,10 +118,15 @@
 <div id="tab-perfil" class="tab-content hidden">
     <div class="perfil-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
         
-        <!-- Área do Jogador -->
         <div class="card-perfil" style="background: #2a2a2a; padding: 15px; border-radius: 8px;">
             <h3>Ficha Ativa: <span id="nome-personagem">Nenhum</span></h3>
             <p>Sistema: <span id="sistema-personagem">Nenhum</span></p>
+            
+            <div style="margin: 10px 0; padding: 10px; background: #111; border-radius: 5px; border: 1px dashed #555;">
+                <p style="font-size: 0.85em; color: #aaa; margin-bottom: 5px;">Importar ficha (.json ou .txt):</p>
+                <input type="file" id="upload-ficha" accept=".json, .txt" style="color: white; font-size: 0.8rem; width: 100%;">
+                <p id="status-importacao" style="color: #88aaff; font-size: 0.8em; margin-top: 5px;"></p>
+            </div>
             
             <div style="display: flex; gap: 15px; margin: 15px 0;">
                 <div style="background: #442222; padding: 10px; border-radius: 5px; flex: 1; text-align: center;">
@@ -142,12 +147,10 @@
             <div id="botoes-atributos" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
         </div>
 
-        <!-- Área de Missões e Controle do Mestre -->
         <div class="card-missoes" style="background: #222233; padding: 15px; border-radius: 8px;">
             <h3>Quadro de Missões</h3>
             <div id="lista-missoes" style="min-height: 100px; margin-bottom: 15px; border: 1px solid #444; padding: 10px; border-radius: 5px;"></div>
             
-            <!-- Controles do GM -->
             <div id="gm-controls" class="hidden" style="border-top: 2px dashed #666; padding-top: 15px;">
                 <h4 style="color: #ffaa00;">Ferramentas do Mestre</h4>
                 
@@ -164,7 +167,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 <!-- ABA: LOG DO MESTRE -->
