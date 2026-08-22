@@ -28,7 +28,9 @@ let userGrimoire = [];
 let currentSpellId = null;
 let isMasterAuthenticated = false;
 let fatorKarma = 0;
-let limiteTintaDiogenes = 5; // Padrão inicial (Boa)
+let limiteTintaDiogenes = 5;      // Limite padrão pela qualidade (Boa = 5)
+let filtroCorDiogenes = 'todos';   // Filtro de cor ativo
+let tintaEspecialLiberada = false; // Controla se preto/branco foram liberados por dados iguais
 
 // ==========================================
 // 3. O GRIMÓRIO ORIGINAL DE DIÓGENES
@@ -223,7 +225,9 @@ function login(username) {
     carregarGrimorioDoFirebase();
     carregarInventarioDoFirebase();
     carregarFichaDoFirebase();
-   gerenciarMarcadorTintaDiogenes();
+   if (currentUser && currentUser.toLowerCase() === 'diogenes') {
+    gerenciarMarcadorTintaDiogenes();
+}
   // Adicione isso dentro da sua função de login, logo após definir quem é o usuário!
 }
 
@@ -262,14 +266,26 @@ function carregarGrimorioDoFirebase() {
 function renderizarCards(lista) {
     DOM.grid.innerHTML = "";
     
-    // Se for o Diógenes, limita a quantidade de magias exibidas conforme a qualidade da tinta
     let listaFinal = lista;
+    
+    // Regras exclusivas para o Diógenes
     if (currentUser && currentUser.toLowerCase() === 'diogenes') {
-        listaFinal = lista.slice(0, limiteTintaDiogenes);
+        // 1. Filtro por cor selecionada nos botões
+        if (filtroCorDiogenes !== 'todos') {
+            listaFinal = listaFinal.filter(ef => ef.cor === filtroCorDiogenes);
+        }
+        
+        // 2. Trava de Tinta Preta e Branca (Exige tirar números iguais nos dados)
+        if (!tintaEspecialLiberada) {
+            listaFinal = listaFinal.filter(ef => ef.cor !== 'preta' && ef.cor !== 'branca');
+        }
+        
+        // 3. Limite de capacidade pela qualidade da tinta
+        listaFinal = listaFinal.slice(0, limiteTintaDiogenes);
     }
 
     if(listaFinal.length === 0) {
-        DOM.grid.innerHTML = "<p class='text-muted' style='grid-column: 1/-1;'>O grimório está em branco ou o limite de tinta esgotou as páginas visíveis!</p>";
+        DOM.grid.innerHTML = "<p class='text-muted' style='grid-column: 1/-1;'>Nenhum efeito encontrado com esta cor ou o limite de tinta esgotou as páginas visíveis!</p>";
         return;
     }
 
@@ -372,6 +388,23 @@ document.getElementById('btn-roll').addEventListener('click', () => {
         
         let somaRolagensPuras = 0;
         let resultadosIndividuais = [];
+      // Verifica se tirou dois números iguais (duplo) para desbloquear tinta Preta/Branca
+        if (currentUser && currentUser.toLowerCase() === 'diogenes' && resultadosIndividuais.length >= 2) {
+            const temDuplo = resultadosIndividuais.some((val, i, arr) => arr.indexOf(val) !== i);
+            if (temDuplo) {
+                tintaEspecialLiberada = true;
+                alert("✨ DUPLO NOS DADOS! As tintas Preta e Branca foram desbloqueadas no seu grimório!");
+                
+                // Atualiza o aviso visual no painel se ele existir
+                const statusEspecial = document.getElementById('status-tinta-especial');
+                if (statusEspecial) {
+                    statusEspecial.innerText = "🔓 P/B Liberadas";
+                    statusEspecial.style.color = "#0f0";
+                }
+                
+                renderizarCards(userGrimoire);
+            }
+        }
 
         // Rolo a quantidade de dados especificada
         for (let i = 0; i < quantidade; i++) {
@@ -1355,42 +1388,68 @@ if (btnSalvarEditor) {
 function gerenciarMarcadorTintaDiogenes() {
     let painelTinta = document.getElementById('painel-tinta-diogenes');
     
-    // Apenas ativa se o usuário logado for o diógenes (independente de maiúsculas/minúsculas)
     if (currentUser && currentUser.toLowerCase() === 'diogenes') {
         if (!painelTinta) {
             const gridMagias = document.getElementById('lista-efeitos');
             if (gridMagias && gridMagias.parentNode) {
                 painelTinta = document.createElement('div');
                 painelTinta.id = 'painel-tinta-diogenes';
-                painelTinta.style.cssText = "background: rgba(20, 20, 20, 0.95); border: 1px solid #c9b037; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; color: #fff; font-size: 0.85rem; width: 100%; box-sizing: border-box;";
+                painelTinta.style.cssText = "background: rgba(20, 20, 20, 0.95); border: 1px solid #c9b037; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; color: #fff; font-size: 0.85rem; width: 100%; box-sizing: border-box;";
                 
                 painelTinta.innerHTML = `
-                    <div>
-                        🖋️ <strong>Qualidade da Tinta:</strong> 
-                        <select id="select-qualidade-tinta" style="background: #111; color: #fff; border: 1px solid #555; padding: 4px; border-radius: 4px; margin-left: 5px; font-size: 0.85rem;">
-                            <option value="ruim">Ruim (2)</option>
-                            <option value="boa" selected>Boa (5)</option>
-                            <option value="perfeita">Perfeita (10)</option>
-                        </select>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px;">
+                        <div>
+                            🖋️ <strong>Qualidade:</strong> 
+                            <select id="select-qualidade-tinta" style="background: #111; color: #fff; border: 1px solid #555; padding: 3px; border-radius: 4px; font-size: 0.8rem;">
+                                <option value="ruim">Ruim (2)</option>
+                                <option value="boa" selected>Boa (5)</option>
+                                <option value="perfeita">Perfeita (10)</option>
+                            </select>
+                        </div>
+                        <div id="status-limite-tinta" style="color: #c9b037; font-weight: bold; font-size: 0.8rem;">
+                            Capacidade: 5
+                        </div>
+                        <div id="status-tinta-especial" style="color: ${tintaEspecialLiberada ? '#0f0' : '#888'}; font-size: 0.75rem;">
+                            ${tintaEspecialLiberada ? '🔓 P/B Liberadas' : '🔒 P/B Bloqueadas (Role Duplo)'}
+                        </div>
                     </div>
-                    <div id="status-limite-tinta" style="color: #c9b037; font-weight: bold;">
-                        Capacidade: 5
+                    
+                    <!-- Botões de Filtro por Cor -->
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; border-top: 1px solid #333; padding-top: 6px;">
+                        <button class="btn-filtro-cor" data-cor="todos" style="background: #333; color: #fff; border: 1px solid #555; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer; font-weight: bold;">Todas</button>
+                        <button class="btn-filtro-cor" data-cor="vermelha" style="background: #8b0000; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Vermelha</button>
+                        <button class="btn-filtro-cor" data-cor="azul" style="background: #00008b; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Azul</button>
+                        <button class="btn-filtro-cor" data-cor="amarela" style="background: #b8860b; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Amarela</button>
+                        <button class="btn-filtro-cor" data-cor="preta" style="background: #222; color: #fff; border: 1px solid #555; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Preta</button>
+                        <button class="btn-filtro-cor" data-cor="branca" style="background: #ddd; color: #000; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Branca</button>
+                        <button class="btn-filtro-cor" data-cor="mescla" style="background: #551a8b; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Mescla</button>
                     </div>
                 `;
                 
-                // Insere logo acima do grid de efeitos/magias na primeira aba
                 gridMagias.parentNode.insertBefore(painelTinta, gridMagias);
                 
-                // Evento ao mudar a seleção
+                // Evento ao mudar a qualidade da tinta
                 document.getElementById('select-qualidade-tinta').onchange = (e) => {
                     salvarEAtualizarTinta(e.target.value);
                 };
+                
+                // Eventos dos botões de filtro de cor
+                painelTinta.querySelectorAll('.btn-filtro-cor').forEach(btn => {
+                    btn.onclick = (e) => {
+                        filtroCorDiogenes = e.target.getAttribute('data-cor');
+                        
+                        // Destaca visualmente o botão ativo
+                        painelTinta.querySelectorAll('.btn-filtro-cor').forEach(b => b.style.outline = 'none');
+                        e.target.style.outline = '2px solid #fff';
+                        
+                        renderizarCards(userGrimoire);
+                    };
+                });
             }
         } else {
             painelTinta.style.display = 'flex';
         }
         
-        // Carrega o valor salvo anteriormente do Firebase se houver
         carregarTintaDoFirebase();
     } else {
         if (painelTinta) painelTinta.style.display = 'none';
