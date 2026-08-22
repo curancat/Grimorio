@@ -806,7 +806,7 @@ const BibliotecaSistemas = {
         quantidadeDados: 2,
         atributosBase: {
             "Vontade": 0, "Fortitude": 0, "Reflexos": 0, "Razão": 0,
-            "Intuição": 0, "Percepção": 0, "Carisma": 0, "Alma": 0,Violencia": 0,"Firmesa": 0
+            "Intuição": 0, "Percepção": 0, "Carisma": 0, "Alma": 0,"Violencia": 0,"Firmesa": 0
         },
         calcularHpMax: (atributos) => 10 + (atributos["Fortitude"] || 0),
         custoXpPorNivel: 10
