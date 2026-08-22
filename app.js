@@ -882,7 +882,8 @@ function renderizarPerfil() {
 // No lugar do flex antigo dentro de renderizarPerfil():
 const container = document.getElementById('botoes-atributos');
 if (container) {
-    container.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; margin-top: 10px;";
+    // Força 2 colunas para economizar espaço vertical no celular
+    container.style.cssText = "display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 10px;";
     container.innerHTML = "";
     
     for (let attr in fichaAtual.atributos) {
@@ -891,23 +892,30 @@ if (container) {
         
         const btn = document.createElement('button');
         btn.className = "btn-rolagem-rapida";
-        // Estilo compacto para economizar espaço vertical
         btn.style.cssText = "background: #2a2a2a; border: 1px solid #444; padding: 6px 4px; border-radius: 4px; color: white; cursor: pointer; font-size: 0.85rem; text-align: center;";
         btn.innerText = `${attr}\n(${valorFinal >= 0 ? '+' : ''}${valorFinal})`;
         
         btn.onclick = () => {
+            // 1. Preenche os campos do app.js
             document.getElementById('dice-qtd').value = sys.quantidadeDados;
             document.getElementById('dice-type').value = sys.tipoDado;
             document.getElementById('dice-mod').value = Math.abs(valorFinal);
             document.getElementById('mod-sign').value = valorFinal >= 0 ? '+' : '-';
+            
+            // 2. Dispara a rolagem nativa do app.js
             document.getElementById('btn-roll').click();
-            alert(`🎲 Resultado do teste de ${attr}: ${totalFinal}\n(Dados: [${resultados.join(', ')}] | Mod: ${valorFinal})\n\n➡️ Dirija-se ao menu/aba de Dados para ver o histórico completo ou compartilhar no WhatsApp!`);
+            
+            // 3. Lê o resultado calculado pelo próprio app.js e joga no alert
+            setTimeout(() => {
+                const resultadoApp = document.getElementById('dice-result') ? document.getElementById('dice-result').innerText : "Processado";
+                alert(`🎲 Resultado do teste de ${attr}: ${resultadoApp}\n\n➡️ Dirija-se ao menu de dados para ver o histórico completo ou compartilhar no WhatsApp!`);
+            }, 50);
+            
             if (typeof registrarLog === "function") registrarLog(`Testou ${attr} (${sys.nome}).`);
         };
         container.appendChild(btn);
     }
 }
-
     // ==========================================
     // RENDERIZAR PAINEL DE FERIMENTOS NA FICHA
     // ==========================================
