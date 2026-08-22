@@ -805,16 +805,18 @@ const BibliotecaSistemas = {
         tipoDado: 10,
         quantidadeDados: 2,
         atributosBase: {
-            "Vontade": 0,
-            "Fortitude": 0,
-            "Reflexos": 0,
-            "Razão": 0,
-            "Intuição": 0,
-            "Percepção": 0,
-            "Carisma": 0,
-            "Alma": 0
+            "Vontade": 0, "Fortitude": 0, "Reflexos": 0, "Razão": 0,
+            "Intuição": 0, "Percepção": 0, "Carisma": 0, "Alma": 0
         },
         calcularHpMax: (atributos) => 10 + (atributos["Fortitude"] || 0),
+        custoXpPorNivel: 10
+    },
+    "Personalizado": {
+        nome: "Sistema Personalizado",
+        tipoDado: 20,
+        quantidadeDados: 1,
+        atributosBase: { "Força": 0, "Destreza": 0, "Mente": 0 },
+        calcularHpMax: (atributos) => 10 + (atributos["Força"] || 0),
         custoXpPorNivel: 10
     }
 };
@@ -849,7 +851,13 @@ function carregarFichaDoFirebase() {
 function renderizarPerfil() {
     if (!fichaAtual) return;
     
-    const sys = BibliotecaSistemas[fichaAtual.sistema];
+    // Tenta pegar o sistema da ficha; se não achar, usa KULT como contingência
+    let sys = BibliotecaSistemas[fichaAtual.sistema];
+    if (!sys) {
+        console.warn(`Sistema '${fichaAtual.sistema}' desconhecido! Usando KULT.`);
+        sys = BibliotecaSistemas["KULT"];
+    }
+    
     const hpMax = sys.calcularHpMax(fichaAtual.atributos);
     
     document.getElementById('nome-personagem').innerText = fichaAtual.nome.toUpperCase();
@@ -878,7 +886,7 @@ function renderizarPerfil() {
         btn.innerText = `🎲 ${attr} (${valor >= 0 ? '+' : ''}${valor})`;
         
         btn.onclick = () => {
-            // Configura a rolagem baseada no sistema (KULT = 2d10)
+            // Configura a rolagem baseada no sistema dinâmico
             document.getElementById('dice-qtd').value = sys.quantidadeDados;
             document.getElementById('dice-type').value = sys.tipoDado;
             document.getElementById('dice-mod').value = Math.abs(valor);
