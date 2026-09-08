@@ -239,6 +239,7 @@ function login(username) {
     gerenciarMarcadorTintaDiogenes();
 }
   // Adicione isso dentro da sua função de login, logo após definir quem é o usuário!
+  iniciarChat();
 }
 
 
@@ -1620,4 +1621,94 @@ function atualizarPainelTintasVisual() {
 
 function salvarEstoqueNoFirebase() {
     set(ref(db, `characters/diogenes/estoqueTintas`), estoqueTintasDiogenes);
+}
+// ==========================================
+// 20. SISTEMA DE CHAT EM TEMPO REAL
+// ==========================================
+const DOM_CHAT = {
+    messagesContainer: document.getElementById('chat-messages'),
+    input: document.getElementById('chat-input'),
+    btnSend: document.getElementById('btn-send-chat')
+};
+
+function iniciarChat() {
+    const chatRef = ref(db, 'chat_messages');
+    
+    // Escuta novas mensagens em tempo real
+    onValue(chatRef, (snapshot) => {
+        if (!DOM_CHAT.messagesContainer) return;
+        
+        DOM_CHAT.messagesContainer.innerHTML = ""; // Limpa para re-renderizar
+        const data = snapshot.val();
+        
+        if (data) {
+            // Converte em array e ordena pela ordem de chegada (timestamp)
+            const mensagens = Object.values(data).sort((a, b) => a.timestamp - b.timestamp);
+            
+            mensagens.forEach(msg => {
+                const div = document.createElement('div');
+                
+                // Define o estilo baseado em quem enviou
+                let tipo = 'other';
+                if (msg.remetente.toLowerCase() === currentUser.toLowerCase()) tipo = 'mine';
+                if (msg.remetente.toLowerCase() === 'mestre' || msg.remetente.toLowerCase() === 'gm') tipo = 'gm';
+                
+                div.className = `chat-msg ${tipo}`;
+                
+                // Formata a hora
+                const dataMsg = new Date(msg.timestamp);
+                const horaFormatada = `${dataMsg.getHours().toString().padStart(2, '0')}:${dataMsg.getMinutes().toString().padStart(2, '0')}`;
+                
+                // Se não for o GM, mostra o nome de quem enviou acima da mensagem
+                const nomeHeader = tipo !== 'gm' 
+                    ? `<span class="chat-header">${msg.remetente.toUpperCase()} <span style="color:#666; font-size:0.65rem;">(${horaFormatada})</span></span>` 
+                    : `<span class="chat-header">👑 VOZ DO MESTRE 👑</span>`;
+                
+                div.innerHTML = `${nomeHeader}${msg.texto}`;
+                DOM_CHAT.messagesContainer.appendChild(div);
+            });
+            
+            // Rola a barra de rolagem para a mensagem mais recente automaticamente
+            DOM_CHAT.messagesContainer.scrollTop = DOM_CHAT.messagesContainer.scrollHeight;
+        } else {
+            DOM_CHAT.messagesContainer.innerHTML = "<p class='text-muted text-center' style='margin-top:auto; margin-bottom:auto;'>A taverna está silenciosa. Seja o primeiro a falar...</p>";
+        }
+    });
+}
+
+function enviarMensagem() {
+    if (!DOM_CHAT.input) return;
+    const texto = DOM_CHAT.input.value.trim();
+    
+    // Evita enviar mensagens vazias ou se o usuário não estiver logado
+    if (!texto || !currentUser) return;
+
+    // Trava o botão para não enviar duplicado enquanto processa
+    DOM_CHAT.btnSend.disabled = true;
+
+    const novaMsgRef = push(ref(db, 'chat_messages'));
+    set(novaMsgRef, {
+        remetente: currentUser,
+        texto: texto,
+        timestamp: Date.now()
+    }).then(() => {
+        DOM_CHAT.input.value = ""; // Limpa o input
+        DOM_CHAT.btnSend.disabled = false;
+        DOM_CHAT.input.focus(); // Mantém o foco para continuar digitando
+    }).catch(err => {
+        console.error("Erro ao enviar mensagem:", err);
+        DOM_CHAT.btnSend.disabled = false;
+    });
+}
+
+// Configura os eventos de clique no botão e de pressionar "Enter" no teclado
+if (DOM_CHAT.btnSend && DOM_CHAT.input) {
+    DOM_CHAT.btnSend.addEventListener('click', enviarMensagem);
+    
+    DOM_CHAT.input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Evita quebra de linha se virar um textarea no futuro
+            enviarMensagem();
+        }
+    });
 }
