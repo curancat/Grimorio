@@ -357,3 +357,31 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
 }
 .msg-actions span:hover { color: #fff; }
 .msg-editada { font-size: 0.65rem; color: #666; margin-left: 5px; font-style: italic; }
+/* Estilos para Canais e Bots */
+.channel-btn {
+    background: transparent;
+    border: 1px solid var(--borda-ouro);
+    color: #ccc;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 3px;
+    text-align: left;
+    transition: 0.2s;
+}
+.channel-btn.active {
+    background: var(--borda-ouro);
+    color: #000;
+    font-weight: bold;
+}
+.channel-btn:hover:not(.active) { background: rgba(255,215,0,0.2); }
+
+.bot-card {
+    background: #1a1a2e;
+    border: 1px solid #4a4a8a;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+.bot-card h5 { margin: 0 0 5px 0; color: #a2a2d0; }
+.bot-card p { margin: 2px 0; font-size: 0.75rem; color: #888; }
+.bot-card button { width: 100%; margin-top: 5px; font-size: 0.7rem; padding: 3px; }
