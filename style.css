@@ -325,3 +325,35 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     display: block;
     font-weight: bold;
 }
+/* Balões de NPC (Criados pelo Mestre) */
+.chat-msg.npc {
+    background: #1e3a2a;
+    border: 1px solid #2ecc71;
+    align-self: flex-start;
+    text-align: left;
+}
+
+/* Log de Rolagem do Sistema */
+.chat-msg.roll {
+    background: transparent;
+    border: 1px dashed var(--borda-ouro);
+    color: #ffd700;
+    align-self: center;
+    text-align: center;
+    font-style: italic;
+    width: 90%;
+}
+
+/* Botões de Ação na Mensagem */
+.msg-actions {
+    font-size: 0.7rem;
+    margin-top: 5px;
+    text-align: right;
+}
+.msg-actions span {
+    cursor: pointer;
+    color: #888;
+    margin-left: 10px;
+}
+.msg-actions span:hover { color: #fff; }
+.msg-editada { font-size: 0.65rem; color: #666; margin-left: 5px; font-style: italic; }
