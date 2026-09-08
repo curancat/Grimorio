@@ -191,17 +191,34 @@
         </div>
     </div>
 </div>
-    <!-- ABA: CHAT -->
+  <!-- ABA: CHAT AVANÇADO -->
 <div id="tab-chat" class="tab-content hidden">
-    <h2>Chat</h2>
-    <p class="text-muted text-center mb-10">Converse com o grupo..</p>
+    <h2>CHATs</h2>
     
-    <div id="chat-messages" style="height: 350px; overflow-y: auto; background: rgba(0,0,0,0.5); border: 1px solid var(--borda-ouro); border-radius: 5px; padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
-        <!-- Mensagens aparecerão aqui -->
+    <!-- Aviso de Mute (Escondido por padrão) -->
+    <div id="mute-warning" style="display: none; background: rgba(255,0,0,0.2); border: 1px solid red; color: #ffcccc; padding: 10px; text-align: center; font-weight: bold; margin-bottom: 10px; border-radius: 5px;">
+        Você foi silenciado pelo Mestre! Tempo restante: <span id="mute-timer">00:00</span>
+    </div>
+
+    <!-- Painel Exclusivo do Mestre (Só aparece se currentUser == 'mestre') -->
+    <div id="gm-chat-panel" style="display: none; background: #2a0000; border: 1px solid #ff4444; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+        <h4 style="color: #ffcccc; margin-top: 0; font-size: 0.9rem;">👑 Controles Divinos</h4>
+        
+        <input type="text" id="gm-npc-name" class="input-mystic w-full mb-10" placeholder="Falar como (Nome do NPC/Monstro)...">
+        
+        <div style="display: flex; gap: 5px;">
+            <input type="text" id="mute-player-name" class="input-mystic" placeholder="Jogador alvo">
+            <input type="number" id="mute-time" class="input-mystic" placeholder="Minutos" style="width: 80px;">
+            <button onclick="silenciarJogador()" class="btn-mystic" style="background: #660000;">Silenciar</button>
+        </div>
+    </div>
+    
+    <div id="chat-messages" style="height: 400px; overflow-y: auto; background: rgba(0,0,0,0.6); border: 1px solid var(--borda-ouro); border-radius: 5px; padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Mensagens renderizadas via JS -->
     </div>
     
     <div style="display: flex; gap: 10px;">
-        <input type="text" id="chat-input" class="input-mystic w-full" placeholder="Escreva sua mensagem...">
+        <input type="text" id="chat-input" class="input-mystic w-full" placeholder="Mensagem / Comando...">
         <button id="btn-send-chat" class="btn-mystic">Enviar</button>
     </div>
 </div>
