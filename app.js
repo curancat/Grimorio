@@ -1625,3 +1625,264 @@ function salvarEstoqueNoFirebase() {
 // ==========================================
 // 20. SISTEMA DE CHAT EM TEMPO REAL
 // ==========================================
+// ==========================================
+// SISTEMA VTT COMPLETO (CHAT, BOTS, CANAIS)
+// ==========================================
+let canalAtual = 'taverna';
+let unsubscribeChat = null;
+let jogadorSilenciado = false;
+let intervaloMute = null;
+
+function iniciarChatAvancado() {
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+    if (isGM) document.getElementById('gm-chat-panel').style.display = 'block';
+
+    // 1. Criar canal padrão "Taverna" se não existir
+    update(ref(db, 'canais/taverna'), { nome: 'Taverna', aprovado: true, criador: 'Sistema' });
+
+    // 2. Sistema de Mute
+    onValue(ref(db, 'mutes/' + currentUser.toLowerCase()), (snapshot) => {
+        const data = snapshot.val();
+        const agora = Date.now();
+        if (data && data.expiraEm > agora) {
+            jogadorSilenciado = true;
+            document.getElementById('chat-input').disabled = true;
+            document.getElementById('btn-send-chat').disabled = true;
+            document.getElementById('mute-warning').style.display = 'block';
+            
+            if (intervaloMute) clearInterval(intervaloMute);
+            intervaloMute = setInterval(() => {
+                const restante = Math.max(0, data.expiraEm - Date.now());
+                if (restante <= 0) {
+                    clearInterval(intervaloMute);
+                    remove(ref(db, 'mutes/' + currentUser.toLowerCase())); 
+                } else {
+                    document.getElementById('mute-timer').innerText = `${Math.floor(restante / 60000)}m ${Math.floor((restante % 60000) / 1000)}s`;
+                }
+            }, 1000);
+        } else {
+            jogadorSilenciado = false;
+            document.getElementById('chat-input').disabled = false;
+            document.getElementById('btn-send-chat').disabled = false;
+            document.getElementById('mute-warning').style.display = 'none';
+            if (intervaloMute) clearInterval(intervaloMute);
+        }
+    });
+
+    // 3. Escutar Canais
+    onValue(ref(db, 'canais'), (snapshot) => {
+        const lista = document.getElementById('channel-list');
+        lista.innerHTML = "";
+        const canaisPendentes = document.getElementById('gm-pending-list');
+        if(isGM) canaisPendentes.innerHTML = ""; // Limpa pendências
+
+        snapshot.forEach(child => {
+            const canal = { id: child.key, ...child.val() };
+            
+            // GM vê aprovações pendentes
+            if (!canal.aprovado && isGM) {
+                canaisPendentes.innerHTML += `<button onclick="aprovarFirebase('canais/${canal.id}')" class="btn-mystic" style="font-size:0.7rem; background:#aa8800;">Aprovar Sala: ${canal.nome}</button>`;
+            }
+
+            // Exibe na lista lateral se aprovado, ou se foi o próprio jogador que criou (mesmo pendente)
+            if (canal.aprovado || canal.criador.toLowerCase() === currentUser.toLowerCase() || isGM) {
+                const btn = document.createElement('button');
+                btn.className = `channel-btn ${canal.id === canalAtual ? 'active' : ''}`;
+                btn.innerText = canal.aprovado ? `# ${canal.nome}` : `⏳ ${canal.nome} (Pendente)`;
+                
+                btn.onclick = () => {
+                    if(!canal.aprovado && !isGM) return alert("Aguarde o Mestre aprovar esta sala.");
+                    mudarCanal(canal.id, canal.nome);
+                };
+                lista.appendChild(btn);
+            }
+        });
+    });
+
+    // 4. Escutar Bots
+    onValue(ref(db, 'bots'), (snapshot) => {
+        const lista = document.getElementById('bots-list');
+        lista.innerHTML = "";
+        
+        snapshot.forEach(child => {
+            const bot = { id: child.key, ...child.val() };
+            
+            if (!bot.aprovado && isGM) {
+                document.getElementById('gm-pending-list').innerHTML += `<button onclick="aprovarFirebase('bots/${bot.id}')" class="btn-mystic" style="font-size:0.7rem; background:#aa8800;">Aprovar Bot: ${bot.nome}</button>`;
+            }
+
+            if (bot.aprovado || bot.criador.toLowerCase() === currentUser.toLowerCase() || isGM) {
+                const card = document.createElement('div');
+                card.className = 'bot-card';
+                card.innerHTML = `
+                    <h5>${bot.aprovado ? '🤖' : '⏳'} ${bot.nome}</h5>
+                    <p>❤ HP: ${bot.hp} | 🛡️ Def: ${bot.defesa}</p>
+                    <p>⚔️ Dano: ${bot.dano}</p>
+                    ${bot.aprovado ? `<button class="btn-mystic" onclick="botAtacar('${bot.nome}', '${bot.dano}')">Atacar / Usar Habilidade</button>` : '<p style="color:red; font-size:0.7rem;">Aguardando Mestre...</p>'}
+                `;
+                lista.appendChild(card);
+            }
+        });
+    });
+
+    // Inicia ouvindo a taverna
+    mudarCanal('taverna', 'Taverna');
+}
+
+// ==========================================
+// LÓGICA DE MUDANÇA DE SALA E MENSAGENS
+// ==========================================
+function mudarCanal(idCanal, nomeCanal) {
+    canalAtual = idCanal;
+    document.getElementById('current-channel-title').innerText = `Sala: ${nomeCanal}`;
+    
+    // Atualiza o visual dos botões
+    document.querySelectorAll('.channel-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if(btn.innerText.includes(nomeCanal)) btn.classList.add('active');
+    });
+
+    // Desliga a escuta da sala anterior (MUITO IMPORTANTE PARA NÃO DUPLICAR MSG)
+    if (unsubscribeChat) unsubscribeChat();
+
+    const chatRef = ref(db, `mensagens/${canalAtual}`);
+    unsubscribeChat = onValue(chatRef, (snapshot) => {
+        const container = document.getElementById('chat-messages');
+        if (!container) return;
+        container.innerHTML = ""; 
+        
+        const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+        const mensagens = [];
+        snapshot.forEach(child => { mensagens.push({ id: child.key, ...child.val() }); });
+        
+        mensagens.forEach(msg => {
+            const div = document.createElement('div');
+            let tipo = 'other';
+            let nomeExibicao = msg.remetente.toUpperCase();
+
+            if (msg.tipo === 'roll') {
+                tipo = 'roll'; nomeExibicao = '🎲 DADOS E COMBATE';
+            } else if (msg.falarComo) {
+                tipo = 'npc'; nomeExibicao = msg.falarComo.toUpperCase();
+            } else if (msg.remetente.toLowerCase() === currentUser.toLowerCase()) {
+                tipo = 'mine';
+            } else if (msg.remetente.toLowerCase() === 'mestre') {
+                tipo = 'gm'; nomeExibicao = '👑 VOZ DO MESTRE';
+            }
+            
+            div.className = `chat-msg ${tipo}`;
+            const hora = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            let html = `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
+            html += `<div>${msg.texto} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
+            
+            // Botões Editar/Apagar
+            if (msg.remetente.toLowerCase() === currentUser.toLowerCase() || isGM) {
+                if (msg.tipo !== 'roll') { 
+                    html += `<div class="msg-actions">
+                        <span onclick="editarMensagem('${msg.id}', '${msg.texto.replace(/'/g, "\\'")}')">✏️ Editar</span>
+                        <span onclick="apagarMensagem('${msg.id}')">🗑️ Apagar</span>
+                    </div>`;
+                }
+            }
+            div.innerHTML = html;
+            container.appendChild(div);
+        });
+        container.scrollTop = container.scrollHeight;
+    });
+}
+
+function enviarMensagem() {
+    if (jogadorSilenciado) return;
+    const input = document.getElementById('chat-input');
+    const texto = input.value.trim();
+    if (!texto || !currentUser) return;
+
+    const inputNPC = document.getElementById('gm-npc-name');
+    const npcName = inputNPC ? inputNPC.value.trim() : "";
+
+    push(ref(db, `mensagens/${canalAtual}`), {
+        remetente: currentUser, falarComo: npcName || null,
+        texto: texto, timestamp: Date.now(), tipo: 'chat', editada: false
+    });
+    input.value = "";
+}
+
+// ==========================================
+// FUNÇÕES DE CRIAÇÃO E APROVAÇÃO (BOTS/CANAIS)
+// ==========================================
+function solicitarNovoCanal() {
+    const nome = prompt("Nome da Nova Sala (Ex: Cripta Subterrânea):");
+    if (!nome) return;
+    const id = nome.toLowerCase().replace(/[^a-z0-9]/g, ''); // Cria um ID sem espaços
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+    
+    update(ref(db, `canais/${id}`), {
+        nome: nome,
+        criador: currentUser,
+        aprovado: isGM // Se GM cria, aprova na hora. Se jogador, vai falso.
+    });
+    if(!isGM) alert("Solicitação enviada ao Mestre!");
+}
+
+function solicitarNovoBot() {
+    const nome = prompt("Nome do Bot/Monstro:");
+    if (!nome) return;
+    const hp = prompt("Pontos de Vida (HP):", "20") || "0";
+    const defesa = prompt("Defesa / Armadura:", "10") || "0";
+    const dano = prompt("Fórmula de Dano/Ataque (Ex: 1d6+2 ou Magia de Fogo):", "1d6") || "0";
+    
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+    
+    push(ref(db, 'bots'), {
+        nome, hp, defesa, dano, criador: currentUser, aprovado: isGM
+    });
+    if(!isGM) alert("Ficha do Bot enviada para aprovação do Mestre!");
+}
+
+function aprovarFirebase(caminho) {
+    update(ref(db, caminho), { aprovado: true });
+}
+
+function botAtacar(nomeBot, formulaDano) {
+    // Registra o ataque do Bot direto no canal atual
+    push(ref(db, `mensagens/${canalAtual}`), {
+        remetente: 'Sistema',
+        texto: `🤖 <strong>${nomeBot}</strong> usa sua habilidade/ataque!<br>⚔️ <em>Poder/Fórmula: ${formulaDano}</em>`,
+        timestamp: Date.now(),
+        tipo: 'roll'
+    });
+}
+
+// ==========================================
+// EDIÇÃO, PUNIÇÃO E EVENTOS
+// ==========================================
+function apagarMensagem(id) {
+    if(confirm("Deseja apagar esta mensagem?")) remove(ref(db, `mensagens/${canalAtual}/${id}`));
+}
+
+function editarMensagem(id, textoAntigo) {
+    const novoTexto = prompt("Edite sua mensagem:", textoAntigo);
+    if (novoTexto && novoTexto.trim() !== "") {
+        update(ref(db, `mensagens/${canalAtual}/${id}`), { texto: novoTexto.trim(), editada: true });
+    }
+}
+
+function silenciarJogador() {
+    const alvo = document.getElementById('mute-player-name').value.trim().toLowerCase();
+    const minutos = parseInt(document.getElementById('mute-time').value);
+    if (!alvo || !minutos) return alert("Preencha jogador e minutos.");
+    
+    set(ref(db, 'mutes/' + alvo), {
+        expiraEm: Date.now() + (minutos * 60 * 1000), mutadoPor: currentUser
+    }).then(() => {
+        alert(`${alvo.toUpperCase()} foi silenciado!`);
+        document.getElementById('mute-player-name').value = "";
+    });
+}
+
+// Eventos de Input
+document.getElementById('btn-send-chat').addEventListener('click', enviarMensagem);
+document.getElementById('chat-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') enviarMensagem();
+});
