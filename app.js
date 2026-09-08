@@ -239,7 +239,7 @@ function login(username) {
     gerenciarMarcadorTintaDiogenes();
 }
   // Adicione isso dentro da sua função de login, logo após definir quem é o usuário!
-  iniciarChat();
+  iniciarChatAvancado();
 }
 
 
@@ -1625,90 +1625,182 @@ function salvarEstoqueNoFirebase() {
 // ==========================================
 // 20. SISTEMA DE CHAT EM TEMPO REAL
 // ==========================================
-const DOM_CHAT = {
-    messagesContainer: document.getElementById('chat-messages'),
-    input: document.getElementById('chat-input'),
-    btnSend: document.getElementById('btn-send-chat')
-};
+// Variáveis Globais de Controle do Chat
+let intervaloMute = null;
+let jogadorSilenciado = false;
 
-function iniciarChat() {
-    const chatRef = ref(db, 'chat_messages');
-    
-    // Escuta novas mensagens em tempo real
-    onValue(chatRef, (snapshot) => {
-        if (!DOM_CHAT.messagesContainer) return;
-        
-        DOM_CHAT.messagesContainer.innerHTML = ""; // Limpa para re-renderizar
+function iniciarChatAvancado() {
+    // 1. Mostrar painel do mestre se tiver permissão
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+    if (isGM) {
+        document.getElementById('gm-chat-panel').style.display = 'block';
+    }
+
+    // 2. Escutar Sistema de Punição (Mute)
+    const muteRef = ref(db, 'mutes/' + currentUser.toLowerCase());
+    onValue(muteRef, (snapshot) => {
         const data = snapshot.val();
+        const agora = Date.now();
         
-        if (data) {
-            // Converte em array e ordena pela ordem de chegada (timestamp)
-            const mensagens = Object.values(data).sort((a, b) => a.timestamp - b.timestamp);
+        if (data && data.expiraEm > agora) {
+            jogadorSilenciado = true;
+            document.getElementById('chat-input').disabled = true;
+            document.getElementById('btn-send-chat').disabled = true;
+            document.getElementById('mute-warning').style.display = 'block';
             
-            mensagens.forEach(msg => {
-                const div = document.createElement('div');
-                
-                // Define o estilo baseado em quem enviou
-                let tipo = 'other';
-                if (msg.remetente.toLowerCase() === currentUser.toLowerCase()) tipo = 'mine';
-                if (msg.remetente.toLowerCase() === 'mestre' || msg.remetente.toLowerCase() === 'gm') tipo = 'gm';
-                
-                div.className = `chat-msg ${tipo}`;
-                
-                // Formata a hora
-                const dataMsg = new Date(msg.timestamp);
-                const horaFormatada = `${dataMsg.getHours().toString().padStart(2, '0')}:${dataMsg.getMinutes().toString().padStart(2, '0')}`;
-                
-                // Se não for o GM, mostra o nome de quem enviou acima da mensagem
-                const nomeHeader = tipo !== 'gm' 
-                    ? `<span class="chat-header">${msg.remetente.toUpperCase()} <span style="color:#666; font-size:0.65rem;">(${horaFormatada})</span></span>` 
-                    : `<span class="chat-header">👑 VOZ DO MESTRE 👑</span>`;
-                
-                div.innerHTML = `${nomeHeader}${msg.texto}`;
-                DOM_CHAT.messagesContainer.appendChild(div);
-            });
-            
-            // Rola a barra de rolagem para a mensagem mais recente automaticamente
-            DOM_CHAT.messagesContainer.scrollTop = DOM_CHAT.messagesContainer.scrollHeight;
+            // Iniciar Cronômetro visual
+            if (intervaloMute) clearInterval(intervaloMute);
+            intervaloMute = setInterval(() => {
+                const restante = Math.max(0, data.expiraEm - Date.now());
+                if (restante <= 0) {
+                    clearInterval(intervaloMute);
+                    // Mute acabou!
+                    remove(ref(db, 'mutes/' + currentUser.toLowerCase())); 
+                } else {
+                    const min = Math.floor(restante / 60000);
+                    const seg = Math.floor((restante % 60000) / 1000);
+                    document.getElementById('mute-timer').innerText = `${min}m ${seg}s`;
+                }
+            }, 1000);
         } else {
-            DOM_CHAT.messagesContainer.innerHTML = "<p class='text-muted text-center' style='margin-top:auto; margin-bottom:auto;'>A taverna está silenciosa. Seja o primeiro a falar...</p>";
+            // Livre do silenciamento
+            jogadorSilenciado = false;
+            document.getElementById('chat-input').disabled = false;
+            document.getElementById('btn-send-chat').disabled = false;
+            document.getElementById('mute-warning').style.display = 'none';
+            if (intervaloMute) clearInterval(intervaloMute);
         }
+    });
+
+    // 3. Renderizar Mensagens
+    const chatRef = ref(db, 'chat_messages');
+    onValue(chatRef, (snapshot) => {
+        const container = document.getElementById('chat-messages');
+        if (!container) return;
+        container.innerHTML = ""; 
+        
+        const mensagens = [];
+        snapshot.forEach(child => {
+            mensagens.push({ id: child.key, ...child.val() });
+        });
+        
+        mensagens.forEach(msg => {
+            const div = document.createElement('div');
+            let tipo = 'other';
+            let nomeExibicao = msg.remetente.toUpperCase();
+
+            // Lógica de estilos: GM, NPC, Rolagem, ou Eu
+            if (msg.tipo === 'roll') {
+                tipo = 'roll';
+                nomeExibicao = '🎲 OS DADOS FALAM';
+            } else if (msg.falarComo) {
+                tipo = 'npc';
+                nomeExibicao = msg.falarComo.toUpperCase();
+            } else if (msg.remetente.toLowerCase() === currentUser.toLowerCase()) {
+                tipo = 'mine';
+            } else if (msg.remetente.toLowerCase() === 'mestre') {
+                tipo = 'gm';
+                nomeExibicao = '👑 VOZ DO MESTRE';
+            }
+            
+            div.className = `chat-msg ${tipo}`;
+            const hora = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            let html = `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
+            html += `<div>${msg.texto} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
+            
+            // Adiciona botões de Editar/Apagar se a mensagem for minha ou se eu for o Mestre
+            if (msg.remetente.toLowerCase() === currentUser.toLowerCase() || isGM) {
+                if (msg.tipo !== 'roll') { // Não se pode editar rolagens
+                    html += `
+                    <div class="msg-actions">
+                        <span onclick="editarMensagem('${msg.id}', '${msg.texto.replace(/'/g, "\\'")}')">✏️ Editar</span>
+                        <span onclick="apagarMensagem('${msg.id}')">🗑️ Apagar</span>
+                    </div>`;
+                }
+            }
+            
+            div.innerHTML = html;
+            container.appendChild(div);
+        });
+        
+        container.scrollTop = container.scrollHeight;
     });
 }
 
+// 4. Enviar Mensagem (Modificado para suportar NPC)
 function enviarMensagem() {
-    if (!DOM_CHAT.input) return;
-    const texto = DOM_CHAT.input.value.trim();
+    if (jogadorSilenciado) return;
     
-    // Evita enviar mensagens vazias ou se o usuário não estiver logado
+    const input = document.getElementById('chat-input');
+    const texto = input.value.trim();
     if (!texto || !currentUser) return;
 
-    // Trava o botão para não enviar duplicado enquanto processa
-    DOM_CHAT.btnSend.disabled = true;
+    // Checa se o mestre está assumindo um NPC
+    const inputNPC = document.getElementById('gm-npc-name');
+    const npcName = inputNPC ? inputNPC.value.trim() : "";
 
-    const novaMsgRef = push(ref(db, 'chat_messages'));
-    set(novaMsgRef, {
+    push(ref(db, 'chat_messages'), {
         remetente: currentUser,
+        falarComo: npcName || null,
         texto: texto,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        tipo: 'chat',
+        editada: false
+    });
+    
+    input.value = "";
+}
+
+// 5. Funções de Editar, Apagar e Silenciar
+function apagarMensagem(id) {
+    if(confirm("Deseja apagar esta mensagem para sempre?")) {
+        remove(ref(db, 'chat_messages/' + id));
+    }
+}
+
+function editarMensagem(id, textoAntigo) {
+    const novoTexto = prompt("Edite sua mensagem:", textoAntigo);
+    if (novoTexto !== null && novoTexto.trim() !== "") {
+        update(ref(db, 'chat_messages/' + id), { 
+            texto: novoTexto.trim(), 
+            editada: true 
+        });
+    }
+}
+
+function silenciarJogador() {
+    const alvo = document.getElementById('mute-player-name').value.trim().toLowerCase();
+    const minutos = parseInt(document.getElementById('mute-time').value);
+    
+    if (!alvo || !minutos) {
+        alert("Preencha o nome do jogador e os minutos.");
+        return;
+    }
+    
+    const tempoMs = minutos * 60 * 1000;
+    set(ref(db, 'mutes/' + alvo), {
+        expiraEm: Date.now() + tempoMs,
+        mutadoPor: currentUser
     }).then(() => {
-        DOM_CHAT.input.value = ""; // Limpa o input
-        DOM_CHAT.btnSend.disabled = false;
-        DOM_CHAT.input.focus(); // Mantém o foco para continuar digitando
-    }).catch(err => {
-        console.error("Erro ao enviar mensagem:", err);
-        DOM_CHAT.btnSend.disabled = false;
+        alert(`${alvo.toUpperCase()} foi silenciado por ${minutos} minutos!`);
+        document.getElementById('mute-player-name').value = "";
     });
 }
 
-// Configura os eventos de clique no botão e de pressionar "Enter" no teclado
-if (DOM_CHAT.btnSend && DOM_CHAT.input) {
-    DOM_CHAT.btnSend.addEventListener('click', enviarMensagem);
-    
-    DOM_CHAT.input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault(); // Evita quebra de linha se virar um textarea no futuro
-            enviarMensagem();
-        }
+// 6. Integração Global de Rolagem de Dados
+// CHAME ESTA FUNÇÃO sempre que um jogador rolar dados no seu código de ataque!
+function registrarRolagemNoChat(motivo, rolagem, resultadoFinal) {
+    push(ref(db, 'chat_messages'), {
+        remetente: currentUser,
+        texto: `<strong>${currentUser.toUpperCase()}</strong> rolou para <em>${motivo}</em><br>Dados: [${rolagem}] ➔ <strong>Resultado: ${resultadoFinal}</strong>`,
+        timestamp: Date.now(),
+        tipo: 'roll'
     });
 }
+
+// Eventos
+document.getElementById('btn-send-chat').addEventListener('click', enviarMensagem);
+document.getElementById('chat-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') enviarMensagem();
+});
