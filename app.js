@@ -1,6 +1,6 @@
 // Importações do Firebase v9 (SDK Modular)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getDatabase, ref, onValue, set, push, remove, get, child, update, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { getDatabase, ref, onValue, set, push, remove, get, child, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 // ==========================================
 // 1. CONFIGURAÇÃO DO FIREBASE
 // COLOQUE SUAS CHAVES AQUI, MESTRE!
