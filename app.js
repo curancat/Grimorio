@@ -1642,7 +1642,7 @@ let unsubscribeChat = null;
 let jogadorSilenciado = false;
 let intervaloMute = null;
 
-function iniciarChatAvançado() {
+function iniciarChatAvancado() {
     const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
     if (isGM) document.getElementById('gm-chat-panel').style.display = 'block';
 
