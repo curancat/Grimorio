@@ -182,34 +182,112 @@ const DOM = {
     modalAdd: document.getElementById('modal-add'),
     modalView: document.getElementById('modal-view')
 };
+// Prevenção de erro: Verifica se o audio-modal existe antes de aplicar eventos
+function corrigirAudioModal() {
+    const audioModal = document.getElementById('audio-modal');
+    if (!audioModal) return; // Impede que o código quebre caso não exista na tela
 
+    const closeAudioBtn = audioModal.querySelector('.close-btn') || document.getElementById('close-audio-modal');
+    if (closeAudioBtn) {
+        closeAudioBtn.onclick = () => {
+            audioModal.style.display = 'none';
+            // Se houver um player embutido, pausa ao fechar
+            const player = document.getElementById('audio-player-element');
+            if (player) player.pause();
+        };
+    }
+}
+window.addEventListener('DOMContentLoaded', corrigirAudioModal);
+
+// Lógica de Preview de Arquivos (Vídeos e Imagens)
+// Vincule isso ao seu input de arquivo, caso tenha um <input type="file" id="file-upload">
+const fileInput = document.getElementById('file-upload'); 
+const previewContainer = document.getElementById('reply-preview'); // Onde vai aparecer o preview
+
+if (fileInput && previewContainer) {
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        
+        if (file.type.startsWith('video/')) {
+            previewContainer.innerHTML = `
+                <video src="${url}" class="chat-media video-preview" controls autoplay muted style="max-height: 100px;"></video>
+                <button onclick="document.getElementById('file-upload').value=''; document.getElementById('reply-preview').innerHTML='';">X</button>
+            `;
+        } else if (file.type.startsWith('image/')) {
+            previewContainer.innerHTML = `
+                <img src="${url}" class="chat-media" style="max-height: 100px;" />
+                <button onclick="document.getElementById('file-upload').value=''; document.getElementById('reply-preview').innerHTML='';">X</button>
+            `;
+        }
+    });
+}
 // Verifica se já está logado
 window.onload = () => {
     const savedUser = localStorage.getItem('rpg_username');
     if (savedUser) login(savedUser);
 };
-window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = null) {
-    if (!currentUser) return;
+// Função que embaralha tudo, exceto o que está entre aspas simples ou duplas (fala)
+function embaralharAcoes(texto) {
+    let emFala = false;
+    let resultado = "";
+    const glitchChars = "¡¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿×÷#$@%&*";
     
-    // Define o canal de destino (prioriza o canal de rolagens do Mestre ou o canal atual)
+    for (let i = 0; i < texto.length; i++) {
+        let char = texto[i];
+        // Alterna entre estado de "fala" e "ação" ao encontrar aspas
+        if (char === '"' || char === "'") {
+            emFala = !emFala;
+            resultado += char;
+            continue;
+        }
+        // Se NÃO for fala e for uma letra/número, embaralha
+        if (!emFala && char.match(/[a-zA-Z0-9áéíóúãõç]/i)) {
+            resultado += glitchChars[Math.floor(Math.random() * glitchChars.length)];
+        } else {
+            resultado += char;
+        }
+    }
+    return resultado;
+}
+
+window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = null, forcarEnvioMestre = false) {
+    if (!currentUser) return;
+
+    let estado = (fichaAtual && fichaAtual.estadoAtual) ? fichaAtual.estadoAtual : 'saudavel';
+    let fotoAtual = (fichaAtual && fichaAtual.avatares) ? fichaAtual.avatares[estado] : '';
+
+    // TRAVA 1: Jogador Desacordado
+    if (estado === 'desacordado' && !forcarEnvioMestre) {
+        alert("Você está DESACORDADO. Não pode falar ou realizar ações.");
+        return;
+    }
+
+    let textoFinal = texto;
+
+    // TRAVA 2: Mente Fragmentada (O Mestre pode ignorar isso usando forcarEnvioMestre)
+    if (estado === 'fragmentado' && !forcarEnvioMestre) {
+        textoFinal = embaralharAcoes(texto);
+    }
+
     const canalDestino = (tipoMensagem === 'roll' && typeof canalRolagemDestino !== 'undefined' && canalRolagemDestino) 
         ? canalRolagemDestino 
         : (typeof canalAtual !== 'undefined' ? canalAtual : 'taverna');
 
-    // Envio direto garantido para o Firebase Realtime Database
     if (typeof db !== 'undefined') {
         const mensagensRef = ref(db, `mensagens/${canalDestino}`);
         push(mensagensRef, {
             remetente: currentUser,
             falarComo: nomeNpc || null,
-            texto: texto,
+            texto: textoFinal,
+            avatarUrl: fotoAtual, // Adiciona a foto do estado no Firebase
             timestamp: Date.now(),
             tipo: tipoMensagem,
             editada: false
         }).catch(err => console.error("Erro ao enviar mensagem para o Firebase:", err));
     }
 };
-
 document.getElementById('btn-login').addEventListener('click', () => {
     const name = DOM.usernameInput.value.trim().toLowerCase();
     if (name) login(name);
@@ -944,10 +1022,19 @@ function carregarFichaDoFirebase() {
     const fichaRef = ref(db, `characters/${currentUser}`);
     
     onValue(fichaRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            fichaAtual = data;
-            renderizarPerfil();
+      const data = snapshot.val();
+    if (data) {
+        fichaAtual = data;
+        
+        // Ativa o bug no site inteiro caso esteja fragmentado
+        let estado = fichaAtual.estadoAtual || 'saudavel';
+        if (estado === 'fragmentado') {
+            document.body.classList.add('glitch-extremo');
+        } else {
+            document.body.classList.remove('glitch-extremo');
+        }
+        
+        renderizarPerfil();
         } else {
             // Cria ficha zerada padrão KULT para novos usuários
             const novaFicha = {
@@ -964,6 +1051,47 @@ function carregarFichaDoFirebase() {
             set(fichaRef, novaFicha);
         }
     });
+  // Injeta painel de edição de Fotos de Perfil (Avatares por Estado)
+    let painelAvatares = document.getElementById('painel-avatares-jogador');
+    if (!painelAvatares) {
+        const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
+        painelAvatares = document.createElement('div');
+        painelAvatares.id = 'painel-avatares-jogador';
+        painelAvatares.style.cssText = "margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--borda-ouro); border-radius: 5px;";
+        
+        const estados = ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'];
+        
+        let htmlInputs = `<h4 style="color: var(--borda-ouro); margin-top: 0;">Fotos de Perfil (Estados)</h4><div class="avatar-config-grid">`;
+        estados.forEach(est => {
+            htmlInputs += `
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: capitalize;">${est}</label>
+                    <input type="text" id="avatar-${est}" class="input-mystic w-full" placeholder="URL da imagem">
+                </div>
+            `;
+        });
+        htmlInputs += `</div><button id="btn-salvar-avatares" class="btn-mystic w-full mt-15">Salvar Fotos</button>`;
+        
+        painelAvatares.innerHTML = htmlInputs;
+        containerPerfil.appendChild(painelAvatares);
+
+        document.getElementById('btn-salvar-avatares').onclick = () => {
+            let avatares = {};
+            estados.forEach(est => {
+                avatares[est] = document.getElementById(`avatar-${est}`).value;
+            });
+            update(ref(db, `characters/${currentUser}`), { avatares })
+                .then(() => alert('Fotos de perfil atualizadas com sucesso!'));
+        };
+    }
+
+    // Preenche as caixinhas de URL se o usuário já tiver salvo antes
+    if (fichaAtual.avatares) {
+        ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'].forEach(est => {
+             const input = document.getElementById(`avatar-${est}`);
+             if (input) input.value = fichaAtual.avatares[est] || '';
+        });
+    }
 }
 
 function renderizarPerfil() {
@@ -1223,6 +1351,29 @@ document.getElementById('btn-gm-xp').onclick = async () => {
             registrarLog(`GM concedeu ${qtdXp} XP para ${alvo}.`);
         }
     });
+};
+document.getElementById('btn-gm-mudar-estado').onclick = () => {
+    const alvo = document.getElementById('gm-select-alvo').value;
+    const novoEstado = document.getElementById('gm-select-estado').value;
+    if (!alvo) return alert("Selecione um alvo na lista!");
+    
+    update(ref(db, `characters/${alvo}`), { estadoAtual: novoEstado }).then(() => {
+        alert(`O estado de ${alvo.toUpperCase()} foi alterado para: ${novoEstado.toUpperCase()}`);
+        if (typeof registrarLog === "function") registrarLog(`GM alterou o estado de ${alvo} para ${novoEstado}.`);
+    });
+};
+
+document.getElementById('btn-gm-falar-player').onclick = () => {
+    const alvo = document.getElementById('gm-select-alvo').value;
+    if (!alvo) return alert("Selecione um alvo!");
+    
+    const texto = prompt(`Digite a mensagem que você quer enviar como se fosse ${alvo}:`);
+    if (texto) {
+        // Envia usando a função modificada, ativando a flag "forcarEnvioMestre = true" 
+        // para quebrar a restrição caso ele esteja desacordado ou fragmentado
+        window.enviarMensagemChat(texto, 'chat', alvo, true); 
+        if (typeof registrarLog === "function") registrarLog(`GM falou como se fosse o jogador ${alvo}.`);
+    }
 };
 // ==========================================
 // CONTROLE DO MESTRE: APLICAR / CURAR FERIMENTOS
