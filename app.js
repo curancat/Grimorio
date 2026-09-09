@@ -1886,3 +1886,11 @@ document.getElementById('btn-send-chat').addEventListener('click', enviarMensage
 document.getElementById('chat-input').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') enviarMensagem();
 });
+// Expor funções para o escopo global (para o HTML conseguir ler os onclick)
+window.solicitarNovoCanal = solicitarNovoCanal;
+window.solicitarNovoBot = solicitarNovoBot;
+window.aprovarFirebase = aprovarFirebase;
+window.botAtacar = botAtacar;
+window.apagarMensagem = apagarMensagem;
+window.editarMensagem = editarMensagem;
+window.silenciarJogador = silenciarJogador;
