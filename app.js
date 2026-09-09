@@ -1634,83 +1634,27 @@ function salvarEstoqueNoFirebase() {
 }
 
 // ==========================================
-// 20. SISTEMA VTT COMPLETO (CHAT, BOTS, CANAIS)
+// SISTEMA VTT COMPLETO (CHAT, BOTS, CANAIS)
 // ==========================================
 let canalAtual = 'taverna';
 let unsubscribeChat = null;
 let jogadorSilenciado = false;
 let intervaloMute = null;
 
-// -----------------------------------------------------
-// FUNÇÕES DE ADMINISTRAÇÃO E CRIAÇÃO
-// -----------------------------------------------------
-window.criarCanal = function() {
-    const nome = prompt("Nome do novo canal:");
-    if (!nome) return;
+function iniciarChatAvançado() {
     const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    push(ref(db, 'canais'), {
-        nome: nome,
-        criador: currentUser,
-        aprovado: isGM // GM aprova na hora, jogador fica pendente
-    });
-    alert(isGM ? "Canal criado!" : "Canal solicitado ao Mestre para aprovação.");
-};
+    if (isGM) document.getElementById('gm-chat-panel').style.display = 'block';
 
-window.criarBot = function() {
-    const nome = prompt("Nome do Bot:");
-    if (!nome) return;
-    const desc = prompt("Descrição rápida do Bot:");
-    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-
-    push(ref(db, 'bots'), {
-        nome: nome,
-        descricao: desc,
-        criador: currentUser,
-        aprovado: isGM
-    });
-    alert(isGM ? "Bot criado!" : "Bot solicitado ao Mestre para aprovação.");
-};
-
-window.aprovarFirebase = function(caminho) {
-    update(ref(db, caminho), { aprovado: true });
-};
-
-window.silenciarJogador = function() {
-    const jogador = prompt("Nome do jogador a ser silenciado (exato):");
-    if (!jogador) return;
-    const minutos = parseInt(prompt("Quantos minutos?"));
-    if (!minutos) return;
-
-    set(ref(db, 'mutes/' + jogador.toLowerCase()), {
-        expiraEm: Date.now() + (minutos * 60000)
-    });
-    alert(`${jogador} silenciado por ${minutos} minutos.`);
-};
-
-// -----------------------------------------------------
-// INICIALIZAÇÃO DO CHAT
-// -----------------------------------------------------
-window.iniciarChatAvancado = function() {
-    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    const gmPanel = document.getElementById('gm-chat-panel');
-    if (isGM && gmPanel) gmPanel.style.display = 'block';
-
-    // Canal Padrão
     update(ref(db, 'canais/taverna'), { nome: 'Taverna', aprovado: true, criador: 'Sistema' });
 
-    // Sistema de Mute
+    // Punições
     onValue(ref(db, 'mutes/' + currentUser.toLowerCase()), (snapshot) => {
         const data = snapshot.val();
-        const agora = Date.now();
-        const input = document.getElementById('chat-input');
-        const btn = document.getElementById('btn-send-chat');
-        const warning = document.getElementById('mute-warning');
-
-        if (data && data.expiraEm > agora) {
+        if (data && data.expiraEm > Date.now()) {
             jogadorSilenciado = true;
-            if(input) input.disabled = true;
-            if(btn) btn.disabled = true;
-            if(warning) warning.style.display = 'block';
+            document.getElementById('chat-input').disabled = true;
+            document.getElementById('btn-send-chat').disabled = true;
+            document.getElementById('mute-warning').style.display = 'block';
             
             if (intervaloMute) clearInterval(intervaloMute);
             intervaloMute = setInterval(() => {
@@ -1719,38 +1663,36 @@ window.iniciarChatAvancado = function() {
                     clearInterval(intervaloMute);
                     remove(ref(db, 'mutes/' + currentUser.toLowerCase())); 
                 } else {
-                    const timer = document.getElementById('mute-timer');
-                    if(timer) timer.innerText = `${Math.floor(restante / 60000)}m ${Math.floor((restante % 60000) / 1000)}s`;
+                    document.getElementById('mute-timer').innerText = `${Math.floor(restante / 60000)}m ${Math.floor((restante % 60000) / 1000)}s`;
                 }
             }, 1000);
         } else {
             jogadorSilenciado = false;
-            if(input) input.disabled = false;
-            if(btn) btn.disabled = false;
-            if(warning) warning.style.display = 'none';
+            document.getElementById('chat-input').disabled = false;
+            document.getElementById('btn-send-chat').disabled = false;
+            document.getElementById('mute-warning').style.display = 'none';
             if (intervaloMute) clearInterval(intervaloMute);
         }
     });
 
-    // Escutar Canais
+    // Canais
     onValue(ref(db, 'canais'), (snapshot) => {
         const lista = document.getElementById('channel-list');
-        if(!lista) return;
         lista.innerHTML = "";
         const canaisPendentes = document.getElementById('gm-pending-list');
-        if(isGM && canaisPendentes) canaisPendentes.innerHTML = ""; 
+        if(isGM) canaisPendentes.innerHTML = ""; 
 
         snapshot.forEach(child => {
             const canal = { id: child.key, ...child.val() };
-            if (!canal.aprovado && isGM && canaisPendentes) {
-                canaisPendentes.innerHTML += `<button onclick="aprovarFirebase('canais/${canal.id}')" class="btn-mystic small" style="background:#aa8800; margin-top: 5px;">Aprovar Sala: ${canal.nome}</button>`;
+            if (!canal.aprovado && isGM) {
+                canaisPendentes.innerHTML += `<button onclick="aprovarFirebase('canais/${canal.id}')" class="btn-mystic" style="font-size:0.7rem; background:#aa8800;">Aprovar: ${canal.nome}</button>`;
             }
             if (canal.aprovado || canal.criador.toLowerCase() === currentUser.toLowerCase() || isGM) {
                 const btn = document.createElement('button');
                 btn.className = `channel-btn ${canal.id === canalAtual ? 'active' : ''}`;
-                btn.innerText = canal.aprovado ? `# ${canal.nome}` : `⏳ ${canal.nome} (Pendente)`;
+                btn.innerText = canal.aprovado ? `# ${canal.nome}` : `⏳ ${canal.nome}`;
                 btn.onclick = () => {
-                    if(!canal.aprovado && !isGM) return alert("Aguarde o Mestre aprovar esta sala.");
+                    if(!canal.aprovado && !isGM) return alert("Aguarde o Mestre aprovar.");
                     mudarCanal(canal.id, canal.nome);
                 };
                 lista.appendChild(btn);
@@ -1758,25 +1700,24 @@ window.iniciarChatAvancado = function() {
         });
     });
 
-    // Escutar Bots
+    // Bots
     onValue(ref(db, 'bots'), (snapshot) => {
         const lista = document.getElementById('bots-list');
-        if(!lista) return;
         lista.innerHTML = "";
         
         snapshot.forEach(child => {
             const bot = { id: child.key, ...child.val() };
             if (!bot.aprovado && isGM) {
-                const canaisPendentes = document.getElementById('gm-pending-list');
-                if(canaisPendentes) canaisPendentes.innerHTML += `<button onclick="aprovarFirebase('bots/${bot.id}')" class="btn-mystic small" style="background:#aa8800; margin-top: 5px;">Aprovar Bot: ${bot.nome}</button>`;
+                document.getElementById('gm-pending-list').innerHTML += `<button onclick="aprovarFirebase('bots/${bot.id}')" class="btn-mystic" style="font-size:0.7rem; background:#aa8800;">Aprovar Bot: ${bot.nome}</button>`;
             }
             if (bot.aprovado || bot.criador.toLowerCase() === currentUser.toLowerCase() || isGM) {
                 const card = document.createElement('div');
                 card.className = 'bot-card';
                 card.innerHTML = `
-                    <h5>${bot.nome} ${bot.aprovado ? '' : '(Pend)'}</h5>
-                    <p>${bot.descricao || 'Sem descrição'}</p>
-                    <button class="btn-mystic small" ${!bot.aprovado && !isGM ? 'disabled' : ''}>Usar</button>
+                    <h5>${bot.aprovado ? '🤖' : '⏳'} ${bot.nome}</h5>
+                    <p>❤ HP: ${bot.hp} | 🛡️ Def: ${bot.defesa}</p>
+                    <p>⚔️ Dano: ${bot.dano}</p>
+                    ${bot.aprovado ? `<button class="btn-mystic" onclick="botAtacar('${bot.nome}', '${bot.dano}')">Atacar</button>` : '<p style="color:red; font-size:0.7rem;">Pendente...</p>'}
                 `;
                 lista.appendChild(card);
             }
@@ -1784,116 +1725,121 @@ window.iniciarChatAvancado = function() {
     });
 
     mudarCanal('taverna', 'Taverna');
-};
+}
 
-window.mudarCanal = function(canalId, canalNome) {
-    canalAtual = canalId;
-    const tituloCanal = document.getElementById('current-channel-title');
-    if(tituloCanal) tituloCanal.innerText = `# ${canalNome}`;
-
+function mudarCanal(idCanal, nomeCanal) {
+    canalAtual = idCanal;
+    document.getElementById('current-channel-title').innerText = `Sala: ${nomeCanal}`;
+    
     document.querySelectorAll('.channel-btn').forEach(btn => {
         btn.classList.remove('active');
-        if(btn.innerText.includes(canalNome)) btn.classList.add('active');
+        if(btn.innerText.includes(nomeCanal)) btn.classList.add('active');
     });
 
     if (unsubscribeChat) unsubscribeChat();
 
-    const chatRef = ref(db, `mensagens/${canalAtual}`);
-    unsubscribeChat = onValue(chatRef, (snapshot) => {
-        const box = document.getElementById('chat-messages');
-        if(!box) return;
-        box.innerHTML = "";
+    unsubscribeChat = onValue(ref(db, `mensagens/${canalAtual}`), (snapshot) => {
+        const container = document.getElementById('chat-messages');
+        if (!container) return;
+        container.innerHTML = ""; 
         
-        snapshot.forEach(child => {
-            const msg = child.val();
+        const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+        const mensagens = [];
+        snapshot.forEach(child => { mensagens.push({ id: child.key, ...child.val() }); });
+        
+        mensagens.forEach(msg => {
             const div = document.createElement('div');
+            let tipo = 'other';
+            let nomeExibicao = msg.remetente.toUpperCase();
+
+            if (msg.tipo === 'roll') { tipo = 'roll'; nomeExibicao = '🎲 DADOS E COMBATE'; } 
+            else if (msg.falarComo) { tipo = 'npc'; nomeExibicao = msg.falarComo.toUpperCase(); } 
+            else if (msg.remetente.toLowerCase() === currentUser.toLowerCase()) { tipo = 'mine'; } 
+            else if (msg.remetente.toLowerCase() === 'mestre') { tipo = 'gm'; nomeExibicao = '👑 VOZ DO MESTRE'; }
             
-            let classes = 'chat-msg';
-            if (msg.tipo === 'roll') classes += ' roll';
-            else if (msg.tipo === 'gm') classes += ' gm';
-            else if (msg.tipo === 'npc') classes += ' npc';
-            else if (msg.jogador === currentUser) classes += ' mine';
-            else classes += ' other';
+            div.className = `chat-msg ${tipo}`;
+            const hora = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             
-            div.className = classes;
+            let html = `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
+            html += `<div>${msg.texto} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
             
-            let remetente = msg.tipo === 'gm' ? '👑 Mestre' : msg.jogador.toUpperCase();
-            if (msg.tipo === 'npc') remetente = msg.npcNome || 'NPC';
-            
-            let textoFormatado = msg.texto.replace(/\n/g, '<br>');
-            
-            div.innerHTML = `<span class="chat-header">${remetente} - ${msg.hora}</span><div>${textoFormatado}</div>`;
-            box.appendChild(div);
+            if (msg.remetente.toLowerCase() === currentUser.toLowerCase() || isGM) {
+                if (msg.tipo !== 'roll') { 
+                    html += `<div class="msg-actions">
+                        <span onclick="editarMensagem('${msg.id}', '${msg.texto.replace(/'/g, "\\'")}')">✏️ Editar</span>
+                        <span onclick="apagarMensagem('${msg.id}')">🗑️ Apagar</span>
+                    </div>`;
+                }
+            }
+            div.innerHTML = html;
+            container.appendChild(div);
         });
-        
-        box.scrollTop = box.scrollHeight;
+        container.scrollTop = container.scrollHeight;
     });
-};
+}
 
-// -----------------------------------------------------
-// FUNÇÃO UNIVERSAL DE ENVIO E EVENTOS
-// -----------------------------------------------------
-window.enviarMensagem = function(textoOpcional, tipo = 'texto') {
-    let texto = textoOpcional;
+function enviarMensagem() {
+    if (jogadorSilenciado) return;
     const input = document.getElementById('chat-input');
-    
-    // 1. Se a função foi chamada sem passar o texto (ex: pelo botão no HTML ou pelo Enter)
-    if (typeof texto !== 'string' || !texto.trim()) {
-        if (input) {
-            texto = input.value.trim();
-            input.value = ""; // Limpa a caixa de texto
-            input.focus();    // Mantém o cursor nela
-        } else {
-            return;
-        }
-    }
-    
-    if (jogadorSilenciado || !texto || !canalAtual) return;
-    
-    // 2. Se for o Mestre enviando e a caixa "Falar como GM" estiver marcada, sobrescreve o tipo
-    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    const gmBox = document.getElementById('gm-send-checkbox');
-    if (isGM && gmBox && gmBox.checked && (!tipo || tipo === 'texto')) {
-        tipo = 'gm';
-    }
+    const texto = input.value.trim();
+    if (!texto || !currentUser) return;
 
-    const dataAtual = new Date();
-    const horaFormatada = `${dataAtual.getHours().toString().padStart(2, '0')}:${dataAtual.getMinutes().toString().padStart(2, '0')}`;
-    
+    const inputNPC = document.getElementById('gm-npc-name');
+    const npcName = inputNPC ? inputNPC.value.trim() : "";
+
     push(ref(db, `mensagens/${canalAtual}`), {
-        jogador: currentUser,
-        texto: texto,
-        tipo: tipo,
-        hora: horaFormatada,
-        timestamp: Date.now()
+        remetente: currentUser, falarComo: npcName || null,
+        texto: texto, timestamp: Date.now(), tipo: 'chat', editada: false
     });
-};
+    input.value = "";
+}
 
-// Garantindo suporte duplo para o nome da função (Resolve o erro "undefined")
-window.enviarMensagemChat = window.enviarMensagem; 
-
-// Evento de apertar "Enter" na caixa de texto
-const inputChat = document.getElementById('chat-input');
-if (inputChat) {
-    inputChat.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault(); 
-            window.enviarMensagem(); // Dispara a função sem argumento, forçando a leitura do input
-        }
+// INTEGRAÇÃO GLOBAL DE DADOS (Chame essa função nas rolagens da Ficha)
+function registrarRolagemGlobal(motivo, expressao, resultado) {
+    if (!currentUser || !canalAtual) return;
+    push(ref(db, `mensagens/${canalAtual}`), {
+        remetente: currentUser,
+        texto: `🎲 <strong>${currentUser.toUpperCase()}</strong> rolou para <em>${motivo}</em><br>Fórmula: [${expressao}] ➔ <strong>Resultado: ${resultado}</strong>`,
+        timestamp: Date.now(), tipo: 'roll', editada: false
     });
 }
 
-// Evento do botão enviar (Sobrescrevendo p/ garantir funcionamento independente do HTML)
-const btnSendChat = document.getElementById('btn-send-chat');
-if (btnSendChat) {
-    btnSendChat.onclick = function() {
-        window.enviarMensagem(); 
-    };
+function solicitarNovoCanal() {
+    const nome = prompt("Nome da Nova Sala:");
+    if (!nome) return;
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+    update(ref(db, `canais/${nome.toLowerCase().replace(/[^a-z0-9]/g, '')}`), {
+        nome: nome, criador: currentUser, aprovado: isGM 
+    });
 }
-// ==========================================
-// FIM DO SISTEMA VTT
-// ==========================================
-//nções para o escopo global (para o HTML conseguir ler os onclick)
+
+function solicitarNovoBot() {
+    const nome = prompt("Nome do Bot:");
+    if (!nome) return;
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+    push(ref(db, 'bots'), {
+        nome, hp: prompt("HP:", "20") || "0", defesa: prompt("Defesa:", "10") || "0", dano: prompt("Dano:", "1d6") || "0", 
+        criador: currentUser, aprovado: isGM
+    });
+}
+
+function aprovarFirebase(caminho) { update(ref(db, caminho), { aprovado: true }); }
+function botAtacar(nomeBot, formulaDano) { registrarRolagemGlobal(`Ataque de ${nomeBot}`, formulaDano, "Verificar Dados"); }
+function apagarMensagem(id) { if(confirm("Deseja apagar?")) remove(ref(db, `mensagens/${canalAtual}/${id}`)); }
+function editarMensagem(id, txt) { 
+    const novo = prompt("Edite:", txt); 
+    if (novo && novo.trim() !== "") update(ref(db, `mensagens/${canalAtual}/${id}`), { texto: novo.trim(), editada: true }); 
+}
+function silenciarJogador() {
+    const alvo = document.getElementById('mute-player-name').value.trim().toLowerCase();
+    const minutos = parseInt(document.getElementById('mute-time').value);
+    if (alvo && minutos) set(ref(db, 'mutes/' + alvo), { expiraEm: Date.now() + (minutos * 60 * 1000), mutadoPor: currentUser });
+}
+
+document.getElementById('btn-send-chat').addEventListener('click', enviarMensagem);
+document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') enviarMensagem(); });
+
+// Expor para o HTML ler os Onclicks
 window.solicitarNovoCanal = solicitarNovoCanal;
 window.solicitarNovoBot = solicitarNovoBot;
 window.aprovarFirebase = aprovarFirebase;
@@ -1901,3 +1847,4 @@ window.botAtacar = botAtacar;
 window.apagarMensagem = apagarMensagem;
 window.editarMensagem = editarMensagem;
 window.silenciarJogador = silenciarJogador;
+window.registrarRolagemGlobal = registrarRolagemGlobal;
