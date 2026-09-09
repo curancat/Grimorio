@@ -188,6 +188,27 @@ window.onload = () => {
     const savedUser = localStorage.getItem('rpg_username');
     if (savedUser) login(savedUser);
 };
+window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = null) {
+    if (!currentUser) return;
+    
+    // Define o canal de destino (prioriza o canal de rolagens do Mestre ou o canal atual)
+    const canalDestino = (tipoMensagem === 'roll' && typeof canalRolagemDestino !== 'undefined' && canalRolagemDestino) 
+        ? canalRolagemDestino 
+        : (typeof canalAtual !== 'undefined' ? canalAtual : 'taverna');
+
+    // Envio direto garantido para o Firebase Realtime Database
+    if (typeof db !== 'undefined') {
+        const mensagensRef = ref(db, `mensagens/${canalDestino}`);
+        push(mensagensRef, {
+            remetente: currentUser,
+            falarComo: nomeNpc || null,
+            texto: texto,
+            timestamp: Date.now(),
+            tipo: tipoMensagem,
+            editada: false
+        }).catch(err => console.error("Erro ao enviar mensagem para o Firebase:", err));
+    }
+};
 
 document.getElementById('btn-login').addEventListener('click', () => {
     const name = DOM.usernameInput.value.trim().toLowerCase();
