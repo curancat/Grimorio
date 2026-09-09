@@ -385,35 +385,59 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
 .bot-card h5 { margin: 0 0 5px 0; color: #a2a2d0; }
 .bot-card p { margin: 2px 0; font-size: 0.75rem; color: #888; }
 .bot-card button { width: 100%; margin-top: 5px; font-size: 0.7rem; padding: 3px; }
-.chat-container { display: flex; flex-direction: column; height: 82vh; gap: 10px; box-sizing: border-box; }
-.chat-layout { display: flex; flex: 1; gap: 12px; overflow: hidden; min-height: 0; }
-.chat-sidebar { background: rgba(15, 15, 25, 0.75); border: 1px solid var(--borda-ouro, #c9a050); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
-.channels-panel { width: 25%; }
-.chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(10, 10, 15, 0.85); border: 1px solid var(--borda-ouro, #c9a050); border-radius: 8px; padding: 12px; box-shadow: inset 0 0 15px rgba(0,0,0,0.9); }
-.flex-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
+/* ==========================================
+   NOVA ESTRUTURA DO CHAT (CANAIS HORIZONTAIS)
+   ========================================== */
+.chat-container { display: flex; flex-direction: column; height: 85vh; box-sizing: border-box; }
 
-.channel-btn { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(201, 160, 80, 0.4); color: #d1d5db; padding: 8px 10px; cursor: pointer; border-radius: 5px; text-align: left; font-size: 0.85rem; transition: all 0.2s ease; }
-.channel-btn:hover:not(.active) { background: rgba(201, 160, 80, 0.2); border-color: var(--borda-ouro, #c9a050); color: #ffffff; }
-.channel-btn.active { background: var(--borda-ouro, #c9a050); color: #000000; font-weight: bold; box-shadow: 0 0 8px rgba(201, 160, 80, 0.5); }
+/* Barra de Canais Superior */
+.channels-navbar {
+    display: flex;
+    align-items: center;
+    background: rgba(15, 15, 25, 0.8);
+    border: 1px solid var(--borda-ouro, #c9a050);
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 10px;
+    gap: 10px;
+}
 
-.chat-msg { padding: 10px 14px; border-radius: 8px; max-width: 82%; word-break: break-word; font-size: 0.92rem; line-height: 1.4; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
-.chat-msg.mine { background: #1e293b; border: 1px solid var(--borda-ouro, #c9a050); align-self: flex-end; border-bottom-right-radius: 1px; }
+/* Scroll invisível mas funcional */
+#channel-list::-webkit-scrollbar { height: 6px; }
+#channel-list::-webkit-scrollbar-thumb { background: var(--borda-ouro); border-radius: 4px; }
+
+.channel-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(201, 160, 80, 0.4);
+    color: #d1d5db;
+    padding: 6px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.channel-btn:hover:not(.active) { background: rgba(201, 160, 80, 0.2); border-color: var(--borda-ouro); color: #fff; }
+.channel-btn.active { background: var(--borda-ouro); color: #000; font-weight: bold; box-shadow: 0 0 8px rgba(201, 160, 80, 0.5); }
+.btn-add-channel { flex-shrink: 0; padding: 6px 10px; }
+
+/* Área do Chat */
+.chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(10, 10, 15, 0.85); border: 1px solid var(--borda-ouro, #c9a050); border-radius: 8px; padding: 12px; overflow: hidden; box-shadow: inset 0 0 15px rgba(0,0,0,0.9); }
+
+/* Estilos de Mensagens */
+.chat-msg { padding: 10px 14px; border-radius: 8px; max-width: 85%; word-break: break-word; font-size: 0.92rem; line-height: 1.4; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
+.chat-msg.mine { background: #1e293b; border: 1px solid var(--borda-ouro); align-self: flex-end; border-bottom-right-radius: 1px; }
 .chat-msg.other { background: #0f172a; border: 1px solid #334155; align-self: flex-start; border-bottom-left-radius: 1px; }
 .chat-msg.gm { background: #450a0a; border: 1px solid #ef4444; color: #fecdd3; align-self: center; text-align: center; width: 95%; max-width: 100%; }
 .chat-msg.npc { background: #064e3b; border: 1px solid #10b981; color: #ecfdf5; align-self: flex-start; border-bottom-left-radius: 1px; }
-.chat-msg.roll { background: rgba(20, 20, 20, 0.6); border: 1px dashed var(--borda-ouro, #c9a050); color: #fde047; align-self: center; text-align: center; width: 90%; font-style: italic; }
-.chat-header { font-size: 0.75rem; color: var(--borda-ouro, #c9a050); display: block; font-weight: bold; margin-bottom: 4px; }
+.chat-msg.roll { background: rgba(20, 20, 20, 0.6); border: 1px dashed var(--borda-ouro); color: #fde047; align-self: center; text-align: center; width: 90%; font-style: italic; }
+.chat-header { font-size: 0.75rem; color: var(--borda-ouro); display: block; font-weight: bold; margin-bottom: 4px; }
 .msg-actions { font-size: 0.7rem; margin-top: 6px; text-align: right; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4px; }
-.msg-actions span { cursor: pointer; color: #94a3b8; margin-left: 10px; transition: color 0.2s; }
-.msg-actions span:hover { color: #ffffff; }
+.msg-actions span { cursor: pointer; color: #94a3b8; margin-left: 10px; }
+.msg-actions span:hover { color: #fff; }
 .msg-editada { font-size: 0.65rem; color: #64748b; margin-left: 5px; font-style: italic; }
 
 @media (max-width: 768px) {
-    .chat-container { height: auto; min-height: 85vh; }
-    .chat-layout { flex-direction: column; overflow-y: visible; height: auto; }
-    .channels-panel { width: 100%; max-height: 110px; box-sizing: border-box; }
-    .channels-panel .flex-list { flex-direction: row; overflow-x: auto; overflow-y: hidden; align-items: center; padding-bottom: 5px; }
-    .channel-btn { white-space: nowrap; flex-shrink: 0; padding: 6px 12px; }
-    .chat-main { width: 100%; height: 60vh; min-height: 350px; box-sizing: border-box; }
-    .chat-msg { max-width: 90%; }
+    .chat-container { min-height: 85vh; }
+    .chat-msg { max-width: 95%; }
 }
