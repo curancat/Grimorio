@@ -243,14 +243,18 @@
         </main>
     </div>
     <div id="tab-mural" class="tab-content hidden text-center">
-    <h2>Arquivos e Fitas Classificadas</h2>
+    <h2>Arquivos e Fitas</h2>
     <p class="text-muted">Documentos, fotos e gravações encontradas pelas campanhas.</p>
     
     <div id="gm-upload-board" class="hidden alive-container" style="margin-bottom: 20px; border-color: #ff4444;">
         <h3 style="color: #ffcccc; margin-top:0;">👑 Postar no Mural (Mestre)</h3>
         <input type="text" id="titulo-arquivo" class="input-mystic w-full mb-10" placeholder="Título da Fita / Documento">
-        <input type="text" id="link-arquivo" class="input-mystic w-full mb-10" placeholder="URL direta da Imagem, MP4 ou Site">
-        <button onclick="postarArquivoMestre()" class="btn-mystic w-full">Gravar Fita no Akasha</button>
+       <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+         <input type="file" id="upload-mural" style="display:none;" accept="image/*">
+          <button onclick="document.getElementById('upload-mural').click()" class="btn-mystic" style="padding: 10px; font-size: 1.2rem;" title="Subir Imagem da Galeria">📎</button>
+           <input type="text" id="link-arquivo" class="input-mystic w-full" placeholder="Link da Fita ou suba pelo 📎">
+       </div>
+        <button onclick="postarArquivoMestre()" class="btn-mystic w-full">Gravar Fita</button>
     </div>
 
     <div class="grid" id="mural-arquivos">
@@ -265,7 +269,11 @@
         <div class="gm-tools-grid">
             <div>
                 <h4 style="color: var(--borda-ouro); border-bottom: 1px solid #555;">Cenário & Ambiente</h4>
-                <input type="text" id="input-chat-bg" class="input-mystic w-full mb-10" placeholder="Link Fundo do Chat (JPG/PNG)">
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                  <input type="file" id="upload-npc-foto" style="display:none;" accept="image/*">
+                  <button onclick="document.getElementById('upload-npc-foto').click()" class="btn-mystic" style="padding: 10px; font-size: 1.2rem;" title="Subir Foto do NPC">📎</button>
+                  <input type="text" id="novo-npc-foto" class="input-mystic w-full" placeholder="Link da Foto ou suba pelo 📎">
+                </div>
                 <button onclick="alterarFundoChat()" class="btn-mystic w-full mb-10" style="font-size: 0.8rem;">Aplicar Cenário</button>
                 <button onclick="abrirModalAudio()" class="btn-mystic w-full" style="background: #aa8800; font-size: 0.8rem;">🎵 Tocar Música (YouTube)</button>
                 
@@ -277,7 +285,11 @@
                 <h4 style="color: var(--borda-ouro); border-bottom: 1px solid #555;">Sistema de Atores (NPCs)</h4>
                 <select id="select-npc-salvo" class="input-mystic w-full mb-10"><option value="">👤 Falar como Mim Mesmo</option></select>
                 <input type="text" id="novo-npc-nome" class="input-mystic w-full mb-10" placeholder="Nome do Novo NPC">
-                <input type="text" id="novo-npc-foto" class="input-mystic w-full mb-10" placeholder="Link da Foto do NPC (Opcional)">
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <input type="file" id="upload-npc-foto" style="display:none;" accept="image/*">
+                <button onclick="document.getElementById('upload-npc-foto').click()" class="btn-mystic" style="padding: 10px; font-size: 1.2rem;" title="Subir Foto do NPC">📎</button>
+                <input type="text" id="novo-npc-foto" class="input-mystic w-full" placeholder="Link da Foto ou suba pelo 📎">
+                </div>
                 <button onclick="salvarNovoNPC()" class="btn-mystic w-full" style="background: #114411; font-size: 0.8rem;">💾 Salvar e Equipar NPC</button>
             </div>
         </div>
