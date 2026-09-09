@@ -520,3 +520,55 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     margin-top: 5px;
     display: block;
 }
+/* ==========================================
+   ESTILOS DE AVATARES E ESTADOS
+   ========================================== */
+.chat-avatar-img {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--borda-ouro);
+    flex-shrink: 0;
+    margin-right: 10px;
+    background: #000;
+}
+
+/* Container flex para alinhar o avatar com a mensagem */
+.chat-msg-wrapper {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+.chat-msg-wrapper.mine { flex-direction: row-reverse; }
+.chat-msg-wrapper.mine .chat-avatar-img { margin-right: 0; margin-left: 10px; }
+
+/* ==========================================
+   EFEITO EXTREMO: MENTE FRAGMENTADA
+   ========================================== */
+.glitch-extremo {
+    animation: telaBugada 0.2s infinite;
+    filter: invert(5%) contrast(150%) hue-rotate(20deg);
+}
+@keyframes telaBugada {
+    0% { transform: translate(0, 0) skew(0deg); }
+    25% { transform: translate(-3px, 2px) skew(-1deg); }
+    50% { transform: translate(3px, -2px) skew(1deg); }
+    75% { transform: translate(-2px, -3px) skew(-2deg); }
+    100% { transform: translate(0, 0) skew(0deg); }
+}
+
+/* ==========================================
+   PREVIEW DE VÍDEO E INPUTS DE FOTO
+   ========================================== */
+.video-preview {
+    border-color: var(--cor-azul);
+    box-shadow: 0 0 10px rgba(16, 78, 139, 0.5);
+}
+
+.avatar-config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+}
