@@ -336,6 +336,19 @@
             <button id="btn-delete-spell" class="btn-mystic w-full mt-15" style="background: var(--cor-vermelha);">Rasgar Página (Apagar)</button>
         </div>
     </div>
+    <!-- MODAL DE ÁUDIO AMBIENTE (YOUTUBE) -->
+<div id="audio-modal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:9999;">
+    <div class="modal-content alive-container" style="max-width: 400px; text-align:center; background:#111; padding:20px; border-radius:8px;">
+        <span class="close-btn" onclick="fecharModalAudio()" style="float:right; cursor:pointer; color:#fff; font-size:1.2rem;">&times;</span>
+        <h3 style="color: var(--borda-ouro); margin-top:0;">🎵 Som Ambiente (YouTube)</h3>
+        <p class="text-muted" style="font-size:0.8rem;">Cole o link do YouTube para sincronizar com todos da sala:</p>
+        <input type="text" id="youtube-url" class="input-mystic w-full mb-10" placeholder="https://youtube.com/watch?v=...">
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button onclick="sincronizarAudio()" class="btn-mystic w-full" style="background: #114411;">Tocar para Todos</button>
+            <button onclick="pararAudio()" class="btn-mystic w-full" style="background: #660000;">Parar Música</button>
+        </div>
+    </div>
+</div>
     <!-- Modal Autenticação do Mestre -->
 <div id="modal-gm-auth" class="modal">
     <div class="modal-content alive-container text-center">
