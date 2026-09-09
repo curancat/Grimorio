@@ -1071,7 +1071,7 @@ function renderizarPerfil() {
             areaUpar.classList.add('hidden');
         }
     }
-   // Injeta painel de edição de Fotos de Perfil (Avatares por Estado) com botão de galeria
+  // Injeta painel de edição de Fotos de Perfil (Avatares por Estado) com botão de galeria
     let painelAvatares = document.getElementById('painel-avatares-jogador');
     if (!painelAvatares) {
         const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
@@ -1112,20 +1112,40 @@ function renderizarPerfil() {
             };
         });
 
-        // Quando o usuário escolhe a imagem, converte para Base64 e joga no input correspondente
-        fileInputAvatar.onchange = (e) => {
+        // Quando o usuário escolhe a imagem, converte usando a API ImgBB (Nuvem)
+        fileInputAvatar.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file || !estadoSelecionadoParaUpload) return;
 
-            const reader = new FileReader();
-            reader.onload = function(uploadEvent) {
-                const base64Url = uploadEvent.target.result;
-                const inputTarget = document.getElementById(`avatar-${estadoSelecionadoParaUpload}`);
-                if (inputTarget) {
-                    inputTarget.value = base64Url; // Insere o código da imagem no campo de texto
+            const inputTarget = document.getElementById(`avatar-${estadoSelecionadoParaUpload}`);
+            
+            if (inputTarget) {
+                inputTarget.value = "Enviando para a nuvem..."; // Feedback visual
+                inputTarget.disabled = true; // Bloqueia temporariamente para o usuário não zoar o input
+            }
+
+            try {
+                // Chama a sua função de API de nuvem e aguarda o retorno da URL
+                const urlHospedada = await configurarUploadImgBB(file);
+                
+                if (inputTarget && urlHospedada) {
+                    inputTarget.value = urlHospedada; // Insere o link direto no campo de texto
+                } else if (inputTarget) {
+                    inputTarget.value = "";
+                    alert("A nuvem não retornou uma URL válida.");
                 }
-            };
-            reader.readAsDataURL(file);
+            } catch (error) {
+                console.error("Erro ao subir avatar para nuvem:", error);
+                if (inputTarget) {
+                    inputTarget.value = "";
+                    alert("Erro ao fazer upload da imagem.");
+                }
+            } finally {
+                // Restaura o campo independente de dar sucesso ou erro
+                if (inputTarget) inputTarget.disabled = false;
+                // Reseta o input de arquivo para permitir escolher a mesma foto novamente se quiser
+                fileInputAvatar.value = ""; 
+            }
         };
 
         document.getElementById('btn-salvar-avatares').onclick = () => {
