@@ -1637,16 +1637,41 @@ function salvarEstoqueNoFirebase() {
 // 20.SISTEMA VTT COMPLETO (CHAT, BOTS, CANAIS)
 // ==========================================
 let canalAtual = 'taverna';
+let canalRolagemDestino = 'taverna'; // Controlado pelo Mestre
 let unsubscribeChat = null;
 let jogadorSilenciado = false;
 let intervaloMute = null;
 
-function iniciarChatAvancado() {
+function iniciarChatAvançado() {
     const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
     if (isGM) document.getElementById('gm-chat-panel').style.display = 'block';
 
     update(ref(db, 'canais/taverna'), { nome: 'Taverna', aprovado: true, criador: 'Sistema' });
 
+    // 1. Escutar Destino Global das Rolagens
+    onValue(ref(db, 'configuracoes/destino_rolagens'), (snapshot) => {
+        if (snapshot.exists()) {
+            canalRolagemDestino = snapshot.val();
+            if (isGM) document.getElementById('gm-roll-dest').value = canalRolagemDestino;
+        }
+    });
+
+    // 2. Escutar Sistema de Áudio (YouTube)
+    onValue(ref(db, 'configuracoes/audio_ambiente'), (snapshot) => {
+        const urlEmbed = snapshot.val();
+        const container = document.getElementById('global-audio-container');
+        const iframe = document.getElementById('youtube-player');
+        
+        if (urlEmbed) {
+            container.style.display = 'block';
+            if (iframe.src !== urlEmbed) iframe.src = urlEmbed; // Evita recarregar se for o mesmo áudio
+        } else {
+            container.style.display = 'none';
+            iframe.src = "";
+        }
+    });
+
+    // 3. Sistema de Punições (Mute)
     onValue(ref(db, 'mutes/' + currentUser.toLowerCase()), (snapshot) => {
         const data = snapshot.val();
         if (data && data.expiraEm > Date.now()) {
@@ -1674,14 +1699,32 @@ function iniciarChatAvancado() {
         }
     });
 
+    // 4. Gerenciamento de Canais
     onValue(ref(db, 'canais'), (snapshot) => {
         const lista = document.getElementById('channel-list');
         lista.innerHTML = "";
+        
         const canaisPendentes = document.getElementById('gm-pending-list');
-        if(isGM) canaisPendentes.innerHTML = ""; 
+        const gmSelect = document.getElementById('gm-roll-dest');
+        
+        if(isGM) {
+            canaisPendentes.innerHTML = ""; 
+            // Guarda a seleção atual do select para não perder ao atualizar
+            const valAtual = gmSelect.value;
+            gmSelect.innerHTML = ""; 
+        }
 
         snapshot.forEach(child => {
             const canal = { id: child.key, ...child.val() };
+            
+            // Atualiza o Select do GM com todas as salas aprovadas
+            if (isGM && canal.aprovado) {
+                const option = document.createElement('option');
+                option.value = canal.id;
+                option.text = canal.nome;
+                gmSelect.appendChild(option);
+            }
+
             if (!canal.aprovado && isGM) {
                 canaisPendentes.innerHTML += `<button onclick="aprovarFirebase('canais/${canal.id}')" class="btn-mystic" style="font-size:0.7rem; background:#aa8800;">Aprovar: ${canal.nome}</button>`;
             }
@@ -1696,6 +1739,10 @@ function iniciarChatAvancado() {
                 lista.appendChild(btn);
             }
         });
+        
+        if(isGM && gmSelect.querySelector(`option[value="${canalRolagemDestino}"]`)) {
+            gmSelect.value = canalRolagemDestino;
+        }
     });
 
     mudarCanal('taverna', 'Taverna');
@@ -1703,7 +1750,6 @@ function iniciarChatAvancado() {
 
 function mudarCanal(idCanal, nomeCanal) {
     canalAtual = idCanal;
-    document.getElementById('current-channel-title').innerText = `Sala: ${nomeCanal}`;
     
     document.querySelectorAll('.channel-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -1724,23 +1770,13 @@ function mudarCanal(idCanal, nomeCanal) {
         mensagens.forEach(msg => {
             const div = document.createElement('div');
             let tipo = 'other';
-            
-            // Proteção contra remetente indefinido/nulo
             const remetenteSeguro = msg.remetente ? msg.remetente : 'Sistema';
             let nomeExibicao = remetenteSeguro.toUpperCase();
 
-            if (msg.tipo === 'roll') { 
-                tipo = 'roll'; 
-                nomeExibicao = '🎲 DADOS E COMBATE'; 
-            } else if (msg.falarComo) { 
-                tipo = 'npc'; 
-                nomeExibicao = msg.falarComo.toUpperCase(); 
-            } else if (remetenteSeguro.toLowerCase() === currentUser.toLowerCase()) { 
-                tipo = 'mine'; 
-            } else if (remetenteSeguro.toLowerCase() === 'mestre' || remetenteSeguro.toLowerCase() === 'gm') { 
-                tipo = 'gm'; 
-                nomeExibicao = '👑 VOZ DO MESTRE'; 
-            }
+            if (msg.tipo === 'roll') { tipo = 'roll'; nomeExibicao = '🎲 DADOS'; } 
+            else if (msg.falarComo) { tipo = 'npc'; nomeExibicao = msg.falarComo.toUpperCase(); } 
+            else if (remetenteSeguro.toLowerCase() === currentUser.toLowerCase()) { tipo = 'mine'; } 
+            else if (remetenteSeguro.toLowerCase() === 'mestre') { tipo = 'gm'; nomeExibicao = '👑 MESTRE'; }
             
             div.className = `chat-msg ${tipo}`;
             const hora = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--';
@@ -1762,6 +1798,7 @@ function mudarCanal(idCanal, nomeCanal) {
         container.scrollTop = container.scrollHeight;
     });
 }
+
 function enviarMensagem() {
     if (jogadorSilenciado) return;
     const input = document.getElementById('chat-input');
@@ -1778,13 +1815,44 @@ function enviarMensagem() {
     input.value = "";
 }
 
+// A ROLAGEM AGORA VAI PARA O CANAL QUE O MESTRE DECIDIR (canalRolagemDestino)
 function registrarRolagemGlobal(motivo, expressao, resultado) {
-    if (!currentUser || !canalAtual) return;
-    push(ref(db, `mensagens/${canalAtual}`), {
+    if (!currentUser) return;
+    const destinoFinal = canalRolagemDestino || 'taverna';
+    push(ref(db, `mensagens/${destinoFinal}`), {
         remetente: currentUser,
         texto: `🎲 <strong>${currentUser.toUpperCase()}</strong> rolou para <em>${motivo}</em><br>Fórmula: [${expressao}] ➔ <strong>Resultado: ${resultado}</strong>`,
         timestamp: Date.now(), tipo: 'roll', editada: false
     });
+}
+
+function mudarDestinoRolagens(idCanalDestino) { set(ref(db, 'configuracoes/destino_rolagens'), idCanalDestino); }
+
+// =====================================
+// FUNÇÕES DE ÁUDIO DO MESTRE (YOUTUBE)
+// =====================================
+function abrirModalAudio() { document.getElementById('audio-modal').style.display = 'flex'; }
+function fecharModalAudio() { document.getElementById('audio-modal').style.display = 'none'; }
+function pararAudio() { 
+    remove(ref(db, 'configuracoes/audio_ambiente')); 
+    fecharModalAudio(); 
+}
+function sincronizarAudio() {
+    const rawUrl = document.getElementById('youtube-url').value.trim();
+    if (!rawUrl) return;
+    
+    // Converte links normais do YouTube para formato Embed (necessário para iframes)
+    let videoId = "";
+    if (rawUrl.includes("v=")) { videoId = rawUrl.split("v=")[1].split("&")[0]; } 
+    else if (rawUrl.includes("youtu.be/")) { videoId = rawUrl.split("youtu.be/")[1].split("?")[0]; }
+    
+    if (videoId) {
+        // Envia o link formatado com autoplay
+        set(ref(db, 'configuracoes/audio_ambiente'), `https://www.youtube.com/embed/${videoId}?autoplay=1&loop=1&playlist=${videoId}`);
+        fecharModalAudio();
+    } else {
+        alert("Link do YouTube inválido. Use um link completo ou youtu.be");
+    }
 }
 
 function solicitarNovoCanal() {
@@ -1811,9 +1879,15 @@ function silenciarJogador() {
 document.getElementById('btn-send-chat').addEventListener('click', enviarMensagem);
 document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') enviarMensagem(); });
 
+// Expor para o HTML
 window.solicitarNovoCanal = solicitarNovoCanal;
 window.aprovarFirebase = aprovarFirebase;
 window.apagarMensagem = apagarMensagem;
 window.editarMensagem = editarMensagem;
 window.silenciarJogador = silenciarJogador;
 window.registrarRolagemGlobal = registrarRolagemGlobal;
+window.mudarDestinoRolagens = mudarDestinoRolagens;
+window.abrirModalAudio = abrirModalAudio;
+window.fecharModalAudio = fecharModalAudio;
+window.sincronizarAudio = sincronizarAudio;
+window.pararAudio = pararAudio;
