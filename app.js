@@ -1824,39 +1824,54 @@ window.salvarNovoNPC = function() {
 }
 
 // ==========================================
-// C. UPLOAD NA NUVEM VIA IMGBB (GRATUITO)
+// C. UPLOAD UNIVERSAL NA NUVEM VIA IMGBB
 // ==========================================
-document.getElementById('upload-midia').addEventListener('change', async function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+// Função para conectar qualquer botão 📎 a qualquer campo de texto
+function configurarUploadImgBB(idFileInput, idTextInput) {
+    const fileInput = document.getElementById(idFileInput);
+    if (!fileInput) return;
 
-    const inputMsg = document.getElementById('chat-input');
-    const originalPlaceholder = inputMsg.placeholder;
-    inputMsg.value = "";
-    inputMsg.placeholder = "Fazendo upload mágico para a nuvem... ⏳";
-    inputMsg.disabled = true;
+    fileInput.addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    const formData = new FormData();
-    formData.append("image", file);
+        const textInput = document.getElementById(idTextInput);
+        const originalPlaceholder = textInput.placeholder;
+        textInput.value = "";
+        textInput.placeholder = "Fazendo upload mágico para a nuvem... ⏳";
+        textInput.disabled = true;
 
-    try {
-        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
-        
-        if(data.success) {
-            inputMsg.value = data.data.url;
-        } else {
-            alert("Falha na magia de upload da ImgBB.");
+        const formData = new FormData();
+        formData.append("image", file);
+
+        try {
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            
+            if(data.success) {
+                textInput.value = data.data.url;
+            } else {
+                alert("Falha na magia de upload da ImgBB.");
+            }
+        } catch (err) {
+            alert("As correntes místicas (Conexão) falharam.");
         }
-    } catch (err) {
-        alert("As correntes místicas (Conexão) falharam.");
-    }
-    inputMsg.disabled = false;
-    inputMsg.placeholder = originalPlaceholder;
-});
+        
+        textInput.disabled = false;
+        textInput.placeholder = originalPlaceholder;
+        e.target.value = ''; // Limpa o input file para permitir reenviar a mesma foto se precisar
+    });
+}
+
+// Conectar os 4 botões de upload aos seus respectivos campos de texto
+configurarUploadImgBB('upload-midia', 'chat-input');        // Chat Geral
+configurarUploadImgBB('upload-mural', 'link-arquivo');      // Mural do Mestre
+configurarUploadImgBB('upload-chat-bg', 'input-chat-bg');   // Cenário de Fundo
+configurarUploadImgBB('upload-npc-foto', 'novo-npc-foto');  // Avatar do NPC
+
 
 // ==========================================
 // D. RENDERIZAÇÃO DO CHAT (MENÇÕES, RESPOSTAS, MÍDIA)
