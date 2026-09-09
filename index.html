@@ -173,17 +173,30 @@
                 <select id="gm-select-alvo" style="padding: 5px; background: #333; color: white; border: 1px solid #555; margin-bottom: 10px; width: 100%;">
                     <option value="">Carregando jogadores...</option>
                 </select>
-
+    
                 <div style="margin-bottom: 10px; display: flex; gap: 5px; align-items: center;">
                     <input type="number" id="gm-mod-valor" placeholder="Valor (Ex: 1)" style="padding: 5px; width: 35%;">
                     <button id="btn-gm-xp" style="padding: 5px; cursor: pointer;">Dar XP</button>
                     <button id="btn-gm-ferimento" class="btn-mestre" style="padding: 5px; cursor: pointer;">Gerenciar Ferimentos</button>
                 </div>
-
+               
                 <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">
                     <input type="text" id="gm-missao-texto" placeholder="Escreva uma nova missão..." class="input-mystic w-full" style="margin-bottom: 5px; width: 100%; padding: 5px; background: #333; color: white; border: 1px solid #555;">
                     <button id="btn-add-missao" class="btn-mystic w-full" style="width: 100%; padding: 5px; cursor: pointer;">Adicionar Missão ao Mural</button>
                 </div>
+                   <!-- ADICIONE NO SEU HTML DO GM -->
+<select id="gm-select-estado" class="input-mystic mb-10 w-full">
+    <option value="saudavel">Saudável</option>
+    <option value="ferido">Caminho Ferido: Ferido</option>
+    <option value="grave">Caminho Ferido: Grave</option>
+    <option value="desacordado">Caminho Ferido: Desacordado</option>
+    <option value="insano">Caminho Insano: Insano</option>
+    <option value="fragmentado">Caminho Insano: Fragmentado</option>
+</select>
+<div class="actions">
+    <button id="btn-gm-mudar-estado" class="btn-mystic">Aplicar Novo Estado</button>
+    <button id="btn-gm-falar-player" class="btn-mystic" style="background: linear-gradient(180deg, #104e8b, #111);">Falar Pelo Jogador</button>
+</div>
             </div>
         </div>
 
@@ -291,19 +304,6 @@
                 <input type="text" id="novo-npc-foto" class="input-mystic w-full" placeholder="Link da Foto ou suba pelo 📎">
                 </div>
                 <button onclick="salvarNovoNPC()" class="btn-mystic w-full" style="background: #114411; font-size: 0.8rem;">💾 Salvar e Equipar NPC</button>
-                <!-- ADICIONE NO SEU HTML DO GM -->
-<select id="gm-select-estado" class="input-mystic mb-10 w-full">
-    <option value="saudavel">Saudável</option>
-    <option value="ferido">Caminho Ferido: Ferido</option>
-    <option value="grave">Caminho Ferido: Grave</option>
-    <option value="desacordado">Caminho Ferido: Desacordado</option>
-    <option value="insano">Caminho Insano: Insano</option>
-    <option value="fragmentado">Caminho Insano: Fragmentado</option>
-</select>
-<div class="actions">
-    <button id="btn-gm-mudar-estado" class="btn-mystic">Aplicar Novo Estado</button>
-    <button id="btn-gm-falar-player" class="btn-mystic" style="background: linear-gradient(180deg, #104e8b, #111);">Falar Pelo Jogador</button>
-</div>
             </div>
         </div>
         
