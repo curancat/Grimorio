@@ -495,13 +495,14 @@ document.getElementById('btn-roll').addEventListener('click', () => {
 
         registrarLog(`Rolou ${quantidade}D${sides} e obteve o resultado ${totalFinal}`);
 
-        // ======= INTEGRAÇÃO CORRETA (DENTRO DO ESCOPO) =======
-        const textoParaChat = `Rolou ${quantidade}D${sides}${textoMod}\nDetalhes: ${detalheDados}\n**${totalFinal}**`;
+        // ======= ENVIO DIRETO PARA O CHAT GERAL/MESTRE =======
+        const textoParaChat = `🎲 <strong>${currentUser.toUpperCase()}</strong> rolou ${quantidade}D${sides}${textoMod}<br>Detalhes: ${detalheDados} ➔ <strong>Resultado: ${totalFinal}</strong>`;
         if (typeof window.enviarMensagemChat === "function") {
             window.enviarMensagemChat(textoParaChat, 'roll');
         }
         // ====================================================
     }, 400);
+});
 });
 // ==========================================
 // 9. CALCULADORA ARCANA
