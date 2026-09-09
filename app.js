@@ -1634,20 +1634,19 @@ function salvarEstoqueNoFirebase() {
 }
 
 // ==========================================
-// SISTEMA VTT COMPLETO (CHAT, BOTS, CANAIS)
+// 20.SISTEMA VTT COMPLETO (CHAT, BOTS, CANAIS)
 // ==========================================
 let canalAtual = 'taverna';
 let unsubscribeChat = null;
 let jogadorSilenciado = false;
 let intervaloMute = null;
 
-function iniciarChatAvancado() {
+function iniciarChatAvançado() {
     const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
     if (isGM) document.getElementById('gm-chat-panel').style.display = 'block';
 
     update(ref(db, 'canais/taverna'), { nome: 'Taverna', aprovado: true, criador: 'Sistema' });
 
-    // Punições
     onValue(ref(db, 'mutes/' + currentUser.toLowerCase()), (snapshot) => {
         const data = snapshot.val();
         if (data && data.expiraEm > Date.now()) {
@@ -1675,7 +1674,6 @@ function iniciarChatAvancado() {
         }
     });
 
-    // Canais
     onValue(ref(db, 'canais'), (snapshot) => {
         const lista = document.getElementById('channel-list');
         lista.innerHTML = "";
@@ -1696,30 +1694,6 @@ function iniciarChatAvancado() {
                     mudarCanal(canal.id, canal.nome);
                 };
                 lista.appendChild(btn);
-            }
-        });
-    });
-
-    // Bots
-    onValue(ref(db, 'bots'), (snapshot) => {
-        const lista = document.getElementById('bots-list');
-        lista.innerHTML = "";
-        
-        snapshot.forEach(child => {
-            const bot = { id: child.key, ...child.val() };
-            if (!bot.aprovado && isGM) {
-                document.getElementById('gm-pending-list').innerHTML += `<button onclick="aprovarFirebase('bots/${bot.id}')" class="btn-mystic" style="font-size:0.7rem; background:#aa8800;">Aprovar Bot: ${bot.nome}</button>`;
-            }
-            if (bot.aprovado || bot.criador.toLowerCase() === currentUser.toLowerCase() || isGM) {
-                const card = document.createElement('div');
-                card.className = 'bot-card';
-                card.innerHTML = `
-                    <h5>${bot.aprovado ? '🤖' : '⏳'} ${bot.nome}</h5>
-                    <p>❤ HP: ${bot.hp} | 🛡️ Def: ${bot.defesa}</p>
-                    <p>⚔️ Dano: ${bot.dano}</p>
-                    ${bot.aprovado ? `<button class="btn-mystic" onclick="botAtacar('${bot.nome}', '${bot.dano}')">Atacar</button>` : '<p style="color:red; font-size:0.7rem;">Pendente...</p>'}
-                `;
-                lista.appendChild(card);
             }
         });
     });
@@ -1794,7 +1768,6 @@ function enviarMensagem() {
     input.value = "";
 }
 
-// INTEGRAÇÃO GLOBAL DE DADOS (Chame essa função nas rolagens da Ficha)
 function registrarRolagemGlobal(motivo, expressao, resultado) {
     if (!currentUser || !canalAtual) return;
     push(ref(db, `mensagens/${canalAtual}`), {
@@ -1813,18 +1786,7 @@ function solicitarNovoCanal() {
     });
 }
 
-function solicitarNovoBot() {
-    const nome = prompt("Nome do Bot:");
-    if (!nome) return;
-    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    push(ref(db, 'bots'), {
-        nome, hp: prompt("HP:", "20") || "0", defesa: prompt("Defesa:", "10") || "0", dano: prompt("Dano:", "1d6") || "0", 
-        criador: currentUser, aprovado: isGM
-    });
-}
-
 function aprovarFirebase(caminho) { update(ref(db, caminho), { aprovado: true }); }
-function botAtacar(nomeBot, formulaDano) { registrarRolagemGlobal(`Ataque de ${nomeBot}`, formulaDano, "Verificar Dados"); }
 function apagarMensagem(id) { if(confirm("Deseja apagar?")) remove(ref(db, `mensagens/${canalAtual}/${id}`)); }
 function editarMensagem(id, txt) { 
     const novo = prompt("Edite:", txt); 
@@ -1839,11 +1801,8 @@ function silenciarJogador() {
 document.getElementById('btn-send-chat').addEventListener('click', enviarMensagem);
 document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') enviarMensagem(); });
 
-// Expor para o HTML ler os Onclicks
 window.solicitarNovoCanal = solicitarNovoCanal;
-window.solicitarNovoBot = solicitarNovoBot;
 window.aprovarFirebase = aprovarFirebase;
-window.botAtacar = botAtacar;
 window.apagarMensagem = apagarMensagem;
 window.editarMensagem = editarMensagem;
 window.silenciarJogador = silenciarJogador;
