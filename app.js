@@ -1805,25 +1805,50 @@ window.enviarMensagemChat = function(texto, tipo = 'texto') {
     });
 };
 
-// Evento do Input de Chat padrão
+// -----------------------------------------------------
+// EVENTOS DE INPUT E BOTÃO DE ENVIAR
+// -----------------------------------------------------
+
+// Criando um "atalho" caso o seu HTML ainda use o nome antigo
+window.enviarMensagem = window.enviarMensagemChat; 
+
+// 1. Evento do Botão de Enviar
 const btnSendChat = document.getElementById('btn-send-chat');
-if(btnSendChat) {
-    btnSendChat.addEventListener('click', () => {
-        const input = document.getElementById('chat-input');
-        const texto = input.value.trim();
-        const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-        
-        if (texto) {
-            const gmBox = document.getElementById('gm-send-checkbox');
-            if (isGM && gmBox && gmBox.checked) {
-                window.enviarMensagemChat(texto, 'gm');
-            } else {
-                window.enviarMensagemChat(texto, 'texto');
-            }
-            input.value = "";
+if (btnSendChat) {
+    btnSendChat.addEventListener('click', dispararEnvioDeChat);
+}
+
+// 2. Evento de apertar "Enter" no Input
+const inputChat = document.getElementById('chat-input');
+if (inputChat) {
+    inputChat.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Evita que a página pisque
+            dispararEnvioDeChat();
         }
     });
 }
+
+// Função auxiliar que lê o input e manda pro chat
+function dispararEnvioDeChat() {
+    const input = document.getElementById('chat-input');
+    const texto = input.value.trim();
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+    
+    if (texto) {
+        const gmBox = document.getElementById('gm-send-checkbox');
+        if (isGM && gmBox && gmBox.checked) {
+            window.enviarMensagemChat(texto, 'gm');
+        } else {
+            window.enviarMensagemChat(texto, 'texto');
+        }
+        input.value = ""; // Limpa a caixa de texto
+        input.focus(); // Mantém o cursor piscando na caixa
+    }
+}
+// ==========================================
+// FIM DO SISTEMA VTT
+// ==========================================
 // ==========================================
 // FUNÇÕES DE CRIAÇÃO E APROVAÇÃO (BOTS/CANAIS)
 // ==========================================
