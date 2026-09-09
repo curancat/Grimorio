@@ -233,7 +233,7 @@
     
 <!-- ABA: LOG DO MESTRE -->
 <div id="tab-gm" class="tab-content hidden text-center">
-    <h2>Registros do Akasha (Log do Mestre)</h2>
+    <h2>Registros</h2>
     <div id="master-log-container" class="dice-log mt-15" style="max-height: 400px; text-align: left;">
         <!-- Logs aparecerão aqui -->
     </div>
@@ -270,9 +270,9 @@
             <div>
                 <h4 style="color: var(--borda-ouro); border-bottom: 1px solid #555;">Cenário & Ambiente</h4>
                 <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                  <input type="file" id="upload-npc-foto" style="display:none;" accept="image/*">
-                  <button onclick="document.getElementById('upload-npc-foto').click()" class="btn-mystic" style="padding: 10px; font-size: 1.2rem;" title="Subir Foto do NPC">📎</button>
-                  <input type="text" id="novo-npc-foto" class="input-mystic w-full" placeholder="Link da Foto ou suba pelo 📎">
+                <input type="file" id="upload-chat-bg" style="display:none;" accept="image/*">
+                <button onclick="document.getElementById('upload-chat-bg').click()" class="btn-mystic" style="padding: 10px; font-size: 1.2rem;" title="Subir Fundo da Galeria">📎</button>
+                <input type="text" id="input-chat-bg" class="input-mystic w-full" placeholder="Link Fundo ou suba pelo 📎">
                 </div>
                 <button onclick="alterarFundoChat()" class="btn-mystic w-full mb-10" style="font-size: 0.8rem;">Aplicar Cenário</button>
                 <button onclick="abrirModalAudio()" class="btn-mystic w-full" style="background: #aa8800; font-size: 0.8rem;">🎵 Tocar Música (YouTube)</button>
