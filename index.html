@@ -282,7 +282,7 @@
             </div>
 
             <div>
-                <h4 style="color: var(--borda-ouro); border-bottom: 1px solid #555;">Sistema de Atores (NPCs)</h4>
+                <h4 style="color: var(--borda-ouro); border-bottom: 1px solid #555;">Sistema de Atores </h4>
                 <select id="select-npc-salvo" class="input-mystic w-full mb-10"><option value="">👤 Falar como Mim Mesmo</option></select>
                 <input type="text" id="novo-npc-nome" class="input-mystic w-full mb-10" placeholder="Nome do Novo NPC">
                 <div style="display: flex; gap: 8px; margin-bottom: 10px;">
@@ -291,6 +291,19 @@
                 <input type="text" id="novo-npc-foto" class="input-mystic w-full" placeholder="Link da Foto ou suba pelo 📎">
                 </div>
                 <button onclick="salvarNovoNPC()" class="btn-mystic w-full" style="background: #114411; font-size: 0.8rem;">💾 Salvar e Equipar NPC</button>
+                <!-- ADICIONE NO SEU HTML DO GM -->
+<select id="gm-select-estado" class="input-mystic mb-10 w-full">
+    <option value="saudavel">Saudável</option>
+    <option value="ferido">Caminho Ferido: Ferido</option>
+    <option value="grave">Caminho Ferido: Grave</option>
+    <option value="desacordado">Caminho Ferido: Desacordado</option>
+    <option value="insano">Caminho Insano: Insano</option>
+    <option value="fragmentado">Caminho Insano: Fragmentado</option>
+</select>
+<div class="actions">
+    <button id="btn-gm-mudar-estado" class="btn-mystic">Aplicar Novo Estado</button>
+    <button id="btn-gm-falar-player" class="btn-mystic" style="background: linear-gradient(180deg, #104e8b, #111);">Falar Pelo Jogador</button>
+</div>
             </div>
         </div>
         
