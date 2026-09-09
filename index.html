@@ -31,7 +31,7 @@
             <button class="tab-btn" data-target="tab-craft">🛠️ Forja & inventario</button>
             <button class="tab-btn" data-target="tab-perfil">👤 Perfil e Missões</button>
             <button class="tab-btn" data-target="tab-chat">💬 Chat </button>
-            <button class="tab-btn" data-target="tab-arquivos">💾️Arquivos e Fitas</button>
+           <button class="tab-btn" data-target="tab-mural">📜 Fitas & Arquivos</button>
             <button class="tab-btn" id="btn-tab-gm" data-target="tab-gm">👁️ Olho do Mestre</button>
         </nav>
 
@@ -192,81 +192,45 @@
         </div>
     </div>
 </div>
-<div id="tab-chat" class="tab-content">
-    <div class="chat-container" id="chat-fundo">
-        
-        <div class="channels-navbar">
-            <div id="channel-list" style="display: flex; gap: 5px; overflow-x: auto;">
-                <button class="channel-btn active" onclick="mudarCanal('taverna')">Taverna</button>
-            </div>
-            <!-- Botão Exclusivo do Mestre -->
-            <button id="btn-gm-chat-menu" class="btn-mystic small hidden" onclick="abrirModalGmChat()">⚙️ Mestre</button>
-        </div>
 
-        <!-- Área de Resposta e Notificação -->
-        <div id="reply-preview" class="hidden">
-            <span>Respondendo a: <strong id="reply-user"></strong></span>
-            <button onclick="cancelarResposta()">X</button>
-        </div>
-
-        <div class="chat-main" id="chat-messages"></div>
-
-        <div class="chat-input-area" style="display: flex; gap: 5px; margin-top: 10px;">
-            <input type="text" id="chat-input" class="input-mystic" placeholder="Mensagem ou link de imagem/vídeo..." style="flex: 1;">
-            
-            <!-- Upload de Imagem via API -->
-            <input type="file" id="upload-midia" accept="image/*" style="display: none;">
-            <button class="btn-mystic" onclick="document.getElementById('upload-midia').click()">📎</button>
-            
-            <button id="btn-send-chat" class="btn-mystic" onclick="enviarMensagemCompleta()">Enviar</button>
-        </div>
-    </div>
-</div>
-
-<!-- ========================================== -->
-<!-- NOVA ABA: ARQUIVOS E FITAS -->
-<!-- ========================================== -->
-<div id="tab-arquivos" class="tab-content hidden">
-    <div id="gm-upload-board" class="hidden" style="margin-bottom: 15px; background: rgba(0,0,0,0.5); padding: 10px; border: 1px dashed var(--borda-ouro);">
-        <h3 style="color: var(--borda-ouro); margin-top: 0;">Postar Nova Fita/Arquivo</h3>
-        <input type="text" id="titulo-arquivo" class="input-mystic" placeholder="Título do Arquivo" style="width: 100%; margin-bottom: 5px;">
-        <input type="text" id="link-arquivo" class="input-mystic" placeholder="Link da Mídia (URL)" style="width: 100%; margin-bottom: 5px;">
-        <button class="btn-mystic w-full" onclick="postarArquivoMestre()">Postar no Mural</button>
-    </div>
+<div id="tab-chat" class="tab-content hidden chat-container">
     
-    <div id="mural-arquivos" class="grid">
-        <!-- Arquivos aparecerão aqui -->
+    <div id="mute-warning" style="display: none; background: rgba(255,0,0,0.2); border: 1px solid red; color: #ffcccc; padding: 10px; text-align: center; font-weight: bold; margin-bottom: 5px;">
+        Você foi silenciado! Tempo: <span id="mute-timer">00:00</span>
     </div>
-</div>
 
-<!-- ========================================== -->
-<!-- MODAL POPUP: MENU DO MESTRE NO CHAT -->
-<!-- ========================================== -->
-<div id="modal-gm-chat-controls" class="modal">
-    <div class="modal-content alive-container">
-        <span class="close-btn" onclick="fecharModalGmChat()">&times;</span>
-        <h2>Controles do Chat (Mestre)</h2>
+    <div class="channels-navbar">
+        <div id="channel-list" style="display: flex; gap: 5px; overflow-x: auto; flex: 1;"></div>
+        <button onclick="solicitarNovoCanal()" class="btn-mystic btn-add-channel">+ Criar Sala</button>
+    </div>
+
+    <div id="global-audio-container" style="display: none; background: #000; border: 1px solid var(--borda-ouro); padding: 5px; border-radius: 5px; margin-bottom: 5px; text-align: center;">
+        <span style="color: var(--borda-ouro); font-size: 0.8rem; margin-bottom: 5px; display: block;">🎵 Som Ambiente</span>
+        <iframe id="youtube-player" width="100%" height="80" src="" frameborder="0" allow="autoplay" allowfullscreen></iframe>
+    </div>
+
+    <div class="chat-main" id="chat-fundo" style="background-size: cover; background-position: center; position: relative;">
+        <div style="position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(10, 10, 15, 0.75); z-index: 0; pointer-events: none;"></div>
         
-        <div style="margin-bottom: 15px;">
-            <label>Mudar Fundo do Chat (URL):</label>
-            <input type="text" id="input-chat-bg" class="input-mystic w-full" placeholder="Link da imagem">
-            <button class="btn-mystic w-full mt-15" onclick="alterarFundoChat()">Aplicar Fundo</button>
-        </div>
+        <div id="chat-messages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px; position: relative; z-index: 1;"></div>
+    </div>
 
-        <hr style="border-color: #333; margin: 15px 0;">
+    <div id="reply-preview" class="hidden" style="background: rgba(200, 170, 109, 0.2); border-left: 3px solid var(--borda-ouro); padding: 5px 10px; font-size: 0.8rem; display: flex; justify-content: space-between; margin-top: 5px; border-radius: 4px;">
+        <span>Respondendo a <strong id="reply-user" style="color: var(--borda-ouro-clara);"></strong></span>
+        <button onclick="cancelarResposta()" style="background: none; border: none; color: #ff4444; cursor: pointer; font-weight: bold;">X</button>
+    </div>
 
-        <div>
-            <label>Falar como NPC:</label>
-            <select id="select-npc-salvo" class="input-mystic w-full" style="margin-bottom: 5px;">
-                <option value="">Selecione um NPC salvo...</option>
-            </select>
-            
-            <input type="text" id="novo-npc-nome" class="input-mystic w-full" placeholder="Nome do Novo NPC" style="margin-bottom: 5px;">
-            <input type="text" id="novo-npc-foto" class="input-mystic w-full" placeholder="URL da Foto de Perfil" style="margin-bottom: 5px;">
-            <button class="btn-mystic w-full" onclick="salvarNovoNPC()" style="background: #104e8b;">Salvar e Selecionar NPC</button>
-        </div>
+    <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
+        <input type="file" id="upload-midia" style="display:none;" accept="image/*">
+        <button onclick="document.getElementById('upload-midia').click()" class="btn-mystic" style="padding: 10px; font-size: 1.2rem;" title="Anexar Imagem">📎</button>
+        
+        <input type="text" id="chat-input" class="input-mystic w-full" placeholder="Mensagem, @jogador ou Link da mídia...">
+        
+        <button id="btn-send-chat" class="btn-mystic">Enviar</button>
+        <button id="btn-gm-chat-menu" class="hidden btn-mystic" onclick="abrirModalGmChat()" style="background: #4a0000; border-color: #ff4444;" title="Painel do Mestre">👑</button>
     </div>
 </div>
+    
 <!-- ABA: LOG DO MESTRE -->
 <div id="tab-gm" class="tab-content hidden text-center">
     <h2>Registros do Akasha (Log do Mestre)</h2>
@@ -278,6 +242,56 @@
             
         </main>
     </div>
+    <div id="tab-mural" class="tab-content hidden text-center">
+    <h2>Arquivos e Fitas Classificadas</h2>
+    <p class="text-muted">Documentos, fotos e gravações encontradas pelas campanhas.</p>
+    
+    <div id="gm-upload-board" class="hidden alive-container" style="margin-bottom: 20px; border-color: #ff4444;">
+        <h3 style="color: #ffcccc; margin-top:0;">👑 Postar no Mural (Mestre)</h3>
+        <input type="text" id="titulo-arquivo" class="input-mystic w-full mb-10" placeholder="Título da Fita / Documento">
+        <input type="text" id="link-arquivo" class="input-mystic w-full mb-10" placeholder="URL direta da Imagem, MP4 ou Site">
+        <button onclick="postarArquivoMestre()" class="btn-mystic w-full">Gravar Fita no Akasha</button>
+    </div>
+
+    <div class="grid" id="mural-arquivos">
+        </div>
+</div>
+
+<div id="modal-gm-chat-controls" class="modal">
+    <div class="modal-content alive-container" style="max-width: 600px;">
+        <span class="close-btn" onclick="fecharModalGmChat()">&times;</span>
+        <h2 style="color: #ffcccc;">👑 Controles do Sistema VTT</h2>
+        
+        <div class="gm-tools-grid">
+            <div>
+                <h4 style="color: var(--borda-ouro); border-bottom: 1px solid #555;">Cenário & Ambiente</h4>
+                <input type="text" id="input-chat-bg" class="input-mystic w-full mb-10" placeholder="Link Fundo do Chat (JPG/PNG)">
+                <button onclick="alterarFundoChat()" class="btn-mystic w-full mb-10" style="font-size: 0.8rem;">Aplicar Cenário</button>
+                <button onclick="abrirModalAudio()" class="btn-mystic w-full" style="background: #aa8800; font-size: 0.8rem;">🎵 Tocar Música (YouTube)</button>
+                
+                <h4 style="color: var(--borda-ouro); border-bottom: 1px solid #555; margin-top: 15px;">Salas Pendentes</h4>
+                <div id="gm-pending-list" style="font-size: 0.8rem; color: #aaa;">Nenhuma sala aguardando.</div>
+            </div>
+
+            <div>
+                <h4 style="color: var(--borda-ouro); border-bottom: 1px solid #555;">Sistema de Atores (NPCs)</h4>
+                <select id="select-npc-salvo" class="input-mystic w-full mb-10"><option value="">👤 Falar como Mim Mesmo</option></select>
+                <input type="text" id="novo-npc-nome" class="input-mystic w-full mb-10" placeholder="Nome do Novo NPC">
+                <input type="text" id="novo-npc-foto" class="input-mystic w-full mb-10" placeholder="Link da Foto do NPC (Opcional)">
+                <button onclick="salvarNovoNPC()" class="btn-mystic w-full" style="background: #114411; font-size: 0.8rem;">💾 Salvar e Equipar NPC</button>
+            </div>
+        </div>
+        
+        <div style="border-top: 1px dashed #ff4444; margin-top: 15px; padding-top: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <span style="color: #ffcccc; font-size: 0.85rem;">Canal Rolagens:</span>
+            <select id="gm-roll-dest" class="input-mystic" style="flex:1;" onchange="mudarDestinoRolagens(this.value)"></select>
+            
+            <input type="text" id="mute-player-name" class="input-mystic" placeholder="Mutar Jogador" style="width: 120px;">
+            <input type="number" id="mute-time" class="input-mystic" placeholder="Min" style="width: 60px;">
+            <button onclick="silenciarJogador()" class="btn-mystic" style="background: #660000; font-size: 0.8rem;">Mute</button>
+        </div>
+    </div>
+</div>
 
     <!-- Modal Adicionar Magia -->
     <div id="modal-add" class="modal">
