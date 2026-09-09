@@ -1632,6 +1632,7 @@ function atualizarPainelTintasVisual() {
 function salvarEstoqueNoFirebase() {
     set(ref(db, `characters/diogenes/estoqueTintas`), estoqueTintasDiogenes);
 }
+
 // ==========================================
 // 20. SISTEMA VTT COMPLETO (CHAT, BOTS, CANAIS)
 // ==========================================
@@ -1640,24 +1641,75 @@ let unsubscribeChat = null;
 let jogadorSilenciado = false;
 let intervaloMute = null;
 
-function iniciarChatAvancado() {
+// -----------------------------------------------------
+// FUNÇÕES DE ADMINISTRAÇÃO E CRIAÇÃO
+// -----------------------------------------------------
+window.criarCanal = function() {
+    const nome = prompt("Nome do novo canal:");
+    if (!nome) return;
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+    push(ref(db, 'canais'), {
+        nome: nome,
+        criador: currentUser,
+        aprovado: isGM // GM aprova na hora, jogador fica pendente
+    });
+    alert(isGM ? "Canal criado!" : "Canal solicitado ao Mestre para aprovação.");
+};
+
+window.criarBot = function() {
+    const nome = prompt("Nome do Bot:");
+    if (!nome) return;
+    const desc = prompt("Descrição rápida do Bot:");
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+
+    push(ref(db, 'bots'), {
+        nome: nome,
+        descricao: desc,
+        criador: currentUser,
+        aprovado: isGM
+    });
+    alert(isGM ? "Bot criado!" : "Bot solicitado ao Mestre para aprovação.");
+};
+
+window.aprovarFirebase = function(caminho) {
+    update(ref(db, caminho), { aprovado: true });
+};
+
+window.silenciarJogador = function() {
+    const jogador = prompt("Nome do jogador a ser silenciado (exato):");
+    if (!jogador) return;
+    const minutos = parseInt(prompt("Quantos minutos?"));
+    if (!minutos) return;
+
+    set(ref(db, 'mutes/' + jogador.toLowerCase()), {
+        expiraEm: Date.now() + (minutos * 60000)
+    });
+    alert(`${jogador} silenciado por ${minutos} minutos.`);
+};
+
+// -----------------------------------------------------
+// INICIALIZAÇÃO DO CHAT
+// -----------------------------------------------------
+window.iniciarChatAvancado = function() {
     const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
     const gmPanel = document.getElementById('gm-chat-panel');
     if (isGM && gmPanel) gmPanel.style.display = 'block';
 
-    // 1. Criar canal padrão "Taverna" se não existir
+    // Canal Padrão
     update(ref(db, 'canais/taverna'), { nome: 'Taverna', aprovado: true, criador: 'Sistema' });
 
-    // 2. Sistema de Mute
+    // Sistema de Mute
     onValue(ref(db, 'mutes/' + currentUser.toLowerCase()), (snapshot) => {
         const data = snapshot.val();
         const agora = Date.now();
+        const input = document.getElementById('chat-input');
+        const btn = document.getElementById('btn-send-chat');
+        const warning = document.getElementById('mute-warning');
+
         if (data && data.expiraEm > agora) {
             jogadorSilenciado = true;
-            document.getElementById('chat-input').disabled = true;
-            document.getElementById('btn-send-chat').disabled = true;
-            
-            const warning = document.getElementById('mute-warning');
+            if(input) input.disabled = true;
+            if(btn) btn.disabled = true;
             if(warning) warning.style.display = 'block';
             
             if (intervaloMute) clearInterval(intervaloMute);
@@ -1673,15 +1725,14 @@ function iniciarChatAvancado() {
             }, 1000);
         } else {
             jogadorSilenciado = false;
-            document.getElementById('chat-input').disabled = false;
-            document.getElementById('btn-send-chat').disabled = false;
-            const warning = document.getElementById('mute-warning');
+            if(input) input.disabled = false;
+            if(btn) btn.disabled = false;
             if(warning) warning.style.display = 'none';
             if (intervaloMute) clearInterval(intervaloMute);
         }
     });
 
-    // 3. Escutar Canais
+    // Escutar Canais
     onValue(ref(db, 'canais'), (snapshot) => {
         const lista = document.getElementById('channel-list');
         if(!lista) return;
@@ -1691,17 +1742,13 @@ function iniciarChatAvancado() {
 
         snapshot.forEach(child => {
             const canal = { id: child.key, ...child.val() };
-            
-            // GM vê aprovações pendentes
             if (!canal.aprovado && isGM && canaisPendentes) {
                 canaisPendentes.innerHTML += `<button onclick="aprovarFirebase('canais/${canal.id}')" class="btn-mystic small" style="background:#aa8800; margin-top: 5px;">Aprovar Sala: ${canal.nome}</button>`;
             }
-
             if (canal.aprovado || canal.criador.toLowerCase() === currentUser.toLowerCase() || isGM) {
                 const btn = document.createElement('button');
                 btn.className = `channel-btn ${canal.id === canalAtual ? 'active' : ''}`;
                 btn.innerText = canal.aprovado ? `# ${canal.nome}` : `⏳ ${canal.nome} (Pendente)`;
-                
                 btn.onclick = () => {
                     if(!canal.aprovado && !isGM) return alert("Aguarde o Mestre aprovar esta sala.");
                     mudarCanal(canal.id, canal.nome);
@@ -1711,7 +1758,7 @@ function iniciarChatAvancado() {
         });
     });
 
-    // 4. Escutar Bots
+    // Escutar Bots
     onValue(ref(db, 'bots'), (snapshot) => {
         const lista = document.getElementById('bots-list');
         if(!lista) return;
@@ -1719,12 +1766,10 @@ function iniciarChatAvancado() {
         
         snapshot.forEach(child => {
             const bot = { id: child.key, ...child.val() };
-            
             if (!bot.aprovado && isGM) {
                 const canaisPendentes = document.getElementById('gm-pending-list');
                 if(canaisPendentes) canaisPendentes.innerHTML += `<button onclick="aprovarFirebase('bots/${bot.id}')" class="btn-mystic small" style="background:#aa8800; margin-top: 5px;">Aprovar Bot: ${bot.nome}</button>`;
             }
-
             if (bot.aprovado || bot.criador.toLowerCase() === currentUser.toLowerCase() || isGM) {
                 const card = document.createElement('div');
                 card.className = 'bot-card';
@@ -1738,11 +1783,10 @@ function iniciarChatAvancado() {
         });
     });
 
-    // Inicia no canal Taverna
     mudarCanal('taverna', 'Taverna');
-}
+};
 
-function mudarCanal(canalId, canalNome) {
+window.mudarCanal = function(canalId, canalNome) {
     canalAtual = canalId;
     const tituloCanal = document.getElementById('current-channel-title');
     if(tituloCanal) tituloCanal.innerText = `# ${canalNome}`;
@@ -1776,7 +1820,6 @@ function mudarCanal(canalId, canalNome) {
             let remetente = msg.tipo === 'gm' ? '👑 Mestre' : msg.jogador.toUpperCase();
             if (msg.tipo === 'npc') remetente = msg.npcNome || 'NPC';
             
-            // Formatador de texto para quebra de linha natural
             let textoFormatado = msg.texto.replace(/\n/g, '<br>');
             
             div.innerHTML = `<span class="chat-header">${remetente} - ${msg.hora}</span><div>${textoFormatado}</div>`;
@@ -1785,14 +1828,35 @@ function mudarCanal(canalId, canalNome) {
         
         box.scrollTop = box.scrollHeight;
     });
-}
+};
 
 // -----------------------------------------------------
-// FUNÇÃO GLOBAL DE ENVIO (Utilizada pelo chat e pelos dados)
+// FUNÇÃO UNIVERSAL DE ENVIO E EVENTOS
 // -----------------------------------------------------
-window.enviarMensagemChat = function(texto, tipo = 'texto') {
-    if (jogadorSilenciado || !texto.trim() || !canalAtual) return;
+window.enviarMensagem = function(textoOpcional, tipo = 'texto') {
+    let texto = textoOpcional;
+    const input = document.getElementById('chat-input');
     
+    // 1. Se a função foi chamada sem passar o texto (ex: pelo botão no HTML ou pelo Enter)
+    if (typeof texto !== 'string' || !texto.trim()) {
+        if (input) {
+            texto = input.value.trim();
+            input.value = ""; // Limpa a caixa de texto
+            input.focus();    // Mantém o cursor nela
+        } else {
+            return;
+        }
+    }
+    
+    if (jogadorSilenciado || !texto || !canalAtual) return;
+    
+    // 2. Se for o Mestre enviando e a caixa "Falar como GM" estiver marcada, sobrescreve o tipo
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+    const gmBox = document.getElementById('gm-send-checkbox');
+    if (isGM && gmBox && gmBox.checked && (!tipo || tipo === 'texto')) {
+        tipo = 'gm';
+    }
+
     const dataAtual = new Date();
     const horaFormatada = `${dataAtual.getHours().toString().padStart(2, '0')}:${dataAtual.getMinutes().toString().padStart(2, '0')}`;
     
@@ -1805,129 +1869,31 @@ window.enviarMensagemChat = function(texto, tipo = 'texto') {
     });
 };
 
-// -----------------------------------------------------
-// EVENTOS DE INPUT E BOTÃO DE ENVIAR
-// -----------------------------------------------------
+// Garantindo suporte duplo para o nome da função (Resolve o erro "undefined")
+window.enviarMensagemChat = window.enviarMensagem; 
 
-// Criando um "atalho" caso o seu HTML ainda use o nome antigo
-window.enviarMensagem = window.enviarMensagemChat; 
-
-// 1. Evento do Botão de Enviar
-const btnSendChat = document.getElementById('btn-send-chat');
-if (btnSendChat) {
-    btnSendChat.addEventListener('click', dispararEnvioDeChat);
-}
-
-// 2. Evento de apertar "Enter" no Input
+// Evento de apertar "Enter" na caixa de texto
 const inputChat = document.getElementById('chat-input');
 if (inputChat) {
     inputChat.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
-            e.preventDefault(); // Evita que a página pisque
-            dispararEnvioDeChat();
+            e.preventDefault(); 
+            window.enviarMensagem(); // Dispara a função sem argumento, forçando a leitura do input
         }
     });
 }
 
-// Função auxiliar que lê o input e manda pro chat
-function dispararEnvioDeChat() {
-    const input = document.getElementById('chat-input');
-    const texto = input.value.trim();
-    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    
-    if (texto) {
-        const gmBox = document.getElementById('gm-send-checkbox');
-        if (isGM && gmBox && gmBox.checked) {
-            window.enviarMensagemChat(texto, 'gm');
-        } else {
-            window.enviarMensagemChat(texto, 'texto');
-        }
-        input.value = ""; // Limpa a caixa de texto
-        input.focus(); // Mantém o cursor piscando na caixa
-    }
+// Evento do botão enviar (Sobrescrevendo p/ garantir funcionamento independente do HTML)
+const btnSendChat = document.getElementById('btn-send-chat');
+if (btnSendChat) {
+    btnSendChat.onclick = function() {
+        window.enviarMensagem(); 
+    };
 }
 // ==========================================
 // FIM DO SISTEMA VTT
 // ==========================================
-// ==========================================
-// FUNÇÕES DE CRIAÇÃO E APROVAÇÃO (BOTS/CANAIS)
-// ==========================================
-function solicitarNovoCanal() {
-    const nome = prompt("Nome da Nova Sala (Ex: Cripta Subterrânea):");
-    if (!nome) return;
-    const id = nome.toLowerCase().replace(/[^a-z0-9]/g, ''); // Cria um ID sem espaços
-    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    
-    update(ref(db, `canais/${id}`), {
-        nome: nome,
-        criador: currentUser,
-        aprovado: isGM // Se GM cria, aprova na hora. Se jogador, vai falso.
-    });
-    if(!isGM) alert("Solicitação enviada ao Mestre!");
-}
-
-function solicitarNovoBot() {
-    const nome = prompt("Nome do Bot/Monstro:");
-    if (!nome) return;
-    const hp = prompt("Pontos de Vida (HP):", "20") || "0";
-    const defesa = prompt("Defesa / Armadura:", "10") || "0";
-    const dano = prompt("Fórmula de Dano/Ataque (Ex: 1d6+2 ou Magia de Fogo):", "1d6") || "0";
-    
-    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    
-    push(ref(db, 'bots'), {
-        nome, hp, defesa, dano, criador: currentUser, aprovado: isGM
-    });
-    if(!isGM) alert("Ficha do Bot enviada para aprovação do Mestre!");
-}
-
-function aprovarFirebase(caminho) {
-    update(ref(db, caminho), { aprovado: true });
-}
-
-function botAtacar(nomeBot, formulaDano) {
-    // Registra o ataque do Bot direto no canal atual
-    push(ref(db, `mensagens/${canalAtual}`), {
-        remetente: 'Sistema',
-        texto: `🤖 <strong>${nomeBot}</strong> usa sua habilidade/ataque!<br>⚔️ <em>Poder/Fórmula: ${formulaDano}</em>`,
-        timestamp: Date.now(),
-        tipo: 'roll'
-    });
-}
-
-// ==========================================
-// EDIÇÃO, PUNIÇÃO E EVENTOS
-// ==========================================
-function apagarMensagem(id) {
-    if(confirm("Deseja apagar esta mensagem?")) remove(ref(db, `mensagens/${canalAtual}/${id}`));
-}
-
-function editarMensagem(id, textoAntigo) {
-    const novoTexto = prompt("Edite sua mensagem:", textoAntigo);
-    if (novoTexto && novoTexto.trim() !== "") {
-        update(ref(db, `mensagens/${canalAtual}/${id}`), { texto: novoTexto.trim(), editada: true });
-    }
-}
-
-function silenciarJogador() {
-    const alvo = document.getElementById('mute-player-name').value.trim().toLowerCase();
-    const minutos = parseInt(document.getElementById('mute-time').value);
-    if (!alvo || !minutos) return alert("Preencha jogador e minutos.");
-    
-    set(ref(db, 'mutes/' + alvo), {
-        expiraEm: Date.now() + (minutos * 60 * 1000), mutadoPor: currentUser
-    }).then(() => {
-        alert(`${alvo.toUpperCase()} foi silenciado!`);
-        document.getElementById('mute-player-name').value = "";
-    });
-}
-
-// Eventos de Input
-document.getElementById('btn-send-chat').addEventListener('click', enviarMensagem);
-document.getElementById('chat-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') enviarMensagem();
-});
-// Expor funções para o escopo global (para o HTML conseguir ler os onclick)
+//nções para o escopo global (para o HTML conseguir ler os onclick)
 window.solicitarNovoCanal = solicitarNovoCanal;
 window.solicitarNovoBot = solicitarNovoBot;
 window.aprovarFirebase = aprovarFirebase;
