@@ -1020,12 +1020,10 @@ let fichaAtual = null;
 function carregarFichaDoFirebase() {
     if (!currentUser) return;
     const fichaRef = ref(db, `characters/${currentUser}`);
-    
     onValue(fichaRef, (snapshot) => {
       const data = snapshot.val();
     if (data) {
         fichaAtual = data;
-        
         // Ativa o bug no site inteiro caso esteja fragmentado
         let estado = fichaAtual.estadoAtual || 'saudavel';
         if (estado === 'fragmentado') {
@@ -1033,10 +1031,8 @@ function carregarFichaDoFirebase() {
         } else {
             document.body.classList.remove('glitch-extremo');
         }
-        
         renderizarPerfil();
         } else {
-            // Cria ficha zerada padrão KULT para novos usuários
             const novaFicha = {
                 nome: currentUser,
                 sistema: "KULT",
@@ -1051,7 +1047,31 @@ function carregarFichaDoFirebase() {
             set(fichaRef, novaFicha);
         }
     });
-  // Injeta painel de edição de Fotos de Perfil (Avatares por Estado)
+}
+
+function renderizarPerfil() {
+    if (!fichaAtual) return;
+    
+    let sys = BibliotecaSistemas[fichaAtual.sistema];
+    if (!sys) {
+        sys = BibliotecaSistemas["KULT"];
+    }
+    
+    // Atualiza dados básicos na tela
+    document.getElementById('nome-personagem').innerText = fichaAtual.nome.toUpperCase();
+    document.getElementById('sistema-personagem').innerText = sys.nome;
+    document.getElementById('display-xp').innerText = fichaAtual.xp;
+
+    // Lógica de Level Up
+    const areaUpar = document.getElementById('area-level-up');
+    if (areaUpar) {
+        if (fichaAtual.xp >= sys.custoXpPorNivel) {
+            areaUpar.classList.remove('hidden');
+        } else {
+            areaUpar.classList.add('hidden');
+        }
+    }
+   // Injeta painel de edição de Fotos de Perfil (Avatares por Estado)
     let painelAvatares = document.getElementById('painel-avatares-jogador');
     if (!painelAvatares) {
         const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
@@ -1091,30 +1111,6 @@ function carregarFichaDoFirebase() {
              const input = document.getElementById(`avatar-${est}`);
              if (input) input.value = fichaAtual.avatares[est] || '';
         });
-    }
-}
-
-function renderizarPerfil() {
-    if (!fichaAtual) return;
-    
-    let sys = BibliotecaSistemas[fichaAtual.sistema];
-    if (!sys) {
-        sys = BibliotecaSistemas["KULT"];
-    }
-    
-    // Atualiza dados básicos na tela
-    document.getElementById('nome-personagem').innerText = fichaAtual.nome.toUpperCase();
-    document.getElementById('sistema-personagem').innerText = sys.nome;
-    document.getElementById('display-xp').innerText = fichaAtual.xp;
-
-    // Lógica de Level Up
-    const areaUpar = document.getElementById('area-level-up');
-    if (areaUpar) {
-        if (fichaAtual.xp >= sys.custoXpPorNivel) {
-            areaUpar.classList.remove('hidden');
-        } else {
-            areaUpar.classList.add('hidden');
-        }
     }
 
     // Calcula penalidade de bônus negativo baseada nos ferimentos graves (-1 por ferimento grave)
