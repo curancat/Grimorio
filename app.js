@@ -1649,17 +1649,32 @@ function salvarEstoqueNoFirebase() {
 }
 
 // ==========================================
-// 20.SISTEMA VTT COMPLETO (CHAT, BOTS, CANAIS)
+// 20. SISTEMA VTT AVANÇADO (API, CHAT, NPCS E MURAL)
 // ==========================================
+const IMGBB_API_KEY = "1fd4d8fc1d8b3f9bb172de4e42dabe37";
+
 let canalAtual = 'taverna';
-let canalRolagemDestino = 'taverna'; // Controlado pelo Mestre
+let canalRolagemDestino = 'taverna';
 let unsubscribeChat = null;
 let jogadorSilenciado = false;
 let intervaloMute = null;
 
+// Variáveis para Menções e NPCs
+let respondendoA = null;
+let npcsSalvos = {};
+
+// ==========================================
+// A. INICIALIZAÇÃO E ESCUTA BASE
+// ==========================================
 function iniciarChatAvancado() {
     const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    if (isGM) document.getElementById('gm-chat-panel').style.display = 'block';
+    
+    // Revela botões exclusivos do Mestre
+    if (isGM) {
+        document.getElementById('btn-gm-chat-menu').classList.remove('hidden');
+        document.getElementById('gm-upload-board').classList.remove('hidden');
+        escutarNpcsSalvos();
+    }
 
     update(ref(db, 'canais/taverna'), { nome: 'Taverna', aprovado: true, criador: 'Sistema' });
 
@@ -1667,26 +1682,38 @@ function iniciarChatAvancado() {
     onValue(ref(db, 'configuracoes/destino_rolagens'), (snapshot) => {
         if (snapshot.exists()) {
             canalRolagemDestino = snapshot.val();
-            if (isGM) document.getElementById('gm-roll-dest').value = canalRolagemDestino;
+            if (isGM) {
+                const gmSelect = document.getElementById('gm-roll-dest');
+                if(gmSelect) gmSelect.value = canalRolagemDestino;
+            }
         }
     });
 
-    // 2. Escutar Sistema de Áudio (YouTube)
+    // 2. Fundo Customizado do Chat
+    onValue(ref(db, 'gm_settings/chat_bg'), (snapshot) => {
+        const bgContainer = document.getElementById('chat-fundo');
+        if(snapshot.exists() && snapshot.val() !== "") {
+            bgContainer.style.backgroundImage = `url('${snapshot.val()}')`;
+        } else {
+            bgContainer.style.backgroundImage = "none";
+        }
+    });
+
+    // 3. Sistema de Áudio Global
     onValue(ref(db, 'configuracoes/audio_ambiente'), (snapshot) => {
         const urlEmbed = snapshot.val();
         const container = document.getElementById('global-audio-container');
         const iframe = document.getElementById('youtube-player');
-        
         if (urlEmbed) {
             container.style.display = 'block';
-            if (iframe.src !== urlEmbed) iframe.src = urlEmbed; // Evita recarregar se for o mesmo áudio
+            if (iframe.src !== urlEmbed) iframe.src = urlEmbed;
         } else {
             container.style.display = 'none';
             iframe.src = "";
         }
     });
 
-    // 3. Sistema de Punições (Mute)
+    // 4. Sistema de Mute / Punições
     onValue(ref(db, 'mutes/' + currentUser.toLowerCase()), (snapshot) => {
         const data = snapshot.val();
         if (data && data.expiraEm > Date.now()) {
@@ -1714,34 +1741,28 @@ function iniciarChatAvancado() {
         }
     });
 
-    // 4. Gerenciamento de Canais
+    // 5. Gerenciamento de Canais
     onValue(ref(db, 'canais'), (snapshot) => {
         const lista = document.getElementById('channel-list');
         lista.innerHTML = "";
-        
         const canaisPendentes = document.getElementById('gm-pending-list');
         const gmSelect = document.getElementById('gm-roll-dest');
         
         if(isGM) {
             canaisPendentes.innerHTML = ""; 
-            // Guarda a seleção atual do select para não perder ao atualizar
-            const valAtual = gmSelect.value;
             gmSelect.innerHTML = ""; 
         }
 
         snapshot.forEach(child => {
             const canal = { id: child.key, ...child.val() };
             
-            // Atualiza o Select do GM com todas as salas aprovadas
             if (isGM && canal.aprovado) {
                 const option = document.createElement('option');
-                option.value = canal.id;
-                option.text = canal.nome;
+                option.value = canal.id; option.text = canal.nome;
                 gmSelect.appendChild(option);
             }
-
             if (!canal.aprovado && isGM) {
-                canaisPendentes.innerHTML += `<button onclick="aprovarFirebase('canais/${canal.id}')" class="btn-mystic" style="font-size:0.7rem; background:#aa8800;">Aprovar: ${canal.nome}</button>`;
+                canaisPendentes.innerHTML += `<button onclick="aprovarFirebase('canais/${canal.id}')" class="btn-mystic" style="font-size:0.7rem; background:#aa8800; margin:2px;">Aprovar: ${canal.nome}</button>`;
             }
             if (canal.aprovado || canal.criador.toLowerCase() === currentUser.toLowerCase() || isGM) {
                 const btn = document.createElement('button');
@@ -1754,25 +1775,113 @@ function iniciarChatAvancado() {
                 lista.appendChild(btn);
             }
         });
-        
-        if(isGM && gmSelect.querySelector(`option[value="${canalRolagemDestino}"]`)) {
-            gmSelect.value = canalRolagemDestino;
-        }
+        if(isGM) gmSelect.value = canalRolagemDestino;
     });
 
+    // Inicia Chat na Taverna e Liga Mural
     mudarCanal('taverna', 'Taverna');
+    escutarMuralFitas();
+}
+
+// ==========================================
+// B. CONTROLES DO MESTRE (MODAL, NPCS E FUNDO)
+// ==========================================
+window.abrirModalGmChat = function() { document.getElementById('modal-gm-chat-controls').style.display = 'flex'; }
+window.fecharModalGmChat = function() { document.getElementById('modal-gm-chat-controls').style.display = 'none'; }
+
+window.alterarFundoChat = function() {
+    const bgUrl = document.getElementById('input-chat-bg').value.trim();
+    set(ref(db, 'gm_settings/chat_bg'), bgUrl).then(() => {
+        alert(bgUrl ? "Cenário Aplicado!" : "Cenário Removido!");
+    });
+}
+
+function escutarNpcsSalvos() {
+    onValue(ref(db, 'npcs'), (snapshot) => {
+        const select = document.getElementById('select-npc-salvo');
+        select.innerHTML = '<option value="">👤 Falar como Mim Mesmo</option>';
+        if(snapshot.exists()) {
+            npcsSalvos = snapshot.val();
+            Object.keys(npcsSalvos).forEach(id => {
+                select.innerHTML += `<option value="${id}">${npcsSalvos[id].nome}</option>`;
+            });
+        }
+    });
+}
+
+window.salvarNovoNPC = function() {
+    const nome = document.getElementById('novo-npc-nome').value.trim();
+    const foto = document.getElementById('novo-npc-foto').value.trim();
+    if(!nome) return alert("O NPC precisa ter um nome sagrado.");
+    
+    const npcId = nome.toLowerCase().replace(/\s+/g, '_');
+    set(ref(db, `npcs/${npcId}`), { nome, foto }).then(() => {
+        document.getElementById('novo-npc-nome').value = "";
+        document.getElementById('novo-npc-foto').value = "";
+        alert(`${nome} materializado com sucesso!`);
+        setTimeout(() => document.getElementById('select-npc-salvo').value = npcId, 500);
+    });
+}
+
+// ==========================================
+// C. UPLOAD NA NUVEM VIA IMGBB (GRATUITO)
+// ==========================================
+document.getElementById('upload-midia').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const inputMsg = document.getElementById('chat-input');
+    const originalPlaceholder = inputMsg.placeholder;
+    inputMsg.value = "";
+    inputMsg.placeholder = "Fazendo upload mágico para a nuvem... ⏳";
+    inputMsg.disabled = true;
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        
+        if(data.success) {
+            inputMsg.value = data.data.url;
+        } else {
+            alert("Falha na magia de upload da ImgBB.");
+        }
+    } catch (err) {
+        alert("As correntes místicas (Conexão) falharam.");
+    }
+    inputMsg.disabled = false;
+    inputMsg.placeholder = originalPlaceholder;
+});
+
+// ==========================================
+// D. RENDERIZAÇÃO DO CHAT (MENÇÕES, RESPOSTAS, MÍDIA)
+// ==========================================
+window.setarResposta = function(nomeUsuario) {
+    respondendoA = nomeUsuario;
+    document.getElementById('reply-user').innerText = nomeUsuario.toUpperCase();
+    document.getElementById('reply-preview').classList.remove('hidden');
+    document.getElementById('chat-input').focus();
+}
+
+window.cancelarResposta = function() {
+    respondendoA = null;
+    document.getElementById('reply-preview').classList.add('hidden');
 }
 
 function mudarCanal(idCanal, nomeCanal) {
     canalAtual = idCanal;
-    
     document.querySelectorAll('.channel-btn').forEach(btn => {
         btn.classList.remove('active');
         if(btn.innerText.includes(nomeCanal)) btn.classList.add('active');
     });
 
     if (unsubscribeChat) unsubscribeChat();
-
+    
     unsubscribeChat = onValue(ref(db, `mensagens/${canalAtual}`), (snapshot) => {
         const container = document.getElementById('chat-messages');
         if (!container) return;
@@ -1785,53 +1894,164 @@ function mudarCanal(idCanal, nomeCanal) {
         mensagens.forEach(msg => {
             const div = document.createElement('div');
             let tipo = 'other';
-            const remetenteSeguro = msg.remetente ? msg.remetente : 'Sistema';
-            let nomeExibicao = remetenteSeguro.toUpperCase();
+            const remetenteRaw = msg.remetente || 'Sistema';
+            let nomeExibicao = remetenteRaw.toUpperCase();
 
+            // Lógica de Detecção e Tipo
             if (msg.tipo === 'roll') { tipo = 'roll'; nomeExibicao = '🎲 DADOS'; } 
-            else if (msg.falarComo) { tipo = 'npc'; nomeExibicao = msg.falarComo.toUpperCase(); } 
-            else if (remetenteSeguro.toLowerCase() === currentUser.toLowerCase()) { tipo = 'mine'; } 
-            else if (remetenteSeguro.toLowerCase() === 'mestre') { tipo = 'gm'; nomeExibicao = '👑 MESTRE'; }
+            else if (msg.tipo === 'npc') { tipo = 'npc'; nomeExibicao = msg.npcData.nome.toUpperCase(); } 
+            else if (remetenteRaw.toLowerCase() === currentUser.toLowerCase()) { tipo = 'mine'; } 
+            else if (remetenteRaw.toLowerCase() === 'mestre' || remetenteRaw.toLowerCase() === 'gm') { tipo = 'gm'; nomeExibicao = '👑 MESTRE'; }
             
             div.className = `chat-msg ${tipo}`;
             const hora = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--';
             
-            let html = `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
-            html += `<div>${msg.texto || ''} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
-            
-            if (remetenteSeguro.toLowerCase() === currentUser.toLowerCase() || isGM) {
-                if (msg.tipo !== 'roll') { 
-                    html += `<div class="msg-actions">
-                        <span onclick="editarMensagem('${msg.id}', '${(msg.texto || '').replace(/'/g, "\\'")}')">✏️ Editar</span>
-                        <span onclick="apagarMensagem('${msg.id}')">🗑️ Apagar</span>
-                    </div>`;
-                }
+            // Detectar se o usuário logado foi Mencionado (@) ou Respondido
+            const textoUpper = (msg.texto || '').toUpperCase();
+            const foiMarcado = textoUpper.includes(`@${currentUser.toUpperCase()}`) || (msg.replyTo && msg.replyTo.toUpperCase() === currentUser.toUpperCase());
+            const htmlBolinha = foiMarcado ? `<div class="notificacao-marcado"></div>` : '';
+
+            // Visual da Resposta
+            const htmlReply = msg.replyTo ? `<div class="reply-badge">↳ Respondendo a ${msg.replyTo.toUpperCase()}</div>` : '';
+
+            // Renderizar Imagem/Avatar NPC
+            const htmlAvatar = (msg.tipo === 'npc' && msg.npcData.foto) 
+                ? `<img src="${msg.npcData.foto}" class="npc-avatar" alt="Avatar">` : '';
+
+            // Formatação do Texto (Processa links como mídias)
+            let textoRenderizado = msg.texto || '';
+            if (textoRenderizado.match(/\.(jpeg|jpg|gif|png)$/i)) {
+                textoRenderizado = `<a href="${textoRenderizado}" target="_blank"><img src="${textoRenderizado}" class="chat-media"></a>`;
+            } else if (textoRenderizado.match(/\.(mp4|webm)$/i)) {
+                textoRenderizado = `<video src="${textoRenderizado}" class="chat-media" controls></video>`;
             }
-            div.innerHTML = html;
+
+            // Construir HTML da mensagem
+            let htmlInner = `${htmlBolinha} ${htmlAvatar}`;
+            htmlInner += `<div style="overflow:hidden;">`; // Container para não quebrar float do avatar
+            htmlInner += `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
+            htmlInner += `${htmlReply} <div>${textoRenderizado} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
+            
+            // Botões de Ação
+            if (tipo !== 'roll') {
+                htmlInner += `<div class="msg-actions">`;
+                if (tipo !== 'mine') {
+                    htmlInner += `<span onclick="setarResposta('${remetenteRaw}')">↩️ Responder</span>`;
+                }
+                if (remetenteRaw.toLowerCase() === currentUser.toLowerCase() || isGM) {
+                    htmlInner += `<span onclick="editarMensagem('${msg.id}', '${(msg.texto || '').replace(/'/g, "\\'")}')">✏️ Edit</span>`;
+                    htmlInner += `<span onclick="apagarMensagem('${msg.id}')">🗑️ Del</span>`;
+                }
+                htmlInner += `</div>`;
+            }
+            htmlInner += `</div>`;
+            
+            div.innerHTML = htmlInner;
             container.appendChild(div);
         });
         container.scrollTop = container.scrollHeight;
     });
 }
 
-function enviarMensagem() {
+// ==========================================
+// E. ENVIO DE MENSAGENS COMPLETO
+// ==========================================
+window.enviarMensagemCompleta = function() {
     if (jogadorSilenciado) return;
     const input = document.getElementById('chat-input');
     const texto = input.value.trim();
     if (!texto || !currentUser) return;
 
-    const inputNPC = document.getElementById('gm-npc-name');
-    const npcName = inputNPC ? inputNPC.value.trim() : "";
+    // Detectar uso de NPC
+    const npcSelect = document.getElementById('select-npc-salvo');
+    const npcAtivoId = npcSelect ? npcSelect.value : null;
+    let dadosNpc = null;
+    
+    if (npcAtivoId && npcsSalvos[npcAtivoId]) {
+        dadosNpc = npcsSalvos[npcAtivoId];
+    }
 
     push(ref(db, `mensagens/${canalAtual}`), {
-        remetente: currentUser, falarComo: npcName || null,
-        texto: texto, timestamp: Date.now(), tipo: 'chat', editada: false
+        remetente: currentUser,
+        tipo: dadosNpc ? 'npc' : 'chat',
+        npcData: dadosNpc,
+        texto: texto,
+        replyTo: respondendoA,
+        timestamp: Date.now(),
+        editada: false
     });
+
     input.value = "";
+    cancelarResposta();
+}
+document.getElementById('btn-send-chat').addEventListener('click', enviarMensagemCompleta);
+document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') enviarMensagemCompleta(); });
+
+// ==========================================
+// F. MURAL DE FITAS (ARQUIVOS DO MESTRE)
+// ==========================================
+window.postarArquivoMestre = function() {
+    const titulo = document.getElementById('titulo-arquivo').value.trim();
+    const link = document.getElementById('link-arquivo').value.trim();
+    if(!titulo || !link) return alert("Preencha título e link do artefato!");
+    
+    push(ref(db, 'tapes'), { titulo, link, data: Date.now(), autor: currentUser }).then(() => {
+        document.getElementById('titulo-arquivo').value = "";
+        document.getElementById('link-arquivo').value = "";
+        alert("Fita arquivada no mural com sucesso!");
+    });
+};
+
+window.apagarArquivoMural = function(id) {
+    if(confirm("Deseja destruir esta fita?")) remove(ref(db, `tapes/${id}`));
 }
 
-// A ROLAGEM AGORA VAI PARA O CANAL QUE O MESTRE DECIDIR (canalRolagemDestino)
-function registrarRolagemGlobal(motivo, expressao, resultado) {
+function escutarMuralFitas() {
+    onValue(ref(db, 'tapes'), (snapshot) => {
+        const mural = document.getElementById('mural-arquivos');
+        if(!mural) return;
+        mural.innerHTML = "";
+        
+        if(!snapshot.exists()) {
+            mural.innerHTML = "<p class='text-muted' style='grid-column: 1/-1;'>O Akasha não possui fitas ou documentos registrados no momento.</p>";
+            return;
+        }
+
+        const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+        const fitas = snapshot.val();
+        
+        Object.keys(fitas).forEach(id => {
+            const fita = fitas[id];
+            
+            // Detecta formato para renderizar o preview
+            let previewHTML = `<a href="${fita.link}" target="_blank" class="btn-mystic small w-full" style="text-align:center; display:block; padding:15px; box-sizing:border-box;">🔗 Acessar Documento / Fita</a>`;
+            if(fita.link.match(/\.(jpeg|jpg|gif|png)$/i)) {
+                previewHTML = `<img src="${fita.link}" style="width:100%; height:auto; border-radius:4px; margin-top:5px;">`;
+            } else if (fita.link.match(/\.(mp4|webm)$/i)) {
+                previewHTML = `<video src="${fita.link}" controls style="width:100%; border-radius:4px; margin-top:5px;"></video>`;
+            } else if (fita.link.includes('youtube.com') || fita.link.includes('youtu.be')) {
+                // Tenta criar iframe de youtube pro mural
+                let vidId = fita.link.includes('v=') ? fita.link.split('v=')[1].split('&')[0] : fita.link.split('youtu.be/')[1];
+                if(vidId) previewHTML = `<iframe width="100%" height="200" src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen style="border-radius:4px;"></iframe>`;
+            }
+
+            const btnDeletar = isGM ? `<button onclick="apagarArquivoMural('${id}')" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold; position:absolute; top:5px; right:5px;">X</button>` : '';
+
+            mural.innerHTML += `
+                <div class="card alive-container" style="flex-direction: column; justify-content: flex-start; text-align: left; padding: 15px; position: relative; cursor: default;">
+                    ${btnDeletar}
+                    <strong style="color: var(--borda-ouro); font-size:1.1rem; display:block; margin-bottom:10px;">💾 ${fita.titulo}</strong>
+                    ${previewHTML}
+                </div>
+            `;
+        });
+    });
+}
+
+// ==========================================
+// G. FUNÇÕES AUXILIARES MANTIDAS
+// ==========================================
+window.registrarRolagemGlobal = function(motivo, expressao, resultado) {
     if (!currentUser) return;
     const destinoFinal = canalRolagemDestino || 'taverna';
     push(ref(db, `mensagens/${destinoFinal}`), {
@@ -1840,69 +2060,40 @@ function registrarRolagemGlobal(motivo, expressao, resultado) {
         timestamp: Date.now(), tipo: 'roll', editada: false
     });
 }
-
-function mudarDestinoRolagens(idCanalDestino) { set(ref(db, 'configuracoes/destino_rolagens'), idCanalDestino); }
-
-// =====================================
-// FUNÇÕES DE ÁUDIO DO MESTRE (YOUTUBE)
-// =====================================
-function abrirModalAudio() { document.getElementById('audio-modal').style.display = 'flex'; }
-function fecharModalAudio() { document.getElementById('audio-modal').style.display = 'none'; }
-function pararAudio() { 
-    remove(ref(db, 'configuracoes/audio_ambiente')); 
-    fecharModalAudio(); 
-}
-function sincronizarAudio() {
+window.mudarDestinoRolagens = function(idCanalDestino) { set(ref(db, 'configuracoes/destino_rolagens'), idCanalDestino); }
+window.abrirModalAudio = function() { document.getElementById('audio-modal').style.display = 'flex'; }
+window.fecharModalAudio = function() { document.getElementById('audio-modal').style.display = 'none'; }
+window.pararAudio = function() { remove(ref(db, 'configuracoes/audio_ambiente')); fecharModalAudio(); }
+window.sincronizarAudio = function() {
     const rawUrl = document.getElementById('youtube-url').value.trim();
     if (!rawUrl) return;
-    
-    // Converte links normais do YouTube para formato Embed (necessário para iframes)
     let videoId = "";
-    if (rawUrl.includes("v=")) { videoId = rawUrl.split("v=")[1].split("&")[0]; } 
-    else if (rawUrl.includes("youtu.be/")) { videoId = rawUrl.split("youtu.be/")[1].split("?")[0]; }
+    if (rawUrl.includes("v=")) videoId = rawUrl.split("v=")[1].split("&")[0];
+    else if (rawUrl.includes("youtu.be/")) videoId = rawUrl.split("youtu.be/")[1].split("?")[0];
     
     if (videoId) {
-        // Envia o link formatado com autoplay
         set(ref(db, 'configuracoes/audio_ambiente'), `https://www.youtube.com/embed/${videoId}?autoplay=1&loop=1&playlist=${videoId}`);
         fecharModalAudio();
-    } else {
-        alert("Link do YouTube inválido. Use um link completo ou youtu.be");
-    }
+    } else alert("Link inválido.");
 }
-
-function solicitarNovoCanal() {
+window.solicitarNovoCanal = function() {
     const nome = prompt("Nome da Nova Sala:");
     if (!nome) return;
     const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    update(ref(db, `canais/${nome.toLowerCase().replace(/[^a-z0-9]/g, '')}`), {
-        nome: nome, criador: currentUser, aprovado: isGM 
-    });
+    update(ref(db, `canais/${nome.toLowerCase().replace(/[^a-z0-9]/g, '')}`), { nome: nome, criador: currentUser, aprovado: isGM });
 }
-
-function aprovarFirebase(caminho) { update(ref(db, caminho), { aprovado: true }); }
-function apagarMensagem(id) { if(confirm("Deseja apagar?")) remove(ref(db, `mensagens/${canalAtual}/${id}`)); }
-function editarMensagem(id, txt) { 
-    const novo = prompt("Edite:", txt); 
+window.aprovarFirebase = function(caminho) { update(ref(db, caminho), { aprovado: true }); }
+window.apagarMensagem = function(id) { if(confirm("Apagar dos registros?")) remove(ref(db, `mensagens/${canalAtual}/${id}`)); }
+window.editarMensagem = function(id, txt) { 
+    const novo = prompt("Altere sua mensagem:", txt); 
     if (novo && novo.trim() !== "") update(ref(db, `mensagens/${canalAtual}/${id}`), { texto: novo.trim(), editada: true }); 
 }
-function silenciarJogador() {
+window.silenciarJogador = function() {
     const alvo = document.getElementById('mute-player-name').value.trim().toLowerCase();
     const minutos = parseInt(document.getElementById('mute-time').value);
     if (alvo && minutos) set(ref(db, 'mutes/' + alvo), { expiraEm: Date.now() + (minutos * 60 * 1000), mutadoPor: currentUser });
+    alert(`Jogador ${alvo} silenciado por ${minutos} minutos.`);
 }
 
-document.getElementById('btn-send-chat').addEventListener('click', enviarMensagem);
-document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') enviarMensagem(); });
-
-// Expor para o HTML
-window.solicitarNovoCanal = solicitarNovoCanal;
-window.aprovarFirebase = aprovarFirebase;
-window.apagarMensagem = apagarMensagem;
-window.editarMensagem = editarMensagem;
-window.silenciarJogador = silenciarJogador;
-window.registrarRolagemGlobal = registrarRolagemGlobal;
-window.mudarDestinoRolagens = mudarDestinoRolagens;
-window.abrirModalAudio = abrirModalAudio;
-window.fecharModalAudio = fecharModalAudio;
-window.sincronizarAudio = sincronizarAudio;
-window.pararAudio = pararAudio;
+// Garantir que iniciarChatAvancado seja chamado no fluxo antigo caso o login já esteja atrelado lá.
+// Se você possuía uma chamada `iniciarChatAvancado()` na sua função `login()`, ela chamará essa nova automaticamente.
