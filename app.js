@@ -429,21 +429,16 @@ document.getElementById('btn-roll').addEventListener('click', () => {
         let somaRolagensPuras = 0;
         let resultadosIndividuais = [];
         
-        // 1. Rolo a quantidade de dados especificada PRIMEIRO
         for (let i = 0; i < quantidade; i++) {
             let roll = Math.floor(Math.random() * sides) + 1;
             resultadosIndividuais.push(roll);
             somaRolagensPuras += roll;
         }
         
-        // 2. AGORA SIM: Verifica se tirou dois números iguais (duplo) para desbloquear tinta Preta/Branca
-        // Verifica se tirou dois números iguais (duplo) para desbloquear/reabastecer SOMENTE Preta e Branca
         if (currentUser && currentUser.toLowerCase() === 'diogenes' && resultadosIndividuais.length >= 2) {
             const temDuplo = resultadosIndividuais.some((val, i, arr) => arr.indexOf(val) !== i);
             if (temDuplo) {
                 tintaEspecialLiberada = true;
-                
-                // Apenas Preto e Branco recebem cargas com o duplo nos dados
                 estoqueTintasDiogenes['preta'] = Math.floor(limiteTintaDiogenes / 2);
                 estoqueTintasDiogenes['branca'] = Math.floor(limiteTintaDiogenes / 2);
                 
@@ -455,9 +450,7 @@ document.getElementById('btn-roll').addEventListener('click', () => {
             }
         }
         
-        // Aplicação do fator cármico opcional na média total
         let somaComKarma = somaRolagensPuras + (fatorKarma * quantidade);
-        
         const valorMinimo = quantidade;
         const valorMaximo = sides * quantidade;
         if (somaComKarma > valorMaximo) somaComKarma = valorMaximo;
@@ -480,14 +473,14 @@ document.getElementById('btn-roll').addEventListener('click', () => {
         logDisplay.prepend(logEntry);
 
         registrarLog(`Rolou ${quantidade}D${sides} e obteve o resultado ${totalFinal}`);
-    }, 400);
-  // ======= NOVA INTEGRAÇÃO: ENVIAR PARA O CHAT GERAL =======
+
+        // ======= INTEGRAÇÃO CORRETA (DENTRO DO ESCOPO) =======
         const textoParaChat = `Rolou ${quantidade}D${sides}${textoMod}\nDetalhes: ${detalheDados}\n**${totalFinal}**`;
-        
         if (typeof window.enviarMensagemChat === "function") {
             window.enviarMensagemChat(textoParaChat, 'roll');
         }
-        // ==========================================================
+        // ====================================================
+    }, 400);
 });
 // ==========================================
 // 9. CALCULADORA ARCANA
