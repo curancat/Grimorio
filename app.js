@@ -1071,102 +1071,127 @@ function renderizarPerfil() {
             areaUpar.classList.add('hidden');
         }
     }
-  // Injeta painel de edição de Fotos de Perfil (Avatares por Estado) com botão de galeria
-    let painelAvatares = document.getElementById('painel-avatares-jogador');
-    if (!painelAvatares) {
-        const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
-        painelAvatares = document.createElement('div');
-        painelAvatares.id = 'painel-avatares-jogador';
-        painelAvatares.style.cssText = "margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--borda-ouro); border-radius: 5px;";
-        
-        const estados = ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'];
-        
-        let htmlInputs = `<h4 style="color: var(--borda-ouro); margin-top: 0;">Fotos de Perfil (Estados)</h4><div class="avatar-config-grid">`;
-        estados.forEach(est => {
-            htmlInputs += `
-                <div>
-                    <label style="font-size: 0.75rem; text-transform: capitalize;">${est}</label>
-                    <div style="display: flex; gap: 5px; align-items: center;">
-                        <input type="text" id="avatar-${est}" class="input-mystic w-full" placeholder="URL ou selecione">
-                        <button type="button" class="btn-mystic btn-galeria" data-estado="${est}" style="padding: 8px 12px; cursor: pointer;" title="Escolher da galeria/dispositivo">📁</button>
-                    </div>
+    // Injeta painel de edição de Fotos de Perfil (Avatares por Estado) com botão de galeria
+let painelAvatares = document.getElementById('painel-avatares-jogador');
+if (!painelAvatares) {
+    const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
+    painelAvatares = document.createElement('div');
+    painelAvatares.id = 'painel-avatares-jogador';
+    painelAvatares.style.cssText = "margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--borda-ouro); border-radius: 5px;";
+    
+    const estados = ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'];
+    
+    let htmlInputs = `<h4 style="color: var(--borda-ouro); margin-top: 0;">Fotos de Perfil (Estados)</h4><div class="avatar-config-grid">`;
+    estados.forEach(est => {
+        htmlInputs += `
+            <div>
+                <label style="font-size: 0.75rem; text-transform: capitalize;">${est}</label>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <input type="text" id="avatar-${est}" class="input-mystic w-full" placeholder="URL ou selecione">
+                    <button type="button" class="btn-mystic btn-galeria" data-estado="${est}" style="padding: 8px 12px; cursor: pointer;" title="Escolher da galeria/dispositivo">📁</button>
                 </div>
-            `;
-        });
-        // Input oculto universal para capturar o arquivo de imagem selecionado
-        htmlInputs += `</div>
-            <input type="file" id="input-arquivo-avatar" accept="image/*" style="display: none;">
-            <button id="btn-salvar-avatares" class="btn-mystic w-full mt-15">Salvar Fotos</button>`;
-        
-        painelAvatares.innerHTML = htmlInputs;
-        containerPerfil.appendChild(painelAvatares);
+            </div>
+        `;
+    });
+    // Input oculto atualizado para aceitar também vídeos
+    htmlInputs += `</div>
+        <input type="file" id="input-arquivo-avatar" accept="image/*, video/*" style="display: none;">
+        <button id="btn-salvar-avatares" class="btn-mystic w-full mt-15">Salvar Fotos</button>`;
+    
+    painelAvatares.innerHTML = htmlInputs;
+    containerPerfil.appendChild(painelAvatares);
 
-        // Lógica para abrir o seletor de arquivos ao clicar no botão de pasta/galeria
-        let estadoSelecionadoParaUpload = null;
-        const fileInputAvatar = document.getElementById('input-arquivo-avatar');
+    // Lógica para abrir o seletor de arquivos
+    let estadoSelecionadoParaUpload = null;
+    const fileInputAvatar = document.getElementById('input-arquivo-avatar');
 
-        painelAvatares.querySelectorAll('.btn-galeria').forEach(btn => {
-            btn.onclick = (e) => {
-                estadoSelecionadoParaUpload = e.currentTarget.getAttribute('data-estado');
-                fileInputAvatar.click(); // Abre a janela de arquivos do usuário
-            };
-        });
+    painelAvatares.querySelectorAll('.btn-galeria').forEach(btn => {
+        btn.onclick = (e) => {
+            estadoSelecionadoParaUpload = e.currentTarget.getAttribute('data-estado');
+            fileInputAvatar.click(); // Abre a janela de arquivos do usuário
+        };
+    });
 
-        // Quando o usuário escolhe a imagem, converte usando a API ImgBB (Nuvem)
-        fileInputAvatar.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file || !estadoSelecionadoParaUpload) return;
+    // NOVA LÓGICA: Envia direto para o ImgBB e converte vídeos por fallback
+    fileInputAvatar.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file || !estadoSelecionadoParaUpload) return;
 
-            const inputTarget = document.getElementById(`avatar-${estadoSelecionadoParaUpload}`);
+        const inputTarget = document.getElementById(`avatar-${estadoSelecionadoParaUpload}`);
+        if (!inputTarget) return;
+
+        const originalPlaceholder = inputTarget.placeholder;
+        inputTarget.value = "";
+        inputTarget.disabled = true;
+
+        // --- TOLERÂNCIA PARA VÍDEOS ---
+        if (file.type.startsWith('video/')) {
+            inputTarget.placeholder = "Processando vídeo... ⏳";
             
-            if (inputTarget) {
-                inputTarget.value = "Enviando para a nuvem..."; // Feedback visual
-                inputTarget.disabled = true; // Bloqueia temporariamente para o usuário não zoar o input
+            // Trava de segurança: vídeos maiores que 5MB quebram o Firebase
+            if (file.size > 5 * 1024 * 1024) {
+                alert("O vídeo é muito pesado! Escolha um vídeo de até 5MB ou cole um link externo.");
+                inputTarget.disabled = false;
+                inputTarget.placeholder = originalPlaceholder;
+                e.target.value = '';
+                return;
             }
 
-            try {
-                // Chama a sua função de API de nuvem e aguarda o retorno da URL
-                const urlHospedada = await configurarUploadImgBB(file);
-                
-                if (inputTarget && urlHospedada) {
-                    inputTarget.value = urlHospedada; // Insere o link direto no campo de texto
-                } else if (inputTarget) {
-                    inputTarget.value = "";
-                    alert("A nuvem não retornou uma URL válida.");
-                }
-            } catch (error) {
-                console.error("Erro ao subir avatar para nuvem:", error);
-                if (inputTarget) {
-                    inputTarget.value = "";
-                    alert("Erro ao fazer upload da imagem.");
-                }
-            } finally {
-                // Restaura o campo independente de dar sucesso ou erro
-                if (inputTarget) inputTarget.disabled = false;
-                // Reseta o input de arquivo para permitir escolher a mesma foto novamente se quiser
-                fileInputAvatar.value = ""; 
-            }
-        };
+            const reader = new FileReader();
+            reader.onload = function(uploadEvent) {
+                inputTarget.value = uploadEvent.target.result;
+                inputTarget.disabled = false;
+                inputTarget.placeholder = originalPlaceholder;
+            };
+            reader.readAsDataURL(file);
+            return;
+        }
 
-        document.getElementById('btn-salvar-avatares').onclick = () => {
-            let avatares = {};
-            estados.forEach(est => {
-                const campo = document.getElementById(`avatar-${est}`);
-                if (campo) avatares[est] = campo.value;
+        // --- UPLOAD PARA IMGBB (IMAGENS) ---
+        inputTarget.placeholder = "Enviando foto para a nuvem... ⏳";
+        const formData = new FormData();
+        formData.append("image", file);
+
+        try {
+            // Reaproveita a mesma variável IMGBB_API_KEY que você já possui no seu código global
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                method: 'POST',
+                body: formData
             });
-            update(ref(db, `characters/${currentUser}`), { avatares })
-                .then(() => alert('Fotos de perfil atualizadas com sucesso!'))
-                .catch(err => console.error("Erro ao salvar avatares:", err));
-        };
-    }
+            const data = await response.json();
+            
+            if(data.success) {
+                inputTarget.value = data.data.url; // Retorna a URL curta!
+            } else {
+                alert("Falha na magia de upload da ImgBB.");
+            }
+        } catch (err) {
+            alert("As correntes místicas (Conexão) falharam.");
+        }
+        
+        inputTarget.disabled = false;
+        inputTarget.placeholder = originalPlaceholder;
+        e.target.value = ''; // Limpa o input para permitir nova seleção
+    };
 
-    // Preenche as caixinhas de URL se o usuário já tiver salvo antes no banco
-    if (fichaAtual.avatares) {
-        ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'].forEach(est => {
-             const input = document.getElementById(`avatar-${est}`);
-             if (input && fichaAtual.avatares[est]) input.value = fichaAtual.avatares[est];
+    document.getElementById('btn-salvar-avatares').onclick = () => {
+        let avatares = {};
+        estados.forEach(est => {
+            const campo = document.getElementById(`avatar-${est}`);
+            if (campo) avatares[est] = campo.value;
         });
-    }
+        update(ref(db, `characters/${currentUser}`), { avatares })
+            .then(() => alert('Fotos de perfil atualizadas com sucesso!'))
+            .catch(err => console.error("Erro ao salvar avatares:", err));
+    };
+}
+
+if (fichaAtual.avatares) {
+    ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'].forEach(est => {
+         const input = document.getElementById(`avatar-${est}`);
+         if (input && fichaAtual.avatares[est]) input.value = fichaAtual.avatares[est];
+    });
+}
     // Calcula penalidade de bônus negativo baseada nos ferimentos graves (-1 por ferimento grave)
     const fGraves = fichaAtual.ferimentos ? fichaAtual.ferimentos.graves : 0;
     const penalidadeGrave = fGraves * -1; 
@@ -2028,9 +2053,15 @@ window.salvarNovoNPC = function() {
 // C. UPLOAD UNIVERSAL NA NUVEM VIA IMGBB
 // ==========================================
 // Função para conectar qualquer botão 📎 a qualquer campo de texto
+// ==========================================
+// C. UPLOAD UNIVERSAL NA NUVEM VIA IMGBB (COM SUPORTE A VÍDEO)
+// ==========================================
 function configurarUploadImgBB(idFileInput, idTextInput) {
     const fileInput = document.getElementById(idFileInput);
     if (!fileInput) return;
+
+    // Garante que o html vai permitir o usuário escolher vídeo
+    fileInput.setAttribute('accept', 'image/*, video/*');
 
     fileInput.addEventListener('change', async function(e) {
         const file = e.target.files[0];
@@ -2039,9 +2070,33 @@ function configurarUploadImgBB(idFileInput, idTextInput) {
         const textInput = document.getElementById(idTextInput);
         const originalPlaceholder = textInput.placeholder;
         textInput.value = "";
-        textInput.placeholder = "Fazendo upload mágico para a nuvem... ⏳";
         textInput.disabled = true;
 
+        // --- TRATAMENTO SE FOR VÍDEO ---
+        if (file.type.startsWith('video/')) {
+            textInput.placeholder = "Processando vídeo... ⏳";
+            
+            // Limite de 5MB para o Firebase não colapsar com Base64 gigantesca
+            if (file.size > 5 * 1024 * 1024) {
+                alert("O vídeo é maior que 5MB. A magia não suporta arquivos tão pesados. Hospede no Drive/YouTube e cole o link!");
+                textInput.disabled = false;
+                textInput.placeholder = originalPlaceholder;
+                e.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(uploadEvent) {
+                textInput.value = uploadEvent.target.result;
+                textInput.disabled = false;
+                textInput.placeholder = originalPlaceholder;
+            };
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        // --- TRATAMENTO NORMAL PARA IMAGENS ---
+        textInput.placeholder = "Fazendo upload mágico para a nuvem... ⏳";
         const formData = new FormData();
         formData.append("image", file);
 
@@ -2053,7 +2108,7 @@ function configurarUploadImgBB(idFileInput, idTextInput) {
             const data = await response.json();
             
             if(data.success) {
-                textInput.value = data.data.url;
+                textInput.value = data.data.url; // URL pura da nuvem
             } else {
                 alert("Falha na magia de upload da ImgBB.");
             }
@@ -2063,10 +2118,9 @@ function configurarUploadImgBB(idFileInput, idTextInput) {
         
         textInput.disabled = false;
         textInput.placeholder = originalPlaceholder;
-        e.target.value = ''; // Limpa o input file para permitir reenviar a mesma foto se precisar
+        e.target.value = ''; // Limpa o input file
     });
 }
-
 // Conectar os 4 botões de upload aos seus respectivos campos de texto
 configurarUploadImgBB('upload-midia', 'chat-input');        // Chat Geral
 configurarUploadImgBB('upload-mural', 'link-arquivo');      // Mural do Mestre
