@@ -1071,7 +1071,7 @@ function renderizarPerfil() {
             areaUpar.classList.add('hidden');
         }
     }
-   // Injeta painel de edição de Fotos de Perfil (Avatares por Estado)
+   // Injeta painel de edição de Fotos de Perfil (Avatares por Estado) com botão de galeria
     let painelAvatares = document.getElementById('painel-avatares-jogador');
     if (!painelAvatares) {
         const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
@@ -1086,33 +1086,67 @@ function renderizarPerfil() {
             htmlInputs += `
                 <div>
                     <label style="font-size: 0.75rem; text-transform: capitalize;">${est}</label>
-                    <input type="text" id="avatar-${est}" class="input-mystic w-full" placeholder="URL da imagem">
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        <input type="text" id="avatar-${est}" class="input-mystic w-full" placeholder="URL ou selecione">
+                        <button type="button" class="btn-mystic btn-galeria" data-estado="${est}" style="padding: 8px 12px; cursor: pointer;" title="Escolher da galeria/dispositivo">📁</button>
+                    </div>
                 </div>
             `;
         });
-        htmlInputs += `</div><button id="btn-salvar-avatares" class="btn-mystic w-full mt-15">Salvar Fotos</button>`;
+        // Input oculto universal para capturar o arquivo de imagem selecionado
+        htmlInputs += `</div>
+            <input type="file" id="input-arquivo-avatar" accept="image/*" style="display: none;">
+            <button id="btn-salvar-avatares" class="btn-mystic w-full mt-15">Salvar Fotos</button>`;
         
         painelAvatares.innerHTML = htmlInputs;
         containerPerfil.appendChild(painelAvatares);
 
+        // Lógica para abrir o seletor de arquivos ao clicar no botão de pasta/galeria
+        let estadoSelecionadoParaUpload = null;
+        const fileInputAvatar = document.getElementById('input-arquivo-avatar');
+
+        painelAvatares.querySelectorAll('.btn-galeria').forEach(btn => {
+            btn.onclick = (e) => {
+                estadoSelecionadoParaUpload = e.currentTarget.getAttribute('data-estado');
+                fileInputAvatar.click(); // Abre a janela de arquivos do usuário
+            };
+        });
+
+        // Quando o usuário escolhe a imagem, converte para Base64 e joga no input correspondente
+        fileInputAvatar.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file || !estadoSelecionadoParaUpload) return;
+
+            const reader = new FileReader();
+            reader.onload = function(uploadEvent) {
+                const base64Url = uploadEvent.target.result;
+                const inputTarget = document.getElementById(`avatar-${estadoSelecionadoParaUpload}`);
+                if (inputTarget) {
+                    inputTarget.value = base64Url; // Insere o código da imagem no campo de texto
+                }
+            };
+            reader.readAsDataURL(file);
+        };
+
         document.getElementById('btn-salvar-avatares').onclick = () => {
             let avatares = {};
             estados.forEach(est => {
-                avatares[est] = document.getElementById(`avatar-${est}`).value;
+                const campo = document.getElementById(`avatar-${est}`);
+                if (campo) avatares[est] = campo.value;
             });
             update(ref(db, `characters/${currentUser}`), { avatares })
-                .then(() => alert('Fotos de perfil atualizadas com sucesso!'));
+                .then(() => alert('Fotos de perfil atualizadas com sucesso!'))
+                .catch(err => console.error("Erro ao salvar avatares:", err));
         };
     }
 
-    // Preenche as caixinhas de URL se o usuário já tiver salvo antes
+    // Preenche as caixinhas de URL se o usuário já tiver salvo antes no banco
     if (fichaAtual.avatares) {
         ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'].forEach(est => {
              const input = document.getElementById(`avatar-${est}`);
-             if (input) input.value = fichaAtual.avatares[est] || '';
+             if (input && fichaAtual.avatares[est]) input.value = fichaAtual.avatares[est];
         });
     }
-
     // Calcula penalidade de bônus negativo baseada nos ferimentos graves (-1 por ferimento grave)
     const fGraves = fichaAtual.ferimentos ? fichaAtual.ferimentos.graves : 0;
     const penalidadeGrave = fGraves * -1; 
