@@ -481,6 +481,13 @@ document.getElementById('btn-roll').addEventListener('click', () => {
 
         registrarLog(`Rolou ${quantidade}D${sides} e obteve o resultado ${totalFinal}`);
     }, 400);
+  // ======= NOVA INTEGRAÇÃO: ENVIAR PARA O CHAT GERAL =======
+        const textoParaChat = `Rolou ${quantidade}D${sides}${textoMod}\nDetalhes: ${detalheDados}\n**${totalFinal}**`;
+        
+        if (typeof window.enviarMensagemChat === "function") {
+            window.enviarMensagemChat(textoParaChat, 'roll');
+        }
+        // ==========================================================
 });
 // ==========================================
 // 9. CALCULADORA ARCANA
@@ -1005,7 +1012,10 @@ if (container) {
                 // Pega os detalhes do último log de dados para ficar idêntico ao menu de dados
                 const logElements = document.getElementById('dice-log').children;
                 let detalheLog = logElements.length > 0 ? logElements[0].innerText : `${sys.quantidadeDados}D${sys.tipoDado}`;
-                
+                const textoChatFicha = `Teste de Atributo: ${attr} (${sys.nome})\nDetalhes: ${detalheLog}\n**${resultadoApp}**`;
+                if (typeof window.enviarMensagemChat === "function") {
+                    window.enviarMensagemChat(textoChatFicha, 'roll');
+                }
                 // Mensagem formatada para o WhatsApp (idêntica ao sistema de dados)
                 const textoMensagem = `🎲 *Teste de ${attr} (${sys.nome})* 🎲\n\nPersonagem: *${currentUser.toUpperCase()}*\nResultado Final: *${resultadoApp}*\nDetalhes: _${detalheLog}_\n\n🔮 _Enviado do Grimório Vivo_`;
                 
