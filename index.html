@@ -192,17 +192,29 @@
     </div>
 </div>
 <div id="tab-chat" class="tab-content hidden chat-container">
+    
+    <!-- Aviso de Mute -->
     <div id="mute-warning" style="display: none; background: rgba(255,0,0,0.2); border: 1px solid red; color: #ffcccc; padding: 10px; text-align: center; font-weight: bold; margin-bottom: 5px;">
         Você foi silenciado! Tempo: <span id="mute-timer">00:00</span>
     </div>
 
+    <!-- Painel do Mestre -->
     <div id="gm-chat-panel" style="display: none; background: #2a0000; border: 1px solid #ff4444; padding: 10px; border-radius: 5px; margin-bottom: 5px;">
         <h4 style="color: #ffcccc; margin: 0 0 5px 0;">👑 Controles do Mestre</h4>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
             <input type="text" id="gm-npc-name" class="input-mystic" placeholder="Falar como NPC...">
             <input type="text" id="mute-player-name" class="input-mystic" placeholder="Mutar Jogador">
             <input type="number" id="mute-time" class="input-mystic" placeholder="Minutos" style="width: 70px;">
             <button onclick="silenciarJogador()" class="btn-mystic" style="background: #660000;">Silenciar</button>
+            
+            <div style="border-left: 1px solid #ff4444; padding-left: 10px; display: flex; gap: 10px; align-items: center;">
+                <span style="color: #ffcccc; font-size: 0.8rem;">Destino das Rolagens:</span>
+                <select id="gm-roll-dest" class="input-mystic" onchange="mudarDestinoRolagens(this.value)">
+                    <option value="taverna">Taverna</option>
+                    <!-- Preenchido dinamicamente via JS -->
+                </select>
+                <button onclick="abrirModalAudio()" class="btn-mystic" style="background: #aa8800;">🎵 Som de Fundo</button>
+            </div>
         </div>
         <div id="gm-approvals" style="margin-top: 10px; border-top: 1px dashed #ff4444; padding-top: 5px;">
             <h5 style="color: #ffcccc; margin: 0;">Solicitações Pendentes:</h5>
@@ -210,22 +222,40 @@
         </div>
     </div>
 
-    <div class="chat-layout">
-        <div class="chat-sidebar channels-panel">
-            <h4 style="margin-top: 0; text-align: center; border-bottom: 1px solid var(--borda-ouro);">Canais</h4>
-            <div id="channel-list" class="flex-list"></div>
-            <button onclick="solicitarNovoCanal()" class="btn-mystic" style="margin-top: 5px; font-size: 0.8rem;">+ Criar Sala</button>
-        </div>
-
-        <div class="chat-main">
-            <h3 id="current-channel-title" style="margin-top: 0; text-align: center; color: var(--borda-ouro);">Taverna</h3>
-            <div id="chat-messages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px;"></div>
-        </div>
+    <!-- Barra de Canais Horizontal (Não espreme a tela) -->
+    <div class="channels-navbar">
+        <div id="channel-list" style="display: flex; gap: 5px; overflow-x: auto; flex: 1;"></div>
+        <button onclick="solicitarNovoCanal()" class="btn-mystic btn-add-channel">+ Criar Sala</button>
     </div>
 
-    <div style="display: flex; gap: 10px;">
+    <!-- Player de Áudio Global (Invisível até o Mestre colocar música) -->
+    <div id="global-audio-container" style="display: none; background: #000; border: 1px solid var(--borda-ouro); padding: 5px; border-radius: 5px; margin-bottom: 5px; text-align: center;">
+        <span style="color: var(--borda-ouro); font-size: 0.8rem; margin-bottom: 5px; display: block;">🎵 Som Ambiente (Ajuste o volume no player)</span>
+        <iframe id="youtube-player" width="100%" height="80" src="" frameborder="0" allow="autoplay" allowfullscreen></iframe>
+    </div>
+
+    <!-- Chat Principal -->
+    <div class="chat-main">
+        <div id="chat-messages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px;"></div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
         <input type="text" id="chat-input" class="input-mystic w-full" placeholder="Mensagem / Comando...">
         <button id="btn-send-chat" class="btn-mystic">Enviar</button>
+    </div>
+</div>
+
+<!-- MODAL YOUTUBE DO MESTRE -->
+<div id="audio-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: #1a1a2e; padding: 20px; border: 2px solid var(--borda-ouro); border-radius: 8px; max-width: 400px; text-align: center;">
+        <h3 style="color: var(--borda-ouro); margin-top: 0;">Colocar Som no Ambiente</h3>
+        <p style="font-size: 0.85rem; color: #ccc;">Cole o link do YouTube abaixo (Ex: https://www.youtube.com/watch?v=XYZ)</p>
+        <input type="text" id="youtube-url" class="input-mystic w-full mb-10" placeholder="Link do YouTube...">
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button onclick="sincronizarAudio()" class="btn-mystic">▶️ Tocar para Todos</button>
+            <button onclick="pararAudio()" class="btn-mystic" style="background: #660000;">⏹️ Parar</button>
+            <button onclick="fecharModalAudio()" class="btn-mystic" style="background: #333;">Fechar</button>
+        </div>
     </div>
 </div>
 <!-- ABA: LOG DO MESTRE -->
