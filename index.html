@@ -191,15 +191,11 @@
         </div>
     </div>
 </div>
-<!-- ABA: CHAT VTT COMPLETO -->
 <div id="tab-chat" class="tab-content hidden chat-container">
-    
-    <!-- Aviso de Mute -->
     <div id="mute-warning" style="display: none; background: rgba(255,0,0,0.2); border: 1px solid red; color: #ffcccc; padding: 10px; text-align: center; font-weight: bold; margin-bottom: 5px;">
         Você foi silenciado! Tempo: <span id="mute-timer">00:00</span>
     </div>
 
-    <!-- Painel do Mestre -->
     <div id="gm-chat-panel" style="display: none; background: #2a0000; border: 1px solid #ff4444; padding: 10px; border-radius: 5px; margin-bottom: 5px;">
         <h4 style="color: #ffcccc; margin: 0 0 5px 0;">👑 Controles do Mestre</h4>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -214,33 +210,21 @@
         </div>
     </div>
 
-    <!-- Layout Principal de 3 Colunas (Responsivo) -->
     <div class="chat-layout">
-        
-        <!-- Canais (Esquerda no PC, Topo no Mobile) -->
         <div class="chat-sidebar channels-panel">
             <h4 style="margin-top: 0; text-align: center; border-bottom: 1px solid var(--borda-ouro);">Canais</h4>
             <div id="channel-list" class="flex-list"></div>
             <button onclick="solicitarNovoCanal()" class="btn-mystic" style="margin-top: 5px; font-size: 0.8rem;">+ Criar Sala</button>
         </div>
 
-        <!-- Chat Principal (Centro) -->
         <div class="chat-main">
             <h3 id="current-channel-title" style="margin-top: 0; text-align: center; color: var(--borda-ouro);">Taverna</h3>
             <div id="chat-messages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px;"></div>
         </div>
-
-        <!-- Bots (Direita no PC, Base no Mobile) -->
-        <div class="chat-sidebar bots-panel">
-            <h4 style="margin-top: 0; text-align: center; border-bottom: 1px solid var(--borda-ouro);">Bestiário / Bots</h4>
-            <div id="bots-list" class="flex-list" style="flex-direction: column; gap: 10px; margin-bottom: 5px;"></div>
-            <button onclick="solicitarNovoBot()" class="btn-mystic" style="font-size: 0.8rem;">+ Criar Bot</button>
-        </div>
     </div>
 
-    <!-- Input de Mensagem -->
     <div style="display: flex; gap: 10px;">
-        <input type="text" id="chat-input" class="input-mystic w-full" placeholder="Mensagem...">
+        <input type="text" id="chat-input" class="input-mystic w-full" placeholder="Mensagem / Comando...">
         <button id="btn-send-chat" class="btn-mystic">Enviar</button>
     </div>
 </div>
