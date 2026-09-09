@@ -1724,23 +1724,34 @@ function mudarCanal(idCanal, nomeCanal) {
         mensagens.forEach(msg => {
             const div = document.createElement('div');
             let tipo = 'other';
-            let nomeExibicao = msg.remetente.toUpperCase();
+            
+            // Proteção contra remetente indefinido/nulo
+            const remetenteSeguro = msg.remetente ? msg.remetente : 'Sistema';
+            let nomeExibicao = remetenteSeguro.toUpperCase();
 
-            if (msg.tipo === 'roll') { tipo = 'roll'; nomeExibicao = '🎲 DADOS E COMBATE'; } 
-            else if (msg.falarComo) { tipo = 'npc'; nomeExibicao = msg.falarComo.toUpperCase(); } 
-            else if (msg.remetente.toLowerCase() === currentUser.toLowerCase()) { tipo = 'mine'; } 
-            else if (msg.remetente.toLowerCase() === 'mestre') { tipo = 'gm'; nomeExibicao = '👑 VOZ DO MESTRE'; }
+            if (msg.tipo === 'roll') { 
+                tipo = 'roll'; 
+                nomeExibicao = '🎲 DADOS E COMBATE'; 
+            } else if (msg.falarComo) { 
+                tipo = 'npc'; 
+                nomeExibicao = msg.falarComo.toUpperCase(); 
+            } else if (remetenteSeguro.toLowerCase() === currentUser.toLowerCase()) { 
+                tipo = 'mine'; 
+            } else if (remetenteSeguro.toLowerCase() === 'mestre' || remetenteSeguro.toLowerCase() === 'gm') { 
+                tipo = 'gm'; 
+                nomeExibicao = '👑 VOZ DO MESTRE'; 
+            }
             
             div.className = `chat-msg ${tipo}`;
-            const hora = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const hora = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--';
             
             let html = `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
-            html += `<div>${msg.texto} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
+            html += `<div>${msg.texto || ''} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
             
-            if (msg.remetente.toLowerCase() === currentUser.toLowerCase() || isGM) {
+            if (remetenteSeguro.toLowerCase() === currentUser.toLowerCase() || isGM) {
                 if (msg.tipo !== 'roll') { 
                     html += `<div class="msg-actions">
-                        <span onclick="editarMensagem('${msg.id}', '${msg.texto.replace(/'/g, "\\'")}')">✏️ Editar</span>
+                        <span onclick="editarMensagem('${msg.id}', '${(msg.texto || '').replace(/'/g, "\\'")}')">✏️ Editar</span>
                         <span onclick="apagarMensagem('${msg.id}')">🗑️ Apagar</span>
                     </div>`;
                 }
@@ -1751,7 +1762,6 @@ function mudarCanal(idCanal, nomeCanal) {
         container.scrollTop = container.scrollHeight;
     });
 }
-
 function enviarMensagem() {
     if (jogadorSilenciado) return;
     const input = document.getElementById('chat-input');
