@@ -610,3 +610,16 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     height: 120px; 
     margin: 0 auto;
 }
+/* Aumenta o tamanho do chat */
+#chat-container, .chat-box {
+    height: 450px; /* Ajuste conforme necessário */
+    max-height: 70vh;
+}
+
+/* Aumenta o tamanho da foto de perfil */
+.perfil-avatar, .avatar-container img {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 50%;
+}
