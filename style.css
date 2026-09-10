@@ -606,8 +606,8 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
 /* Container do avatar na ficha do Perfil */
 .perfil-avatar-container {
     position: relative; 
-    width: 120px; 
-    height: 120px; 
+    width: 280px; 
+    height: 280px; 
     margin: 0 auto;
 }
 /* Aumenta o tamanho do chat */
@@ -616,10 +616,3 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     max-height: 70vh;
 }
 
-/* Aumenta o tamanho da foto de perfil */
-.perfil-avatar, .avatar-container img {
-    width: 1280px;
-    height: 1280px;
-    object-fit: cover;
-    border-radius: 50%;
-}
