@@ -40,7 +40,7 @@ let estoqueTintasDiogenes = {
     branca: 0,
     mescla: 0
 };
-
+// Quando carregar/atualizar os dados do personagem:
 // ==========================================
 // 3. O GRIMÓRIO ORIGINAL DE DIÓGENES
 // ==========================================
@@ -1062,6 +1062,8 @@ function renderizarPerfil() {
     document.getElementById('nome-personagem').innerText = fichaAtual.nome.toUpperCase();
     document.getElementById('sistema-personagem').innerText = sys.nome;
     document.getElementById('display-xp').innerText = fichaAtual.xp;
+  
+    document.getElementById('medidor-sanidade').value = personagem.sanidade;
   // ADICIONE ESTAS 3 LINHAS PARA ATUALIZAR A IMAGEM DE PERFIL:
     let estado = fichaAtual.estadoAtual || 'saudavel';
     let fotoAtual = (fichaAtual.avatares && fichaAtual.avatares[estado]) ? fichaAtual.avatares[estado] : 'https://via.placeholder.com/150';
