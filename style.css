@@ -616,3 +616,18 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     max-height: 70vh;
 }
 
+.avatar-destaque {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--borda-ouro);
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    margin: 0 auto;
+    display: block;
+}
+.avatar-destaque:active {
+    transform: scale(2.5); /* Amplia no mobile ao segurar */
+    z-index: 100;
+}
