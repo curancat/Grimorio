@@ -2283,6 +2283,23 @@ function mudarCanal(idCanal, nomeCanal) {
 window.enviarMensagemCompleta = function() {
     if (jogadorSilenciado) return;
     const input = document.getElementById('chat-input');
+    let ultimoEnter = 0;
+    document.getElementById('chat-input').addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+              e.preventDefault(); // Impede o envio padrão
+              let agora = Date.now();
+        
+          // Se apertar Enter 2 vezes em menos de 500ms, ele envia a mensagem
+          if (agora - ultimoEnter < 500) {
+              enviarMensagemCompleta(); // Sua função de envio
+              ultimoEnter = 0; // Reseta
+          } else {
+              // Quebra a linha inserindo \n no input
+              this.value += '\n';
+              ultimoEnter = agora;
+          }
+      }
+  });
     const texto = input.value.trim();
     if (!texto || !currentUser) return;
 
