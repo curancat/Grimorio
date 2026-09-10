@@ -2245,7 +2245,8 @@ function mudarCanal(idCanal, nomeCanal) {
                 htmlBalao += `</div>`;
             }
             htmlBalao += `</div>`;
-            
+            msgDiv.innerHTML = htmlConteudo + `<div class="chat-msg ${tipo}">${htmlBalao}</div>`;
+          document.getElementById('chat-messages').appendChild(msgDiv);
             // ==========================================
             // JUNTAR FOTO + BALÃO DENTRO DO WRAPPER
             // ==========================================
