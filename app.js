@@ -2218,6 +2218,7 @@ function mudarCanal(idCanal, nomeCanal) {
             // ==========================================
             // CONSTRUIR O BALÃO DA MENSAGEM
             // ==========================================
+// ==========================================
 let avatarSrc = msg.avatarUrl || 'https://via.placeholder.com/45';
 
 // 1. Cria o elemento principal do balão (wrapper)
@@ -2251,6 +2252,7 @@ msgDiv.innerHTML = htmlConteudo + `<div class="chat-msg ${tipo}">${htmlBalao}</d
 // Adiciona ao container principal
 const chatContainer = document.getElementById('chat-messages') || container;
 chatContainer.appendChild(msgDiv);
+// ==========================================
 // ==========================================
 // ==========================================
 // E. ENVIO DE MENSAGENS COMPLETO
