@@ -2172,103 +2172,98 @@ function mudarCanal(idCanal, nomeCanal) {
 
     if (unsubscribeChat) unsubscribeChat();
     
-    unsubscribeChat = onValue(ref(db, `mensagens/${canalAtual}`), (snapshot) => {
-        const container = document.getElementById('chat-messages');
-        if (!container) return;
-        container.innerHTML = ""; 
+   unsubscribeChat = onValue(ref(db, `mensagens/${canalAtual}`), (snapshot) => {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+    container.innerHTML = ""; 
+    
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+    const mensagens = [];
+    snapshot.forEach(child => { mensagens.push({ id: child.key, ...child.val() }); });
+    
+    mensagens.forEach(msg => {
+        let tipo = 'other';
+        const remetenteRaw = msg.remetente || 'Sistema';
+        let nomeExibicao = remetenteRaw.toUpperCase();
+
+        // 1. Lógica de Detecção e Tipo
+        if (msg.tipo === 'roll') { 
+            tipo = 'roll'; 
+            nomeExibicao = '🎲 DADOS'; 
+        } else if (msg.tipo === 'npc') { 
+            tipo = 'npc'; 
+            nomeExibicao = (msg.npcData && msg.npcData.nome) ? msg.npcData.nome.toUpperCase() : 'NPC'; 
+        } else if (remetenteRaw.toLowerCase() === currentUser.toLowerCase()) { 
+            tipo = 'mine'; 
+        } else if (remetenteRaw.toLowerCase() === 'mestre' || remetenteRaw.toLowerCase() === 'gm') { 
+            tipo = 'gm'; 
+            nomeExibicao = '👑 MESTRE'; 
+        }
         
-        const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-        const mensagens = [];
-        snapshot.forEach(child => { mensagens.push({ id: child.key, ...child.val() }); });
+        const hora = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--';
         
-        mensagens.forEach(msg => {
-            // 1. Cria o Wrapper principal que vai alinhar a foto e o balão
-            const divWrapper = document.createElement('div');
-            let tipo = 'other';
-            const remetenteRaw = msg.remetente || 'Sistema';
-            let nomeExibicao = remetenteRaw.toUpperCase();
+        // 2. Notificações (@ Mencionado / Respondido)
+        const textoUpper = (msg.texto || '').toUpperCase();
+        const foiMarcado = textoUpper.includes(`@${currentUser.toUpperCase()}`) || (msg.replyTo && msg.replyTo.toUpperCase() === currentUser.toUpperCase());
+        const htmlBolinha = foiMarcado ? `<div class="notificacao-marcado"></div>` : '';
+        const htmlReply = msg.replyTo ? `<div class="reply-badge">↳ Respondendo a ${msg.replyTo.toUpperCase()}</div>` : '';
 
-            // Lógica de Detecção e Tipo
-            if (msg.tipo === 'roll') { tipo = 'roll'; nomeExibicao = '🎲 DADOS'; } 
-            else if (msg.tipo === 'npc') { tipo = 'npc'; nomeExibicao = msg.npcData.nome.toUpperCase(); } 
-            else if (remetenteRaw.toLowerCase() === currentUser.toLowerCase()) { tipo = 'mine'; } 
-            else if (remetenteRaw.toLowerCase() === 'mestre' || remetenteRaw.toLowerCase() === 'gm') { tipo = 'gm'; nomeExibicao = '👑 MESTRE'; }
-            
-            // O Wrapper recebe a classe 'mine' para inverter a foto para a direita se a mensagem for sua
-            divWrapper.className = `chat-msg-wrapper ${tipo === 'mine' ? 'mine' : ''}`;
-            const hora = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--';
-            
-            // Detectar se o usuário logado foi Mencionado (@) ou Respondido
-            const textoUpper = (msg.texto || '').toUpperCase();
-            const foiMarcado = textoUpper.includes(`@${currentUser.toUpperCase()}`) || (msg.replyTo && msg.replyTo.toUpperCase() === currentUser.toUpperCase());
-            const htmlBolinha = foiMarcado ? `<div class="notificacao-marcado"></div>` : '';
+        // 3. LÓGICA DO AVATAR (CAMADAS PNG, NPC E FALLBACKS)
+        let htmlAvatar = '';
+        if (tipo === 'npc' && msg.npcData && msg.npcData.foto) {
+            htmlAvatar = `<img src="${msg.npcData.foto}" class="chat-avatar-img" alt="NPC">`;
+        } else if (msg.avatarLayers && Array.isArray(msg.avatarLayers) && msg.avatarLayers.length > 0) {
+            // Renderiza o avatar empilhado em camadas PNG
+            htmlAvatar = `<div class="chat-avatar-container" style="position: relative; width: 45px; height: 45px; flex-shrink: 0;">`;
+            msg.avatarLayers.forEach((layerUrl, index) => {
+                htmlAvatar += `<img src="${layerUrl}" class="chat-avatar-layer" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: ${index + 1}; object-fit: cover; border-radius: 50%;">`;
+            });
+            htmlAvatar += `</div>`;
+        } else if (msg.avatarUrl) {
+            htmlAvatar = `<img src="${msg.avatarUrl}" class="chat-avatar-img" alt="Avatar">`;
+        } else if (tipo !== 'roll' && tipo !== 'gm') {
+            htmlAvatar = `<img src="https://i.imgur.com/z4bK9V3.png" class="chat-avatar-img" alt="Avatar">`;
+        }
 
-            // Visual da Resposta
-            const htmlReply = msg.replyTo ? `<div class="reply-badge">↳ Respondendo a ${msg.replyTo.toUpperCase()}</div>` : '';
+        // 4. Formatação de Texto e Mídia
+        let textoRenderizado = msg.texto || '';
+        if (textoRenderizado.match(/\.(jpeg|jpg|gif|png)$/i)) {
+            textoRenderizado = `<a href="${textoRenderizado}" target="_blank"><img src="${textoRenderizado}" class="chat-media"></a>`;
+        } else if (textoRenderizado.match(/\.(mp4|webm)$/i)) {
+            textoRenderizado = `<video src="${textoRenderizado}" class="chat-media" controls></video>`;
+        }
 
-            // ==========================================
-            // LÓGICA DO AVATAR (NPC E JOGADORES)
-            // ==========================================
-            let avatarUrl = '';
-            if (tipo === 'npc' && msg.npcData && msg.npcData.foto) {
-                avatarUrl = msg.npcData.foto; // Foto do NPC salvo
-            } else if (msg.avatarUrl) {
-                avatarUrl = msg.avatarUrl; // Foto do Jogador salva no Firebase
-            } else if (tipo === 'mine' || tipo === 'other') {
-                avatarUrl = 'https://i.imgur.com/z4bK9V3.png'; // Fallback: Avatar sombrio padrão
+        // 5. Construção do Balão de Mensagem
+        let htmlBalao = `${htmlBolinha}`; 
+        htmlBalao += `<div style="overflow:hidden; flex: 1;">`;
+        htmlBalao += `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
+        htmlBalao += `${htmlReply} <div>${textoRenderizado} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
+
+        // Botões de Ação
+        if (tipo !== 'roll') {
+            htmlBalao += `<div class="msg-actions">`;
+            if (tipo !== 'mine') {
+                htmlBalao += `<span onclick="setarResposta('${remetenteRaw}')">↩️ Responder</span>`;
             }
-
-            // Cria a tag da imagem (exceto para dados e avisos globais do mestre)
-            const htmlAvatar = avatarUrl && tipo !== 'roll' && tipo !== 'gm' 
-                ? `<img src="${avatarUrl}" class="chat-avatar-img" alt="Avatar">` 
-                : '';
-
-            // Formatação do Texto (Processa links como mídias)
-            let textoRenderizado = msg.texto || '';
-            if (textoRenderizado.match(/\.(jpeg|jpg|gif|png)$/i)) {
-                textoRenderizado = `<a href="${textoRenderizado}" target="_blank"><img src="${textoRenderizado}" class="chat-media"></a>`;
-            } else if (textoRenderizado.match(/\.(mp4|webm)$/i)) {
-                textoRenderizado = `<video src="${textoRenderizado}" class="chat-media" controls></video>`;
+            if (remetenteRaw.toLowerCase() === currentUser.toLowerCase() || isGM) {
+                htmlBalao += `<span onclick="editarMensagem('${msg.id}', '${(msg.texto || '').replace(/'/g, "\\'")}')">✏️ Edit</span>`;
+                htmlBalao += `<span onclick="apagarMensagem('${msg.id}')">🗑️ Del</span>`;
             }
+            htmlBalao += `</div>`;
+        }
+        htmlBalao += `</div>`;
 
-            // ==========================================
-            // CONSTRUIR O BALÃO DA MENSAGEM
-            // ==========================================
-// ==========================================
-let avatarSrc = msg.avatarUrl || 'https://via.placeholder.com/45';
+        // 6. Montagem Final e Inserção no DOM
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-msg-wrapper ${tipo}`;
+        msgDiv.innerHTML = htmlAvatar + `<div class="chat-msg ${tipo}">${htmlBalao}</div>`;
 
-// 1. Cria o elemento principal do balão (wrapper)
-const msgDiv = document.createElement('div');
-msgDiv.className = `chat-msg-wrapper ${tipo}`;
+        container.appendChild(msgDiv);
+    });
 
-// 2. Prepara os elementos HTML internos
-let htmlConteudo = `<img src="${avatarSrc}" class="chat-avatar-img" alt="Avatar">`;
-let htmlBalao = `${typeof htmlBolinha !== 'undefined' ? htmlBolinha : ''}`; 
-htmlBalao += `<div style="overflow:hidden;">`;
-htmlBalao += `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
-htmlBalao += `${typeof htmlReply !== 'undefined' ? htmlReply : ''} <div>${textoRenderizado} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
-
-// 3. Botões de Ação
-if (tipo !== 'roll') {
-    htmlBalao += `<div class="msg-actions">`;
-    if (tipo !== 'mine') {
-        htmlBalao += `<span onclick="setarResposta('${remetenteRaw}')">↩️ Responder</span>`;
-    }
-    if (remetenteRaw.toLowerCase() === currentUser.toLowerCase() || isGM) {
-        htmlBalao += `<span onclick="editarMensagem('${msg.id}', '${(msg.texto || '').replace(/'/g, "\\'")}')">✏️ Edit</span>`;
-        htmlBalao += `<span onclick="apagarMensagem('${msg.id}')">🗑️ Del</span>`;
-    }
-    htmlBalao += `</div>`;
-}
-htmlBalao += `</div>`;
-
-// 4. Junta tudo dentro do wrapper e insere no chat (apenas uma vez)
-msgDiv.innerHTML = htmlConteudo + `<div class="chat-msg ${tipo}">${htmlBalao}</div>`;
-
-// Adiciona ao container principal
-const chatContainer = document.getElementById('chat-messages') || container;
-chatContainer.appendChild(msgDiv);
-        });
+    // Rola o chat para a última mensagem enviada
+    container.scrollTop = container.scrollHeight;
+});
 // ==========================================
 // ==========================================
 // ==========================================
