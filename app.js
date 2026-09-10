@@ -28,6 +28,7 @@ let userGrimoire = [];
 let currentSpellId = null;
 let isMasterAuthenticated = false;
 let fatorKarma = 0;
+let dadosNpc = null;
 let limiteTintaDiogenes = 10;      // Limite padrão pela qualidade (Boa = 5)
 let filtroCorDiogenes = 'todos';   // Filtro de cor ativo
 let tintaEspecialLiberada = false; // Controla se preto/branco foram liberados por dados iguais
