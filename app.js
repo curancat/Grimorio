@@ -1064,7 +1064,21 @@ function renderizarPerfil() {
   // ADICIONE ESTAS 3 LINHAS PARA ATUALIZAR A IMAGEM DE PERFIL:
     let estado = fichaAtual.estadoAtual || 'saudavel';
     let fotoAtual = (fichaAtual.avatares && fichaAtual.avatares[estado]) ? fichaAtual.avatares[estado] : 'https://via.placeholder.com/150';
-    document.getElementById('avatar-display').src = fotoAtual;
+    let avatarLayers = [];
+    if (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.avatares) {
+        if (fichaAtual.avatares['saudavel']) avatarLayers.push(fichaAtual.avatares['saudavel']);
+        
+        let eFisico = fichaAtual.estadoFisico || 'saudavel';
+        let eMental = fichaAtual.estadoMental || 'sao';
+        
+        if (eFisico !== 'saudavel' && fichaAtual.avatares[eFisico]) avatarLayers.push(fichaAtual.avatares[eFisico]);
+        if (eMental !== 'sao' && fichaAtual.avatares[eMental]) avatarLayers.push(fichaAtual.avatares[eMental]);
+    }
+
+    // Se for NPC, sobrepõe a lógica e usa apenas a foto do NPC
+    if (dadosNpc && dadosNpc.foto) {
+        avatarLayers = [dadosNpc.foto];
+    }
 
     // Lógica de Level Up
     const areaUpar = document.getElementById('area-level-up');
@@ -1433,12 +1447,14 @@ document.getElementById('btn-gm-xp').onclick = async () => {
 };
 document.getElementById('btn-gm-mudar-estado').onclick = () => {
     const alvo = document.getElementById('gm-select-alvo').value;
-    const novoEstado = document.getElementById('gm-select-estado').value;
+    const novoFisico = document.getElementById('gm-select-estado-fisico').value;
+    const novoMental = document.getElementById('gm-select-estado-mental').value;
+    
     if (!alvo) return alert("Selecione um alvo na lista!");
     
-    update(ref(db, `characters/${alvo}`), { estadoAtual: novoEstado }).then(() => {
-        alert(`O estado de ${alvo.toUpperCase()} foi alterado para: ${novoEstado.toUpperCase()}`);
-        if (typeof registrarLog === "function") registrarLog(`GM alterou o estado de ${alvo} para ${novoEstado}.`);
+    update(ref(db, `characters/${alvo}`), { estadoFisico: novoFisico, estadoMental: novoMental }).then(() => {
+        alert(`O estado de ${alvo.toUpperCase()} foi atualizado! Físico: ${novoFisico} | Mental: ${novoMental}`);
+        if (typeof registrarLog === "function") registrarLog(`GM alterou o estado de ${alvo}.`);
     });
 };
 
@@ -2252,6 +2268,7 @@ msgDiv.innerHTML = htmlConteudo + `<div class="chat-msg ${tipo}">${htmlBalao}</d
 // Adiciona ao container principal
 const chatContainer = document.getElementById('chat-messages') || container;
 chatContainer.appendChild(msgDiv);
+        });
 // ==========================================
 // ==========================================
 // ==========================================
@@ -2271,13 +2288,20 @@ window.enviarMensagemCompleta = function() {
     if (npcAtivoId && npcsSalvos[npcAtivoId]) {
         dadosNpc = npcsSalvos[npcAtivoId];
     }
-    let avatarUrlFinal = 'https://via.placeholder.com/45'; 
-    
-    if (typeof fichaAtual !== 'undefined' && fichaAtual) {
-        let estado = fichaAtual.estadoAtual || 'saudavel';
-        if (fichaAtual.avatares && fichaAtual.avatares[estado]) {
-            avatarUrlFinal = fichaAtual.avatares[estado];
-        }
+    let avatarLayers = [];
+    if (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.avatares) {
+        if (fichaAtual.avatares['saudavel']) avatarLayers.push(fichaAtual.avatares['saudavel']);
+        
+        let eFisico = fichaAtual.estadoFisico || 'saudavel';
+        let eMental = fichaAtual.estadoMental || 'sao';
+        
+        if (eFisico !== 'saudavel' && fichaAtual.avatares[eFisico]) avatarLayers.push(fichaAtual.avatares[eFisico]);
+        if (eMental !== 'sao' && fichaAtual.avatares[eMental]) avatarLayers.push(fichaAtual.avatares[eMental]);
+    }
+
+    // Se for NPC, sobrepõe a lógica e usa apenas a foto do NPC
+    if (dadosNpc && dadosNpc.foto) {
+        avatarLayers = [dadosNpc.foto];
     }
     push(ref(db, `mensagens/${canalAtual}`), {
         remetente: currentUser,
@@ -2285,7 +2309,8 @@ window.enviarMensagemCompleta = function() {
         npcData: dadosNpc,
         texto: texto,
         replyTo: respondendoA,
-        avatarUrl: avatarUrlFinal,
+        avatarUrl: avatarLayers[0] || '',
+        avatarLayers: avatarLayers,
         timestamp: Date.now(),
         editada: false
     });
