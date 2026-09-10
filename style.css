@@ -635,3 +635,10 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     background-color: #3b0000; /* Cor fixa do Mestre */
     border-left: 4px solid #ff0000;
 }
+.barra-ferramentas-chat {
+    display: flex;
+    justify-content: space-between; /* Joga um para cada ponta */
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+}
