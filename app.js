@@ -2279,13 +2279,14 @@ window.enviarMensagemCompleta = function() {
     if (npcAtivoId && npcsSalvos[npcAtivoId]) {
         dadosNpc = npcsSalvos[npcAtivoId];
     }
-let avatarUrlFinal = 'https://via.placeholder.com/45'; // Valor padrão caso não tenha ficha
+    let avatarUrlFinal = 'https://via.placeholder.com/45'; 
     
     if (typeof fichaAtual !== 'undefined' && fichaAtual) {
         let estado = fichaAtual.estadoAtual || 'saudavel';
         if (fichaAtual.avatares && fichaAtual.avatares[estado]) {
             avatarUrlFinal = fichaAtual.avatares[estado];
         }
+    }
     push(ref(db, `mensagens/${canalAtual}`), {
         remetente: currentUser,
         tipo: dadosNpc ? 'npc' : 'chat',
