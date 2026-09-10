@@ -618,8 +618,8 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
 
 /* Aumenta o tamanho da foto de perfil */
 .perfil-avatar, .avatar-container img {
-    width: 120px;
-    height: 120px;
+    width: 180px;
+    height: 180px;
     object-fit: cover;
     border-radius: 50%;
 }
