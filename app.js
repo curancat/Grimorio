@@ -1061,6 +1061,10 @@ function renderizarPerfil() {
     document.getElementById('nome-personagem').innerText = fichaAtual.nome.toUpperCase();
     document.getElementById('sistema-personagem').innerText = sys.nome;
     document.getElementById('display-xp').innerText = fichaAtual.xp;
+  // ADICIONE ESTAS 3 LINHAS PARA ATUALIZAR A IMAGEM DE PERFIL:
+    let estado = fichaAtual.estadoAtual || 'saudavel';
+    let fotoAtual = (fichaAtual.avatares && fichaAtual.avatares[estado]) ? fichaAtual.avatares[estado] : 'https://via.placeholder.com/150';
+    document.getElementById('avatar-display').src = fotoAtual;
 
     // Lógica de Level Up
     const areaUpar = document.getElementById('area-level-up');
