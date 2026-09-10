@@ -2498,5 +2498,16 @@ window.gerenciarCanalGm = function(idCanal) {
         update(ref(db, `canais/${idCanal}`), { privado: trancar });
     }
 }
+document.getElementById('medidor-sanidade').addEventListener('change', (e) => {
+    let valor = e.target.value;
+    update(ref(db, `characters/${currentUser}`), { sanidade: valor });
+    
+    // Quanto maior a sanidade perdida (valor baixo), mais bugado fica
+    if (valor < 30) {
+        document.body.classList.add('glitch-extremo');
+    } else {
+        document.body.classList.remove('glitch-extremo');
+    }
+});
 // Garantir que iniciarChatAvancado seja chamado no fluxo antigo caso o login já esteja atrelado lá.
 // Se você possuía uma chamada `iniciarChatAvancado()` na sua função `login()`, ela chamará essa nova automaticamente.
