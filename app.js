@@ -2467,6 +2467,18 @@ window.silenciarJogador = function() {
     if (alvo && minutos) set(ref(db, 'mutes/' + alvo), { expiraEm: Date.now() + (minutos * 60 * 1000), mutadoPor: currentUser });
     alert(`Jogador ${alvo} silenciado por ${minutos} minutos.`);
 }
+document.getElementById('input-pesquisa-chat').addEventListener('keyup', (e) => {
+    const termo = e.target.value.toLowerCase();
+    const mensagensUI = document.querySelectorAll('.chat-msg-wrapper');
+    
+    mensagensUI.forEach(msgDiv => {
+        if (msgDiv.innerText.toLowerCase().includes(termo)) {
+            msgDiv.style.display = 'flex';
+        } else {
+            msgDiv.style.display = 'none';
+        }
+    });
+});
 
 // Garantir que iniciarChatAvancado seja chamado no fluxo antigo caso o login já esteja atrelado lá.
 // Se você possuía uma chamada `iniciarChatAvancado()` na sua função `login()`, ela chamará essa nova automaticamente.
