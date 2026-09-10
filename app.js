@@ -1063,7 +1063,10 @@ function renderizarPerfil() {
     document.getElementById('sistema-personagem').innerText = sys.nome;
     document.getElementById('display-xp').innerText = fichaAtual.xp;
   
-    document.getElementById('medidor-sanidade').value = personagem.sanidade;
+   const medidorSanidade = document.getElementById('medidor-sanidade');
+    if (medidorSanidade) {
+        medidorSanidade.value = fichaAtual.sanidade || 100; // Se não tiver valor, assume 100
+    }
   // ADICIONE ESTAS 3 LINHAS PARA ATUALIZAR A IMAGEM DE PERFIL:
     let estado = fichaAtual.estadoAtual || 'saudavel';
     let fotoAtual = (fichaAtual.avatares && fichaAtual.avatares[estado]) ? fichaAtual.avatares[estado] : 'https://via.placeholder.com/150';
