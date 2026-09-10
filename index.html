@@ -224,7 +224,11 @@
     <div class="channels-navbar">
         <div id="channel-list" style="display: flex; gap: 5px; overflow-x: auto; flex: 1;"></div>
         <button onclick="solicitarNovoCanal()" class="btn-mystic btn-add-channel">+ Criar Sala</button>
-        <button id="btn-anti-glitch" class="btn-mystic">👁️ Desativar Efeitos</button>
+        <button id="btn-anti-glitch" class="btn-mystic">👁️ </button>
+        <div class="botoes-direita">
+        <!-- IMPORTANTE: Substitua 'id-do-canal-aqui' pela variável real do canal atual do seu JS -->
+        <button onclick="gerenciarCanalGm(canalAtualId)" class="btn-mystic">⚙️ Gerenciar Canal</button>
+    </div>
     </div>
 
     <div id="global-audio-container" style="display: none; background: #000; border: 1px solid var(--borda-ouro); padding: 5px; border-radius: 5px; margin-bottom: 5px; text-align: center;">
@@ -302,7 +306,7 @@
                 
                 <h4 style="color: var(--borda-ouro); border-bottom: 1px solid #555; margin-top: 15px;">Salas Pendentes</h4>
                 <div id="gm-pending-list" style="font-size: 0.8rem; color: #aaa;">Nenhuma sala aguardando.</div>
-                <button onclick="gerenciarCanalGm('id-do-canal-aqui')">⚙️ Gerenciar Canal</button>
+                
             </div>
 
             <div>
