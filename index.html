@@ -219,10 +219,12 @@
     <div id="mute-warning" style="display: none; background: rgba(255,0,0,0.2); border: 1px solid red; color: #ffcccc; padding: 10px; text-align: center; font-weight: bold; margin-bottom: 5px;">
         Você foi silenciado! Tempo: <span id="mute-timer">00:00</span>
     </div>
-
+     
     <div class="channels-navbar">
         <div id="channel-list" style="display: flex; gap: 5px; overflow-x: auto; flex: 1;"></div>
         <button onclick="solicitarNovoCanal()" class="btn-mystic btn-add-channel">+ Criar Sala</button>
+        <input type="text" id="input-pesquisa-chat" placeholder="Pesquisar mensagens..." class="input-mystic" style="display:none;">
+        <button onclick="document.getElementById('input-pesquisa-chat').style.display = 'block'" class="btn-mystic">🔍</button>
     </div>
 
     <div id="global-audio-container" style="display: none; background: #000; border: 1px solid var(--borda-ouro); padding: 5px; border-radius: 5px; margin-bottom: 5px; text-align: center;">
