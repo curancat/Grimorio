@@ -2218,10 +2218,19 @@ function mudarCanal(idCanal, nomeCanal) {
             // ==========================================
             // CONSTRUIR O BALÃO DA MENSAGEM
             // ==========================================
+          let avatarSrc = msg.avatarUrl || 'https://via.placeholder.com/45';
+
+    // 2. Cria o elemento principal do balão utilizando as classes do seu CSS (.chat-msg-wrapper)
+          const msgDiv = document.createElement('div');
+          msgDiv.className = `chat-msg-wrapper ${tipo}`; // 'tipo' geralmente é 'mine' ou 'other'
+
+    // 3. Insere a tag de imagem usando a classe do seu CSS (.chat-avatar-img)
+            let htmlConteudo = `<img src="${avatarSrc}" class="chat-avatar-img" alt="Avatar">`;
             let htmlBalao = `${htmlBolinha}`; 
             htmlBalao += `<div style="overflow:hidden;">`; // Container interno do texto
             htmlBalao += `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
             htmlBalao += `${htmlReply} <div>${textoRenderizado} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
+          
             
             // Botões de Ação
             if (tipo !== 'roll') {
