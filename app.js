@@ -2286,7 +2286,7 @@ window.enviarMensagemCompleta = function() {
         npcData: dadosNpc,
         texto: texto,
         replyTo: respondendoA,
-        avatarUrl: avatarUrlAtua
+        avatarUrl: avatarUrlAtual,
         timestamp: Date.now(),
         editada: false
     });
