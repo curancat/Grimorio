@@ -2479,6 +2479,24 @@ document.getElementById('input-pesquisa-chat').addEventListener('keyup', (e) => 
         }
     });
 });
-
+window.gerenciarCanalGm = function(idCanal) {
+    const acao = prompt("Opções do Canal:\n1 - Renomear\n2 - Excluir\n3 - Trancar (Senha)\n4 - Limitar (Privado)\nDigite o número:");
+    
+    if (acao === "1") {
+        const novoNome = prompt("Novo nome:");
+        if (novoNome) update(ref(db, `canais/${idCanal}`), { nome: novoNome });
+    } else if (acao === "2") {
+        if (confirm("Apagar o canal destruirá todas as mensagens. Tem certeza?")) {
+            remove(ref(db, `canais/${idCanal}`));
+            remove(ref(db, `mensagens/${idCanal}`)); // Apaga as mensagens atreladas
+        }
+    } else if (acao === "3") {
+        const senha = prompt("Defina a senha (deixe em branco para remover):");
+        update(ref(db, `canais/${idCanal}`), { senha: senha || null });
+    } else if (acao === "4") {
+        const trancar = confirm("Deseja tornar este canal privado apenas para marcados?");
+        update(ref(db, `canais/${idCanal}`), { privado: trancar });
+    }
+}
 // Garantir que iniciarChatAvancado seja chamado no fluxo antigo caso o login já esteja atrelado lá.
 // Se você possuía uma chamada `iniciarChatAvancado()` na sua função `login()`, ela chamará essa nova automaticamente.
