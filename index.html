@@ -244,11 +244,11 @@
     </div>
 
     <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
+        <input type="range" id="medidor-sanidade" min="0" max="100">.
         <input type="file" id="upload-midia" style="display:none;" accept="image/*">
         <button onclick="document.getElementById('upload-midia').click()" class="btn-mystic" style="padding: 10px; font-size: 1.2rem;" title="Anexar Imagem">📎</button>
         
         <input type="text" id="chat-input" class="input-mystic w-full" placeholder="Mensagem, @jogador ou Link da mídia...">
-        
         <button id="btn-send-chat" class="btn-mystic">Enviar</button>
         <button id="btn-gm-chat-menu" class="hidden btn-mystic" onclick="abrirModalGmChat()" style="background: #4a0000; border-color: #ff4444;" title="Painel do Mestre">👑</button>
     </div>
