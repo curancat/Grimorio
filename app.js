@@ -2509,5 +2509,25 @@ document.getElementById('medidor-sanidade').addEventListener('change', (e) => {
         document.body.classList.remove('glitch-extremo');
     }
 });
+document.getElementById('btn-anti-glitch').addEventListener('click', () => {
+    document.body.classList.toggle('no-glitch');
+    alert("Filtro de estabilidade visual alternado.");
+});
+window.traduzirInsanidade = function() {
+    const textoInsano = document.getElementById('input-tradutor').value;
+    const tipoCodigo = document.getElementById('select-tipo-codigo').value; // emojis, binario, morse, etc
+    let resultado = "";
+
+    if (tipoCodigo === "binario") {
+        resultado = textoInsano.split(' ').map(bin => String.fromCharCode(parseInt(bin, 2))).join('');
+    } else if (tipoCodigo === "morse") {
+        // Objeto dicionário morse reverso simples
+        const morseDict = { ".-": "A", "-...": "B", /* complete o dicionario */ };
+        resultado = textoInsano.split(' ').map(m => morseDict[m] || ' ').join('');
+    } else {
+        resultado = "Tentando descriptografar o caos... [Função em construção para: " + tipoCodigo + "]";
+    }
+    document.getElementById('resultado-tradutor').innerText = resultado;
+}
 // Garantir que iniciarChatAvancado seja chamado no fluxo antigo caso o login já esteja atrelado lá.
 // Se você possuía uma chamada `iniciarChatAvancado()` na sua função `login()`, ela chamará essa nova automaticamente.
