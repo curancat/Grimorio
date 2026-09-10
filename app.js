@@ -2218,50 +2218,40 @@ function mudarCanal(idCanal, nomeCanal) {
             // ==========================================
             // CONSTRUIR O BALÃO DA MENSAGEM
             // ==========================================
-          let avatarSrc = msg.avatarUrl || 'https://via.placeholder.com/45';
+let avatarSrc = msg.avatarUrl || 'https://via.placeholder.com/45';
 
-    // 2. Cria o elemento principal do balão utilizando as classes do seu CSS (.chat-msg-wrapper)
-          const msgDiv = document.createElement('div');
-          msgDiv.className = `chat-msg-wrapper ${tipo}`; // 'tipo' geralmente é 'mine' ou 'other'
+// 1. Cria o elemento principal do balão (wrapper)
+const msgDiv = document.createElement('div');
+msgDiv.className = `chat-msg-wrapper ${tipo}`;
 
-    // 3. Insere a tag de imagem usando a classe do seu CSS (.chat-avatar-img)
-            let htmlConteudo = `<img src="${avatarSrc}" class="chat-avatar-img" alt="Avatar">`;
-            let htmlBalao = `${htmlBolinha}`; 
-            htmlBalao += `<div style="overflow:hidden;">`; // Container interno do texto
-            htmlBalao += `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
-            htmlBalao += `${htmlReply} <div>${textoRenderizado} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
-          
-            
-            // Botões de Ação
-            if (tipo !== 'roll') {
-                htmlBalao += `<div class="msg-actions">`;
-                if (tipo !== 'mine') {
-                    htmlBalao += `<span onclick="setarResposta('${remetenteRaw}')">↩️ Responder</span>`;
-                }
-                if (remetenteRaw.toLowerCase() === currentUser.toLowerCase() || isGM) {
-                    htmlBalao += `<span onclick="editarMensagem('${msg.id}', '${(msg.texto || '').replace(/'/g, "\\'")}')">✏️ Edit</span>`;
-                    htmlBalao += `<span onclick="apagarMensagem('${msg.id}')">🗑️ Del</span>`;
-                }
-                htmlBalao += `</div>`;
-            }
-            htmlBalao += `</div>`;
-            msgDiv.innerHTML = htmlConteudo + `<div class="chat-msg ${tipo}">${htmlBalao}</div>`;
-          document.getElementById('chat-messages').appendChild(msgDiv);
-            // ==========================================
-            // JUNTAR FOTO + BALÃO DENTRO DO WRAPPER
-            // ==========================================
-            divWrapper.innerHTML = `
-                ${htmlAvatar}
-                <div class="chat-msg ${tipo}">
-                    ${htmlBalao}
-                </div>
-            `;
-            
-            container.appendChild(divWrapper);
-        });
-        container.scrollTop = container.scrollHeight;
-    });
+// 2. Prepara os elementos HTML internos
+let htmlConteudo = `<img src="${avatarSrc}" class="chat-avatar-img" alt="Avatar">`;
+let htmlBalao = `${typeof htmlBolinha !== 'undefined' ? htmlBolinha : ''}`; 
+htmlBalao += `<div style="overflow:hidden;">`;
+htmlBalao += `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
+htmlBalao += `${typeof htmlReply !== 'undefined' ? htmlReply : ''} <div>${textoRenderizado} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
+
+// 3. Botões de Ação
+if (tipo !== 'roll') {
+    htmlBalao += `<div class="msg-actions">`;
+    if (tipo !== 'mine') {
+        htmlBalao += `<span onclick="setarResposta('${remetenteRaw}')">↩️ Responder</span>`;
+    }
+    if (remetenteRaw.toLowerCase() === currentUser.toLowerCase() || isGM) {
+        htmlBalao += `<span onclick="editarMensagem('${msg.id}', '${(msg.texto || '').replace(/'/g, "\\'")}')">✏️ Edit</span>`;
+        htmlBalao += `<span onclick="apagarMensagem('${msg.id}')">🗑️ Del</span>`;
+    }
+    htmlBalao += `</div>`;
 }
+htmlBalao += `</div>`;
+
+// 4. Junta tudo dentro do wrapper e insere no chat (apenas uma vez)
+msgDiv.innerHTML = htmlConteudo + `<div class="chat-msg ${tipo}">${htmlBalao}</div>`;
+
+// Adiciona ao container principal
+const chatContainer = document.getElementById('chat-messages') || container;
+chatContainer.appendChild(msgDiv);
+// ==========================================
 // ==========================================
 // E. ENVIO DE MENSAGENS COMPLETO
 // ==========================================
