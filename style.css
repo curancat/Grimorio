@@ -631,3 +631,7 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     transform: scale(2.5); /* Amplia no mobile ao segurar */
     z-index: 100;
 }
+.chat-msg-wrapper.gm .chat-msg {
+    background-color: #3b0000; /* Cor fixa do Mestre */
+    border-left: 4px solid #ff0000;
+}
