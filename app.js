@@ -2162,7 +2162,8 @@ function mudarCanal(idCanal, nomeCanal) {
         snapshot.forEach(child => { mensagens.push({ id: child.key, ...child.val() }); });
         
         mensagens.forEach(msg => {
-            const div = document.createElement('div');
+            // 1. Cria o Wrapper principal que vai alinhar a foto e o balão
+            const divWrapper = document.createElement('div');
             let tipo = 'other';
             const remetenteRaw = msg.remetente || 'Sistema';
             let nomeExibicao = remetenteRaw.toUpperCase();
@@ -2173,7 +2174,8 @@ function mudarCanal(idCanal, nomeCanal) {
             else if (remetenteRaw.toLowerCase() === currentUser.toLowerCase()) { tipo = 'mine'; } 
             else if (remetenteRaw.toLowerCase() === 'mestre' || remetenteRaw.toLowerCase() === 'gm') { tipo = 'gm'; nomeExibicao = '👑 MESTRE'; }
             
-            div.className = `chat-msg ${tipo}`;
+            // O Wrapper recebe a classe 'mine' para inverter a foto para a direita se a mensagem for sua
+            divWrapper.className = `chat-msg-wrapper ${tipo === 'mine' ? 'mine' : ''}`;
             const hora = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--';
             
             // Detectar se o usuário logado foi Mencionado (@) ou Respondido
@@ -2184,9 +2186,22 @@ function mudarCanal(idCanal, nomeCanal) {
             // Visual da Resposta
             const htmlReply = msg.replyTo ? `<div class="reply-badge">↳ Respondendo a ${msg.replyTo.toUpperCase()}</div>` : '';
 
-            // Renderizar Imagem/Avatar NPC
-            const htmlAvatar = (msg.tipo === 'npc' && msg.npcData.foto) 
-                ? `<img src="${msg.npcData.foto}" class="npc-avatar" alt="Avatar">` : '';
+            // ==========================================
+            // LÓGICA DO AVATAR (NPC E JOGADORES)
+            // ==========================================
+            let avatarUrl = '';
+            if (tipo === 'npc' && msg.npcData && msg.npcData.foto) {
+                avatarUrl = msg.npcData.foto; // Foto do NPC salvo
+            } else if (msg.avatarUrl) {
+                avatarUrl = msg.avatarUrl; // Foto do Jogador salva no Firebase
+            } else if (tipo === 'mine' || tipo === 'other') {
+                avatarUrl = 'https://i.imgur.com/z4bK9V3.png'; // Fallback: Avatar sombrio padrão
+            }
+
+            // Cria a tag da imagem (exceto para dados e avisos globais do mestre)
+            const htmlAvatar = avatarUrl && tipo !== 'roll' && tipo !== 'gm' 
+                ? `<img src="${avatarUrl}" class="chat-avatar-img" alt="Avatar">` 
+                : '';
 
             // Formatação do Texto (Processa links como mídias)
             let textoRenderizado = msg.texto || '';
@@ -2196,33 +2211,43 @@ function mudarCanal(idCanal, nomeCanal) {
                 textoRenderizado = `<video src="${textoRenderizado}" class="chat-media" controls></video>`;
             }
 
-            // Construir HTML da mensagem
-            let htmlInner = `${htmlBolinha} ${htmlAvatar}`;
-            htmlInner += `<div style="overflow:hidden;">`; // Container para não quebrar float do avatar
-            htmlInner += `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
-            htmlInner += `${htmlReply} <div>${textoRenderizado} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
+            // ==========================================
+            // CONSTRUIR O BALÃO DA MENSAGEM
+            // ==========================================
+            let htmlBalao = `${htmlBolinha}`; 
+            htmlBalao += `<div style="overflow:hidden;">`; // Container interno do texto
+            htmlBalao += `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
+            htmlBalao += `${htmlReply} <div>${textoRenderizado} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
             
             // Botões de Ação
             if (tipo !== 'roll') {
-                htmlInner += `<div class="msg-actions">`;
+                htmlBalao += `<div class="msg-actions">`;
                 if (tipo !== 'mine') {
-                    htmlInner += `<span onclick="setarResposta('${remetenteRaw}')">↩️ Responder</span>`;
+                    htmlBalao += `<span onclick="setarResposta('${remetenteRaw}')">↩️ Responder</span>`;
                 }
                 if (remetenteRaw.toLowerCase() === currentUser.toLowerCase() || isGM) {
-                    htmlInner += `<span onclick="editarMensagem('${msg.id}', '${(msg.texto || '').replace(/'/g, "\\'")}')">✏️ Edit</span>`;
-                    htmlInner += `<span onclick="apagarMensagem('${msg.id}')">🗑️ Del</span>`;
+                    htmlBalao += `<span onclick="editarMensagem('${msg.id}', '${(msg.texto || '').replace(/'/g, "\\'")}')">✏️ Edit</span>`;
+                    htmlBalao += `<span onclick="apagarMensagem('${msg.id}')">🗑️ Del</span>`;
                 }
-                htmlInner += `</div>`;
+                htmlBalao += `</div>`;
             }
-            htmlInner += `</div>`;
+            htmlBalao += `</div>`;
             
-            div.innerHTML = htmlInner;
-            container.appendChild(div);
+            // ==========================================
+            // JUNTAR FOTO + BALÃO DENTRO DO WRAPPER
+            // ==========================================
+            divWrapper.innerHTML = `
+                ${htmlAvatar}
+                <div class="chat-msg ${tipo}">
+                    ${htmlBalao}
+                </div>
+            `;
+            
+            container.appendChild(divWrapper);
         });
         container.scrollTop = container.scrollHeight;
     });
 }
-
 // ==========================================
 // E. ENVIO DE MENSAGENS COMPLETO
 // ==========================================
