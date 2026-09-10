@@ -124,8 +124,7 @@
         <div class="card-perfil" style="background: #2a2a2a; padding: 15px; border-radius: 8px;">
             <h3>Ficha Ativa: <span id="nome-personagem">Nenhum</span></h3>
             <p>Sistema: <span id="sistema-personagem">Nenhum</span></p>
-            <div style="text-align: center; margin: 15px 0;">
-           <img id="avatar-display" src="https://via.placeholder.com/150" class="player-avatar-img" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover;">
+            <div id="avatar-display-container" class="perfil-avatar-container">
             </div>
             <div style="margin: 10px 0; padding: 10px; background: #111; border-radius: 5px; border: 1px dashed #555;">
                 <p style="font-size: 0.85em; color: #aaa; margin-bottom: 5px;">Importar ficha (.json ou .txt):</p>
@@ -186,19 +185,24 @@
                     <input type="text" id="gm-missao-texto" placeholder="Escreva uma nova missão..." class="input-mystic w-full" style="margin-bottom: 5px; width: 100%; padding: 5px; background: #333; color: white; border: 1px solid #555;">
                     <button id="btn-add-missao" class="btn-mystic w-full" style="width: 100%; padding: 5px; cursor: pointer;">Adicionar Missão ao Mural</button>
                 </div>
-                   <!-- ADICIONE NO SEU HTML DO GM -->
-<select id="gm-select-estado" class="input-mystic mb-10 w-full">
-    <option value="saudavel">Saudável</option>
-    <option value="ferido">Caminho Ferido: Ferido</option>
-    <option value="grave">Caminho Ferido: Grave</option>
-    <option value="desacordado">Caminho Ferido: Desacordado</option>
-    <option value="insano">Caminho Insano: Insano</option>
-    <option value="fragmentado">Caminho Insano: Fragmentado</option>
-</select>
-<div class="actions">
-    <button id="btn-gm-mudar-estado" class="btn-mystic">Aplicar Novo Estado</button>
-    <button id="btn-gm-falar-player" class="btn-mystic" style="background: linear-gradient(180deg, #104e8b, #111);">Falar Pelo Jogador</button>
-</div>
+                <div class="actions">
+                    <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                        <select id="gm-select-estado-fisico" class="input-mystic w-full">
+                        <option value="saudavel">Físico: Saudável</option>
+                        <option value="ferido">Sangramento: Ferido</option>
+                       <option value="grave">Sangramento: Grave</option>
+                    <option value="desacordado">Sangramento: Desacordado</option>
+                    </select>
+    
+                    <select id="gm-select-estado-mental" class="input-mystic w-full">
+                    <option value="sao">Mental: São</option>
+                    <option value="insano">Psicológico: Insano</option>
+                    <option value="fragmentado">Psicológico: Fragmentado</option>
+                </select>
+                </div>
+                <button id="btn-gm-mudar-estado" class="btn-mystic">Aplicar Novo Estado</button>
+                <button id="btn-gm-falar-player" class="btn-mystic" style="background: linear-gradient(180deg, #104e8b, #111);">Falar Pelo Jogador</button>
+                </div>
             </div>
         </div>
 
