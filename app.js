@@ -2264,6 +2264,7 @@ function mudarCanal(idCanal, nomeCanal) {
     // Rola o chat para a última mensagem enviada
     container.scrollTop = container.scrollHeight;
 });
+}
 // ==========================================
 // ==========================================
 // ==========================================
