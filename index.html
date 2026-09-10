@@ -125,9 +125,7 @@
             <h3>Ficha Ativa: <span id="nome-personagem">Nenhum</span></h3>
             <p>Sistema: <span id="sistema-personagem">Nenhum</span></p>
             
-           <div id="avatar-display-container" class="perfil-avatar-container">
-              <img id="avatar-display" src="https://via.placeholder.com/150" class="player-avatar-img" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover;">
-           </div>
+           <div id="imagem-perfil-ficha"></div>
             <div style="margin: 10px 0; padding: 10px; background: #111; border-radius: 5px; border: 1px dashed #555;">
                 <p style="font-size: 0.85em; color: #aaa; margin-bottom: 5px;">Importar ficha (.json ou .txt):</p>
                 <input type="file" id="upload-ficha" accept=".json, .txt" style="color: white; font-size: 0.8rem; width: 100%;">
@@ -162,6 +160,8 @@
         <button id="btn-salvar-editor" class="btn-mystic small" style="flex: 1; background: #224422;">💾 Salvar Ficha</button>
     </div>
 </details>
+            <label for="medidor-sanidade">Sanidade:</label>
+            <progress id="medidor-sanidade" value="100" max="100" style="width: 100%;"></progress>
         </div>
 
         <!-- Coluna da Direita: Missões e Painel do Mestre -->
@@ -246,7 +246,6 @@
     </div>
 
     <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
-        <input type="range" id="medidor-sanidade" min="0" max="100">.
         <input type="file" id="upload-midia" style="display:none;" accept="image/*">
         <button onclick="document.getElementById('upload-midia').click()" class="btn-mystic" style="padding: 10px; font-size: 1.2rem;" title="Anexar Imagem">📎</button>
         
