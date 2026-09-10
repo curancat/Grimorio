@@ -1066,6 +1066,15 @@ function renderizarPerfil() {
     let estado = fichaAtual.estadoAtual || 'saudavel';
     let fotoAtual = (fichaAtual.avatares && fichaAtual.avatares[estado]) ? fichaAtual.avatares[estado] : 'https://via.placeholder.com/150';
     let avatarLayers = [];
+  // (Dentro de renderizarPerfil, após calcular avatarLayers)
+    const containerFichaImg = document.getElementById('imagem-perfil-ficha'); // Crie esta div no seu HTML
+    if (containerFichaImg) {
+        if (avatarLayers.length > 0) {
+            containerFichaImg.innerHTML = `<img src="${avatarLayers[avatarLayers.length - 1]}" class="avatar-destaque" onclick="window.open(this.src, '_blank')" title="Clique para ampliar">`;
+        } else {
+            containerFichaImg.innerHTML = `<img src="https://via.placeholder.com/150" class="avatar-destaque">`;
+        }
+    }
     if (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.avatares) {
         if (fichaAtual.avatares['saudavel']) avatarLayers.push(fichaAtual.avatares['saudavel']);
         
@@ -2227,7 +2236,7 @@ function mudarCanal(idCanal, nomeCanal) {
         }
 
         // 4. Formatação de Texto e Mídia
-        let textoRenderizado = msg.texto || '';
+       let textoRenderizado = formatarTextoChat(msg.texto || '');
         if (textoRenderizado.match(/\.(jpeg|jpg|gif|png)$/i)) {
             textoRenderizado = `<a href="${textoRenderizado}" target="_blank"><img src="${textoRenderizado}" class="chat-media"></a>`;
         } else if (textoRenderizado.match(/\.(mp4|webm)$/i)) {
@@ -2336,7 +2345,23 @@ window.postarArquivoMestre = function() {
 window.apagarArquivoMural = function(id) {
     if(confirm("Deseja destruir esta fita?")) remove(ref(db, `tapes/${id}`));
 }
-
+function formatarTextoChat(texto) {
+    if (!texto) return '';
+    let formatado = texto;
+    // Negrito *texto*
+    formatado = formatado.replace(/\*([^\*]+)\*/g, '<strong>$1</strong>');
+    // Itálico _texto_
+    formatado = formatado.replace(/\_([^\_]+)\_/g, '<em>$1</em>');
+    // Riscado ~texto~
+    formatado = formatado.replace(/\~([^\~]+)\~/g, '<del>$1</del>');
+    // Ações de RPG '''ação''' ou >ação<
+    formatado = formatado.replace(/'''(.*?)'''/g, '<span style="color: #ffaa00; font-style: italic;">* $1 *</span>');
+    formatado = formatado.replace(/\>(.*?)\</g, '<span style="color: #00ffaa; font-style: italic;">$1</span>');
+    
+    // Quebra de linha
+    formatado = formatado.replace(/\n/g, '<br>');
+    return formatado;
+}
 function escutarMuralFitas() {
     onValue(ref(db, 'tapes'), (snapshot) => {
         const mural = document.getElementById('mural-arquivos');
