@@ -2267,66 +2267,54 @@ function mudarCanal(idCanal, nomeCanal) {
 // ==========================================
 // E. ENVIO DE MENSAGENS COMPLETO
 // ==========================================
-window.enviarMensagemCompleta = function() {
-    if (jogadorSilenciado) return;
-    const input = document.getElementById('chat-input');
-   const chatContainer = document.getElementById('chat-container');
-   if (chatInput) {
-    chatInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault(); // Impede a quebra padrão e envia
-            document.getElementById('btn-send-chat').click();
-        }
-    });
-}
+window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = null, forcarEnvioMestre = false) {
+    if (!currentUser) return;
 
-// Chame esta função sempre que uma nova mensagem for renderizada do Firebase
-function rolarParaFundo() {
-    if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-}
-    const texto = input.value.trim();
-    if (!texto || !currentUser) return;
+    // CORREÇÃO: Garante que 'fichaAtual' existe e define o estado com segurança
+    let estado = (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.estadoAtual) ? fichaAtual.estadoAtual : 'saudavel';
+    let fotoAtual = (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.avatares) ? fichaAtual.avatares[estado] : '';
 
-    // Detectar uso de NPC
-    const npcSelect = document.getElementById('select-npc-salvo');
-    const npcAtivoId = npcSelect ? npcSelect.value : null;
-    let dadosNpc = null;
-    
-    if (npcAtivoId && npcsSalvos[npcAtivoId]) {
-        dadosNpc = npcsSalvos[npcAtivoId];
+    // TRAVA 1: Jogador Desacordado
+    if (estado === 'desacordado' && !forcarEnvioMestre) {
+        alert("Você está DESACORDADO. Não pode falar ou realizar ações.");
+        return;
     }
-    let avatarLayers = [];
-    if (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.avatares) {
-        if (fichaAtual.avatares['saudavel']) avatarLayers.push(fichaAtual.avatares['saudavel']);
+
+    let textoFinal = texto;
+
+    // TRAVA 2: Mente Fragmentada (O Mestre pode ignorar isso usando forcarEnvioMestre)
+    if (estado === 'fragmentado' && !forcarEnvioMestre) {
+        textoFinal = embaralharAcoes(texto);
+    }
+
+    // CORREÇÃO: Verifica se canalRolagemDestino e canalAtual estão definidos globalmente
+    const canalDestino = (tipoMensagem === 'roll' && typeof canalRolagemDestino !== 'undefined' && canalRolagemDestino) 
+        ? canalRolagemDestino 
+        : (typeof canalAtual !== 'undefined' && canalAtual ? canalAtual : 'taverna');
+
+    if (typeof db !== 'undefined') {
+        const mensagensRef = ref(db, `mensagens/${canalDestino}`);
         
-        let eFisico = fichaAtual.estadoFisico || 'saudavel';
-        let eMental = fichaAtual.estadoMental || 'sao';
+        // CORREÇÃO: Tratamento para resposta a mensagens (Reply) e anexos se houverem
+        const replyInfo = (typeof respondendoA !== 'undefined' && respondendoA) ? respondendoA : null;
         
-        if (eFisico !== 'saudavel' && fichaAtual.avatares[eFisico]) avatarLayers.push(fichaAtual.avatares[eFisico]);
-        if (eMental !== 'sao' && fichaAtual.avatares[eMental]) avatarLayers.push(fichaAtual.avatares[eMental]);
+        push(mensagensRef, {
+            remetente: currentUser,
+            falarComo: nomeNpc || null,
+            texto: textoFinal,
+            avatarUrl: fotoAtual, 
+            timestamp: Date.now(),
+            tipo: tipoMensagem,
+            replyTo: replyInfo,
+            editada: false
+        }).then(() => {
+            // Limpa o campo de chat e o reply se a função de cancelar existir
+            const inputEl = document.getElementById('chat-input');
+            if (inputEl) inputEl.value = '';
+            if (typeof cancelarResposta === 'function') cancelarResposta();
+        }).catch(err => console.error("Erro ao enviar mensagem para o Firebase:", err));
     }
-
-    // Se for NPC, sobrepõe a lógica e usa apenas a foto do NPC
-    if (dadosNpc && dadosNpc.foto) {
-        avatarLayers = [dadosNpc.foto];
-    }
-    push(ref(db, `mensagens/${canalAtual}`), {
-        remetente: currentUser,
-        tipo: dadosNpc ? 'npc' : 'chat',
-        npcData: dadosNpc,
-        texto: texto,
-        replyTo: respondendoA,
-        avatarUrl: avatarLayers[0] || '',
-        avatarLayers: avatarLayers,
-        timestamp: Date.now(),
-        editada: false
-    });
-
-    input.value = "";
-    cancelarResposta();
-}
+};
 document.getElementById('btn-send-chat').addEventListener('click', enviarMensagemCompleta);
 document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') enviarMensagemCompleta(); });
 
@@ -2368,6 +2356,11 @@ function obterCorBalao(nome) {
     let hash = 0;
     for (let i = 0; i < n.length; i++) hash = n.charCodeAt(i) + ((hash << 5) - hash);
     return `hsl(${Math.abs(hash) % 360}, 50%, 25%)`; 
+}
+function rolarParaFundo() {
+    if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
 }
 function escutarMuralFitas() {
     onValue(ref(db, 'tapes'), (snapshot) => {
