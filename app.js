@@ -2267,7 +2267,7 @@ function mudarCanal(idCanal, nomeCanal) {
 // ==========================================
 // E. ENVIO DE MENSAGENS COMPLETO
 // ==========================================
-window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = null, forcarEnvioMestre = false) {
+window.enviarMensagemCompleta = function(texto, tipoMensagem = 'chat', nomeNpc = null, forcarEnvioMestre = false) {
     if (!currentUser) return;
 
     // CORREÇÃO: Garante que 'fichaAtual' existe e define o estado com segurança
