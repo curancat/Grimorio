@@ -1,11 +1,10 @@
 // Importações do Firebase v9 (SDK Modular)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getDatabase, ref, onValue, set, push, remove, get, child, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
 // ==========================================
 // 1. CONFIGURAÇÃO DO FIREBASE
-// COLOQUE SUAS CHAVES AQUI, MESTRE!
 // ==========================================
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyB5rYYzsbn7rSfh2Q7iv20VtmWcvUTySaA",
   authDomain: "turno-noturno.firebaseapp.com",
@@ -20,6 +19,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const IMGBB_API_KEY = "1fd4d8fc1d8b3f9bb172de4e42dabe37";
+
 // ==========================================
 // 2. VARIÁVEIS GLOBAIS E ESTADOS
 // ==========================================
@@ -34,150 +34,120 @@ let unsubscribeChat = null;
 let jogadorSilenciado = false;
 let intervaloMute = null;
 
-// Variáveis para Menções e NPCs
 let respondendoA = null;
 let npcsSalvos = {};
-let limiteTintaDiogenes = 10;      // Limite padrão pela qualidade (Boa = 5)
-let filtroCorDiogenes = 'todos';   // Filtro de cor ativo
-let tintaEspecialLiberada = false; // Controla se preto/branco foram liberados por dados iguais
-let estoqueTintasDiogenes = {
-    vermelha: 10,
-    azul: 10,
-    amarela: 10,
-    preta: 0,
-    branca: 0,
-    mescla: 0
-};
-// Quando carregar/atualizar os dados do personagem:
+let limiteTintaDiogenes = 10;
+let filtroCorDiogenes = 'todos';
+let tintaEspecialLiberada = false;
+let estoqueTintasDiogenes = { vermelha: 10, azul: 10, amarela: 10, preta: 0, branca: 0, mescla: 0 };
+let fichaAtual = null;
+
 // ==========================================
-// 3. O GRIMÓRIO ORIGINAL DE DIÓGENES
-// ==========================================
-// Resumi o array original aqui para economizar espaço visual, mas 
-// cole aqui as 100 magias do Diógenes do seu código original!
-// ==========================================
-// 3. O GRIMÓRIO ATUALIZADO DE DIÓGENES (100 EFEITOS)
+// 3. O GRIMÓRIO ATUALIZADO DE DIÓGENES
 // ==========================================
 const magiasDiogenes = [
-        // --- TINTA VERMELHA (FOGO) [1 a 10] ---
-        { nome: "Bola de fogo", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Cria um pequeno fogo autônomo que ilumina e causa 1 de dano de fogo." },
-        { nome: "Manto de Calor", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Concede resistência a dano de frio por uma cena." },
-        { nome: "Projétil Incandescente", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Dispara um dardo flamejante que causa 2 de dano de fogo." },
-        { nome: "Explosão de Brasa", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Cria uma explosão em área de 3 metros que empurra inimigos. causando 2 dano nos alvos" },
-        { nome: "Arma Ardente", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Adiciona +1 de dano de fogo a uma arma por uma cena" },
-        { nome: "Sopro de Fênix", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Libera um cone de fogo de 4 metros causando 3 de dano." },
-        { nome: "Muro de labaredas", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Ergue uma barreira de chamas bloqueando a passagem por 2 rodadas. causando 3 de dano a quem tenta ultrapassar" },
-        { nome: "Marca das Brasas", cor: "vermelha", receita: "Tinta Vermelha", efeito: "ao desenhar uma marca no alvo, sobe o comando do conjurador, a marca explode, queimando o alvo e causando 5 de dano" },
-        { nome: "Adrenalina", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Aumenta temporariamente a velocidade de movimento em 3 metros.aumentando em +2 os testes fisicos, porem se a marca permanecer por tempo estendido, podera ganhar ferimentos graves, e se abusado morre" },
-        { nome: "Estilhaço Magmático", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Dispara estilhaços quentes que perfuram armaduras leves. destruindo o equipamento atingido, se for metal ficara incandecente" },
-
-        // --- TINTA AZUL (ÁGUA E ESPIRITUALIDADE) [11 a 20] ---
-        { nome: "Cura das Marés", cor: "azul", receita: "Tinta Azul", efeito: "faz 1 ferimento estabilizado sumir da ficha" },
-        { nome: "Bolha de Oxigênio", cor: "azul", receita: "Tinta Azul", efeito: "cria bolhas, permitindo respiraçao em qualquer local, por tempo indeterminado" },
-        { nome: "Passo Sobre Águas", cor: "azul", receita: "Tinta Azul", efeito: "Permite caminhar sobre superfícies líquidas como se fossem solidas por uma cena" },
-        { nome: "Sussurro Espiritual", cor: "azul", receita: "Tinta Azul", efeito: "Permite enxergar e conversar com espíritos recem mortos, por uma cena" },
-        { nome: "Nevoeiro Purificador", cor: "azul", receita: "Tinta Azul", efeito: "Remove condições de veneno ou doença leve de um aliado." },
-        { nome: "Escudo de Gelo", cor: "azul", receita: "Tinta Azul", efeito: "Bloqueia completamente o próximo ataque corpo a corpo recebido." },
-        { nome: "Lágrima dos Mares", cor: "azul", receita: "Tinta Azul", efeito: "restaura  estabilidade mental." },
-        { nome: "Voz do Oceano", cor: "azul", receita: "Tinta Azul", efeito: "Permite comunicação telepática de longo alcance com aliados." },
-        { nome: "Bênção da Névoa", cor: "azul", receita: "Tinta Azul", efeito: "Cria uma névoa densa ao redor concedendo camuflagem arcana." },
-        { nome: "Onda de Retorno", cor: "azul", receita: "Tinta Azul", efeito: "Empurra todos os inimigos ao redor para longe com força hidráulica., deixa o campo umido, lançado o alvo ate 5 metros" },
-
-        // --- TINTA AMARELA (LUZ) [21 a 30] ---
-        { nome: "Clarão Ofuscante", cor: "amarela", receita: "Tinta Amarela", efeito: "Cega temporariamente inimigos em um raio de 5 metros." },
-        { nome: "Lâmina de Luz", cor: "amarela", receita: "Tinta Amarela", efeito: "Infunde uma arma com luz radiante, permite ferir criaturais e causa dano extra em criaturas sobrenaturais maliguinas" },
-        { nome: "Faro da Verdade", cor: "amarela", receita: "Tinta Amarela", efeito: "Revela ilusões, metamorfos e invisibilidade em até 10 metros." },
-        { nome: "Aura de Proteção", cor: "amarela", receita: "Tinta Amarela", efeito: "Concede +2 no suporta lesao do alvo por uma cena. " },
-        { nome: "Feixe Solar", cor: "amarela", receita: "Tinta Amarela", efeito: "Dispara um raio de luz concentrada em linha reta ignorando armaduras leves." },
-        { nome: "Luz Guia", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria uma esfera de luz flutuante que ilumina locais escuros., inimigos que estao sobre a luz sao revelados,e aliados recebem um buf de +2 em acerto contra inimigos revelados" },
-        { nome: "Claridade Mental", cor: "amarela", receita: "Tinta Amarela", efeito: "Remove efeitos de medo ou confusão mental de um aliado,permitindo tambem exorcirsar o alvo" },
-        { nome: "Selo Solar", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria uma runa no chão que prende criaturas ao pisarem.,machuca ao tentar ultrapassar , porem nao poderam ultrapassar por inteiro" },
-        { nome: "Reflexo Espelhado", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria cópias ilusórias de algo ou alguem." },
-        { nome: "Toque do Amanhecer", cor: "amarela", receita: "Tinta Amarela", efeito: "estabiliza um ferimento temporariamente" },
-
-        // --- TINTA PRETA (MATÉRIA - PASSIVA DE CRÍTICO) [31 a 40] ---
-        { nome: "Parede de Ferro", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma parede sólida de matéria de 2x2 metros para bloqueio físico." },
-        { nome: "Criação de Ferramentas", cor: "preta", receita: "Tinta Preta", efeito: "Materializa instantaneamente uma ferramenta útil (chave, alavanca, corda)." },
-        { nome: "Armadura Sólida", cor: "preta", receita: "Tinta Preta", efeito: "Concede +3 de bônus na armadura do conjurador por 1 rodada." },
-        { nome: "Projétil Físico Denso", cor: "preta", receita: "Tinta Preta", efeito: "Cria e arremessa um pedregulho maciço com alto dano de impacto." },
-        { nome: "Selo de Prisão Material", cor: "preta", receita: "Tinta Preta", efeito: "Invoca algemas materiais do chão que prendem os pés do alvo." },
-        { nome: "Pilar de Sustentação", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma coluna instantânea para sustentar tetos desabando." },
-        { nome: "Bloco de Contenção", cor: "preta", receita: "Tinta Preta", efeito: "Cria um cubo de pedra ao redor de um item ou inimigo pequeno." },
-        { nome: "Lâmina Materializada", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma espada física improvisada de alta durabilidade." },
-        { nome: "Escudo de Chumbo", cor: "preta", receita: "Tinta Preta", efeito: "Cria um escudo pesado bloqueando magias baseadas em radiação ou luz." },
-        { nome: "Maciço Colossal", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma estrutura grossa de metal para bloquear passagens inteiras." },
-
-        // --- TINTA BRANCA (APAGAR - PASSIVA DE CRÍTICO) [41 a 50] ---
-        { nome: "Desintegrar Objeto", cor: "branca", receita: "Tinta Branca", efeito: "Apaga e desintegra um objeto pequeno não mágico do cenário." },
-        { nome: "Silêncio Absoluto", cor: "branca", receita: "Tinta Branca", efeito: "Cria uma zona esférica de silêncio mágico onde nenhum som escapa." },
-        { nome: "Apagar Memória Recente", cor: "branca", receita: "Tinta Branca", efeito: "Apaga os últimos 10 segundos da mente de um alvo afetado." },
-        { nome: "Cancelamento de Magia", cor: "branca", receita: "Tinta Branca", efeito: "Anula um efeito mágico ativo de nível baixo." },
-        { nome: "Invisibilidade Óptica", cor: "branca", receita: "Tinta Branca", efeito: "Apaga a imagem visível do usuário do espectro óptico por 1 minuto." },
-        { nome: "Buraco Vazio", cor: "branca", receita: "Tinta Branca", efeito: "Cria um pequeno vácuo que suga e aprisiona projéteis inimigos." },
-        { nome: "Apagar Traços", cor: "branca", receita: "Tinta Branca", efeito: "Apaga pegadas, rastros e odores deixados pelo grupo." },
-        { nome: "Nulificação de Efeito", cor: "branca", receita: "Tinta Branca", efeito: "Remove uma maldição menor ou efeito de veneno persistente." },
-        { nome: "Apagão de Chamas", cor: "branca", receita: "Tinta Branca", efeito: "Extingue instantaneamente qualquer fogo natural ou mágico em área." },
-        { nome: "Vazio de Cor", cor: "branca", receita: "Tinta Branca", efeito: "Cria uma área sem cor que desorienta a visão de criaturas comuns." },
-
-        // --- MESCLAS DUPLAS: VERMELHA + AZUL [51 a 60] ---
-        { nome: "Torrente de Vapor Quente", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Jato de vapor escaldante que causa 2 dano de fogo e cega o alvo." },
-        { nome: "Gêiser Eruptivo", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Faz brotar água fervente do chão em área de 3 metros causando 3 (dano misto)." },
-        { nome: "Cura Calcinante", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cura um aliado, mas cauteriza feridas com calor mágico instantâneo." },
-        { nome: "Nevoeiro Termal", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cria uma névoa espessa e quente que confunde sensores térmicos." },
-        { nome: "Escudo de Vapor", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cria uma barreira defensiva que repele projeteis e queima quem se aproxima." },
-        { nome: "Lâmina de Água Fervente", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "remove efeitos de arma ou armadura" },
-        { nome: "Chama Líquida", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Dispara um fluido pegajoso que queima mesmo sob a água, 1 de dano constante" },
-        { nome: "Purificação Ígnea", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Purifica o corpo de doenças queimando impurezas espirituais." },
-        { nome: "Pulso de Vapor", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "cria uma curtina de gas,enquanto nimguem tapar a fenda continuara enchendo o local com o gas, sufucando quem a respira, tempo de duraçao 1 cena " },
-        { nome: "Termoterapia Mágica", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Recupera fadiga extrema, podendo acordar pessoas desmaiadas" },
-
-        // --- MESCLAS DUPLAS: VERMELHA + AMARELA [61 a 70] ---
-        { nome: "Plasma Solar", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Cria uma esfera de plasma superaquecido que causa 4 dano massivo." },
-        { nome: "Aura de Fogo Sagrado", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Envolve o usuário em chamas douradas que blindam contra criaturas sobrenaturais." },
-        { nome: "Lança de Radiância Ardente", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "cria uma laça luz que lhe permite trocar de lugar com ela" },
-        { nome: "Explosão Prateada", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "purifica todos os efeitos negativos" },
-        { nome: "Manto de Ouro Vivo", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Aumenta em +2 o suporta lesao e concede aura de calor blindada por 1 cena., inimigos proximos sao queimados levando 1 de dano" },
-        { nome: "Brilho Magmático", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "permite colocar um ponto brilhante em um local atraindo qualquer coisa feita de metal" },
-        { nome: "Chama Solar Refletida", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Reflete feixes de luz concentrada em alvos específicos." },
-        { nome: "Fúria Radiante", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "faz o inimigo atacar qualquer um proximo a ele." },
-        { nome: "Farol de Combate", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Marca um inimigo com luz incandescente visível a longa distância." },
-        { nome: "Supernova Menor", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Pequena explosão luz-fogo em grande área 10 de dano, so explodindo depois de uma cena" },
-
-        // --- MESCLAS DUPLAS: AZUL + AMARELA [71 a 80] ---
-        { nome: "Luz das Marés", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "ao desenhar sobre o aliado, cura todos seus ferimentos" },
-        { nome: "Prisma Espiritual", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "permite conversa com alguem idependente da distancia viva ou morta" },
-        { nome: "Escudo de Aurora", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "protege alguem contra posseçao e efeitos sobrenaturais" },
-        { nome: "Água Cristalina", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cria água benta com propriedades de cura aprimoradas." },
-        { nome: "Bênção dos Mares", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "cria uma poça no chao que concede 1 de dano constante a quem pisa sobre ela" },
-        { nome: "Nevoeiro Arco-Íris", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cria ilusões óticas fantásticas na névoa d'água." },
-        { nome: "Pulso de Cura Astral", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cura em área moderada e afasta presenças espirituais malignas." },
-        { nome: "Olhar da Verdade Oceânica", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Permite encherga atravez de materia" },
-        { nome: "Cristalização de Luz", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "o diogenes cria um feiche de luz que congela o alvo, apenas podendo um alvo por vez" },
-        { nome: "Onda Radiante", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "lança uma onda de energia que deliga aoarelhos por um determinado tempo" },
-
-        // --- MESCLAS COM PRETA E BRANCA (MATÉRIA E NADA) [81 a 90] ---
-        { nome: "Matéria Vazia", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Cria e desfaz simultaneamente um objeto para abrir fechaduras." },
-        { nome: "Escudo de Antimatéria", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Anula o impacto de qualquer projétil físico ou mágico recebido." },
-        { nome: "Criação Silenciosa", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Materializa uma estrutura física sem emitir absolutamente nenhum som." },
-        { nome: "Apagar e Substituir", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Apaga um obstáculo pequeno e cria uma passagem no lugar." },
-        { nome: "Anulação Térmica", cor: "mescla", receita: "Tinta Vermelha + Tinta Branca + Tinta Preta", efeito: "Cria um campo onde o fogo é instantaneamente anulado pelo vazio." },
-        { nome: "Forja Fantasma", cor: "mescla", receita: "Tinta Vermelha + Tinta Preta + Tinta Amarela", efeito: "Cria armas metálicas incandescentes prontas para uso imediato." },
-        { nome: "Cristalização do Vazio", cor: "mescla", receita: "Tinta Azul + Tinta Branca + Tinta Preta", efeito: "Cria um bloco de gelo indestrutível que absorve feitiços." },
-        { nome: "Prisão Absoluta", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Prende o alvo em uma caixa dimensional de matéria apagada." },
-        { nome: "Silêncio de Ferro", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Cria uma barreira física e sonora intransponível." },
-        { nome: "Correção da Realidade", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Habilidade suprema: Altera um pequeno aspecto físico ou mágico do ambiente." },
-
-        // --- MESCLAS COMPLEXAS E MULTITINTAS SUPREMAS [91 a 100] ---
-        { nome: "Fúria dos Quatro Elementos", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Tinta Amarela + Tinta Preta", efeito: "Libera uma tempestade elementar massiva ao redor do conjurador." },
-        { nome: "Cura Total do Pelo Mágico", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Tinta Branca", efeito: "Restaura 100% da vida usando os estoques guardados no pelo." },
-        { nome: "Barreira do Armazém Ambulante", cor: "mescla", receita: "Tinta Preta + Tinta Branca + Tinta Vermelha", efeito: "Protege o inventário guardado no pelo místico contra roubos e danos." },
-        { nome: "Super-Nova Arcana", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Tinta Branca", efeito: "Explosão gigantesca de luz e calor sob supervisão mística." },
-        { nome: "Véu Etéreo Absoluto", cor: "mescla", receita: "Tinta Azul + Tinta Branca + Tinta Preta", efeito: "Dá invisibilidade completa e intangibilidade física por 30 segundos." },
-        { nome: "Lança Mestra", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Tinta Amarela", efeito: "Cria uma arma lendária temporária com efeitos elementais combinados." },
-        { nome: "Ressurreição de Tinta", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Milagre supremo do grimório: Estabiliza um aliado à beira da morte." },
-        { nome: "Campo Anti-Magia", cor: "mescla", receita: "Tinta Branca + Tinta Preta", efeito: "Anula todas as magias ativas em um raio de 6 metros." },
-        { nome: "Labaredas Espirituais", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Causa dano de fogo espiritual que ignora defesas físicas comuns." },
-        { nome: "Apotéose Mágica", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Canaliza essência pura, dobrando o poder de todas as tintas por 3 rodadas." }
+    { nome: "Bola de fogo", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Cria um pequeno fogo autônomo que ilumina e causa 1 de dano de fogo." },
+    { nome: "Manto de Calor", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Concede resistência a dano de frio por uma cena." },
+    { nome: "Projétil Incandescente", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Dispara um dardo flamejante que causa 2 de dano de fogo." },
+    { nome: "Explosão de Brasa", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Cria uma explosão em área de 3 metros que empurra inimigos. causando 2 dano nos alvos" },
+    { nome: "Arma Ardente", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Adiciona +1 de dano de fogo a uma arma por uma cena" },
+    { nome: "Sopro de Fênix", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Libera um cone de fogo de 4 metros causando 3 de dano." },
+    { nome: "Muro de labaredas", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Ergue uma barreira de chamas bloqueando a passagem por 2 rodadas. causando 3 de dano a quem tenta ultrapassar" },
+    { nome: "Marca das Brasas", cor: "vermelha", receita: "Tinta Vermelha", efeito: "ao desenhar uma marca no alvo, sobe o comando do conjurador, a marca explode, queimando o alvo e causando 5 de dano" },
+    { nome: "Adrenalina", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Aumenta temporariamente a velocidade de movimento em 3 metros.aumentando em +2 os testes fisicos, porem se a marca permanecer por tempo estendido, podera ganhar ferimentos graves, e se abusado morre" },
+    { nome: "Estilhaço Magmático", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Dispara estilhaços quentes que perfuram armaduras leves. destruindo o equipamento atingido, se for metal ficara incandecente" },
+    { nome: "Cura das Marés", cor: "azul", receita: "Tinta Azul", efeito: "faz 1 ferimento estabilizado sumir da ficha" },
+    { nome: "Bolha de Oxigênio", cor: "azul", receita: "Tinta Azul", efeito: "cria bolhas, permitindo respiraçao em qualquer local, por tempo indeterminado" },
+    { nome: "Passo Sobre Águas", cor: "azul", receita: "Tinta Azul", efeito: "Permite caminhar sobre superfícies líquidas como se fossem solidas por uma cena" },
+    { nome: "Sussurro Espiritual", cor: "azul", receita: "Tinta Azul", efeito: "Permite enxergar e conversar com espíritos recem mortos, por uma cena" },
+    { nome: "Nevoeiro Purificador", cor: "azul", receita: "Tinta Azul", efeito: "Remove condições de veneno ou doença leve de um aliado." },
+    { nome: "Escudo de Gelo", cor: "azul", receita: "Tinta Azul", efeito: "Bloqueia completamente o próximo ataque corpo a corpo recebido." },
+    { nome: "Lágrima dos Mares", cor: "azul", receita: "Tinta Azul", efeito: "restaura estabilidade mental." },
+    { nome: "Voz do Oceano", cor: "azul", receita: "Tinta Azul", efeito: "Permite comunicação telepática de longo alcance com aliados." },
+    { nome: "Bênção da Névoa", cor: "azul", receita: "Tinta Azul", efeito: "Cria uma névoa densa ao redor concedendo camuflagem arcana." },
+    { nome: "Onda de Retorno", cor: "azul", receita: "Tinta Azul", efeito: "Empurra todos os inimigos ao redor para longe com força hidráulica., deixa o campo umido, lançado o alvo ate 5 metros" },
+    { nome: "Clarão Ofuscante", cor: "amarela", receita: "Tinta Amarela", efeito: "Cega temporariamente inimigos em um raio de 5 metros." },
+    { nome: "Lâmina de Luz", cor: "amarela", receita: "Tinta Amarela", efeito: "Infunde uma arma com luz radiante, permite ferir criaturais e causa dano extra em criaturas sobrenaturais maliguinas" },
+    { nome: "Faro da Verdade", cor: "amarela", receita: "Tinta Amarela", efeito: "Revela ilusões, metamorfos e invisibilidade em até 10 metros." },
+    { nome: "Aura de Proteção", cor: "amarela", receita: "Tinta Amarela", efeito: "Concede +2 no suporta lesao do alvo por uma cena. " },
+    { nome: "Feixe Solar", cor: "amarela", receita: "Tinta Amarela", efeito: "Dispara um raio de luz concentrada em linha reta ignorando armaduras leves." },
+    { nome: "Luz Guia", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria uma esfera de luz flutuante que ilumina locais escuros., inimigos que estao sobre a luz sao revelados,e aliados recebem um buf de +2 em acerto contra inimigos revelados" },
+    { nome: "Claridade Mental", cor: "amarela", receita: "Tinta Amarela", efeito: "Remove efeitos de medo ou confusão mental de um aliado,permitindo tambem exorcirsar o alvo" },
+    { nome: "Selo Solar", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria uma runa no chão que prende criaturas ao pisarem.,machuca ao tentar ultrapassar , porem nao poderam ultrapassar por inteiro" },
+    { nome: "Reflexo Espelhado", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria cópias ilusórias de algo ou alguem." },
+    { nome: "Toque do Amanhecer", cor: "amarela", receita: "Tinta Amarela", efeito: "estabiliza um ferimento temporariamente" },
+    { nome: "Parede de Ferro", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma parede sólida de matéria de 2x2 metros para bloqueio físico." },
+    { nome: "Criação de Ferramentas", cor: "preta", receita: "Tinta Preta", efeito: "Materializa instantaneamente uma ferramenta útil (chave, alavanca, corda)." },
+    { nome: "Armadura Sólida", cor: "preta", receita: "Tinta Preta", efeito: "Concede +3 de bônus na armadura do conjurador por 1 rodada." },
+    { nome: "Projétil Físico Denso", cor: "preta", receita: "Tinta Preta", efeito: "Cria e arremessa um pedregulho maciço com alto dano de impacto." },
+    { nome: "Selo de Prisão Material", cor: "preta", receita: "Tinta Preta", efeito: "Invoca algemas materiais do chão que prendem os pés do alvo." },
+    { nome: "Pilar de Sustentação", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma coluna instantânea para sustentar tetos desabando." },
+    { nome: "Bloco de Contenção", cor: "preta", receita: "Tinta Preta", efeito: "Cria um cubo de pedra ao redor de um item ou inimigo pequeno." },
+    { nome: "Lâmina Materializada", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma espada física improvisada de alta durabilidade." },
+    { nome: "Escudo de Chumbo", cor: "preta", receita: "Tinta Preta", efeito: "Cria um escudo pesado bloqueando magias baseadas em radiação ou luz." },
+    { nome: "Maciço Colossal", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma estrutura grossa de metal para bloquear passagens inteiras." },
+    { nome: "Desintegrar Objeto", cor: "branca", receita: "Tinta Branca", efeito: "Apaga e desintegra um objeto pequeno não mágico do cenário." },
+    { nome: "Silêncio Absoluto", cor: "branca", receita: "Tinta Branca", efeito: "Cria uma zona esférica de silêncio mágico onde nenhum som escapa." },
+    { nome: "Apagar Memória Recente", cor: "branca", receita: "Tinta Branca", efeito: "Apaga os últimos 10 segundos da mente de um alvo afetado." },
+    { nome: "Cancelamento de Magia", cor: "branca", receita: "Tinta Branca", efeito: "Anula um efeito mágico ativo de nível baixo." },
+    { nome: "Invisibilidade Óptica", cor: "branca", receita: "Tinta Branca", efeito: "Apaga a imagem visível do usuário do espectro óptico por 1 minuto." },
+    { nome: "Buraco Vazio", cor: "branca", receita: "Tinta Branca", efeito: "Cria um pequeno vácuo que suga e aprisiona projéteis inimigos." },
+    { nome: "Apagar Traços", cor: "branca", receita: "Tinta Branca", efeito: "Apaga pegadas, rastros e odores deixados pelo grupo." },
+    { nome: "Nulificação de Efeito", cor: "branca", receita: "Tinta Branca", efeito: "Remove uma maldição menor ou efeito de veneno persistente." },
+    { nome: "Apagão de Chamas", cor: "branca", receita: "Tinta Branca", efeito: "Extingue instantaneamente qualquer fogo natural ou mágico em área." },
+    { nome: "Vazio de Cor", cor: "branca", receita: "Tinta Branca", efeito: "Cria uma área sem cor que desorienta a visão de criaturas comuns." },
+    { nome: "Torrente de Vapor Quente", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Jato de vapor escaldante que causa 2 dano de fogo e cega o alvo." },
+    { nome: "Gêiser Eruptivo", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Faz brotar água fervente do chão em área de 3 metros causando 3 (dano misto)." },
+    { nome: "Cura Calcinante", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cura um aliado, mas cauteriza feridas com calor mágico instantâneo." },
+    { nome: "Nevoeiro Termal", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cria uma névoa espessa e quente que confunde sensores térmicos." },
+    { nome: "Escudo de Vapor", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cria uma barreira defensiva que repele projeteis e queima quem se aproxima." },
+    { nome: "Lâmina de Água Fervente", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "remove efeitos de arma ou armadura" },
+    { nome: "Chama Líquida", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Dispara um fluido pegajoso que queima mesmo sob a água, 1 de dano constante" },
+    { nome: "Purificação Ígnea", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Purifica o corpo de doenças queimando impurezas espirituais." },
+    { nome: "Pulso de Vapor", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "cria uma curtina de gas,enquanto nimguem tapar a fenda continuara enchendo o local com o gas, sufucando quem a respira, tempo de duraçao 1 cena " },
+    { nome: "Termoterapia Mágica", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Recupera fadiga extrema, podendo acordar pessoas desmaiadas" },
+    { nome: "Plasma Solar", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Cria uma esfera de plasma superaquecido que causa 4 dano massivo." },
+    { nome: "Aura de Fogo Sagrado", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Envolve o usuário em chamas douradas que blindam contra criaturas sobrenaturais." },
+    { nome: "Lança de Radiância Ardente", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "cria uma laça luz que lhe permite trocar de lugar com ela" },
+    { nome: "Explosão Prateada", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "purifica todos os efeitos negativos" },
+    { nome: "Manto de Ouro Vivo", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Aumenta em +2 o suporta lesao e concede aura de calor blindada por 1 cena., inimigos proximos sao queimados levando 1 de dano" },
+    { nome: "Brilho Magmático", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "permite colocar um ponto brilhante em um local atraindo qualquer coisa feita de metal" },
+    { nome: "Chama Solar Refletida", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Reflete feixes de luz concentrada em alvos específicos." },
+    { nome: "Fúria Radiante", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "faz o inimigo atacar qualquer um proximo a ele." },
+    { nome: "Farol de Combate", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Marca um inimigo com luz incandescente visível a longa distância." },
+    { nome: "Supernova Menor", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Pequena explosão luz-fogo em grande área 10 de dano, so explodindo depois de uma cena" },
+    { nome: "Luz das Marés", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "ao desenhar sobre o aliado, cura todos seus ferimentos" },
+    { nome: "Prisma Espiritual", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "permite conversa com alguem idependente da distancia viva ou morta" },
+    { nome: "Escudo de Aurora", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "protege alguem contra posseçao e efeitos sobrenaturais" },
+    { nome: "Água Cristalina", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cria água benta com propriedades de cura aprimoradas." },
+    { nome: "Bênção dos Mares", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "cria uma poça no chao que concede 1 de dano constante a quem pisa sobre ela" },
+    { nome: "Nevoeiro Arco-Íris", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cria ilusões óticas fantásticas na névoa d'água." },
+    { nome: "Pulso de Cura Astral", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cura em área moderada e afasta presenças espirituais malignas." },
+    { nome: "Olhar da Verdade Oceânica", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Permite encherga atravez de materia" },
+    { nome: "Cristalização de Luz", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "o diogenes cria um feiche de luz que congela o alvo, apenas podendo um alvo por vez" },
+    { nome: "Onda Radiante", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "lança uma onda de energia que deliga aoarelhos por um determinado tempo" },
+    { nome: "Matéria Vazia", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Cria e desfaz simultaneamente um objeto para abrir fechaduras." },
+    { nome: "Escudo de Antimatéria", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Anula o impacto de qualquer projétil físico ou mágico recebido." },
+    { nome: "Criação Silenciosa", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Materializa uma estrutura física sem emitir absolutamente nenhum som." },
+    { nome: "Apagar e Substituir", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Apaga um obstáculo pequeno e cria uma passagem no lugar." },
+    { nome: "Anulação Térmica", cor: "mescla", receita: "Tinta Vermelha + Tinta Branca + Tinta Preta", efeito: "Cria um campo onde o fogo é instantaneamente anulado pelo vazio." },
+    { nome: "Forja Fantasma", cor: "mescla", receita: "Tinta Vermelha + Tinta Preta + Tinta Amarela", efeito: "Cria armas metálicas incandescentes prontas para uso imediato." },
+    { nome: "Cristalização do Vazio", cor: "mescla", receita: "Tinta Azul + Tinta Branca + Tinta Preta", efeito: "Cria um bloco de gelo indestrutível que absorve feitiços." },
+    { nome: "Prisão Absoluta", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Prende o alvo em uma caixa dimensional de matéria apagada." },
+    { nome: "Silêncio de Ferro", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Cria uma barreira física e sonora intransponível." },
+    { nome: "Correção da Realidade", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Habilidade suprema: Altera um pequeno aspecto físico ou mágico do ambiente." },
+    { nome: "Fúria dos Quatro Elementos", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Tinta Amarela + Tinta Preta", efeito: "Libera uma tempestade elementar massiva ao redor do conjurador." },
+    { nome: "Cura Total do Pelo Mágico", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Tinta Branca", efeito: "Restaura 100% da vida usando os estoques guardados no pelo." },
+    { nome: "Barreira do Armazém Ambulante", cor: "mescla", receita: "Tinta Preta + Tinta Branca + Tinta Vermelha", efeito: "Protege o inventário guardado no pelo místico contra roubos e danos." },
+    { nome: "Super-Nova Arcana", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Tinta Branca", efeito: "Explosão gigantesca de luz e calor sob supervisão mística." },
+    { nome: "Véu Etéreo Absoluto", cor: "mescla", receita: "Tinta Azul + Tinta Branca + Tinta Preta", efeito: "Dá invisibilidade completa e intangibilidade física por 30 segundos." },
+    { nome: "Lança Mestra", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Tinta Amarela", efeito: "Cria uma arma lendária temporária com efeitos elementais combinados." },
+    { nome: "Ressurreição de Tinta", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Milagre supremo do grimório: Estabiliza um aliado à beira da morte." },
+    { nome: "Campo Anti-Magia", cor: "mescla", receita: "Tinta Branca + Tinta Preta", efeito: "Anula todas as magias ativas em um raio de 6 metros." },
+    { nome: "Labaredas Espirituais", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Causa dano de fogo espiritual que ignora defesas físicas comuns." },
+    { nome: "Apotéose Mágica", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Canaliza essência pura, dobrando o poder de todas as tintas por 3 rodadas." }
 ];
+
 // ==========================================
 // 4. CONTROLE DE LOGIN / INTERFACE
 // ==========================================
@@ -191,16 +161,15 @@ const DOM = {
     modalAdd: document.getElementById('modal-add'),
     modalView: document.getElementById('modal-view')
 };
-// Prevenção de erro: Verifica se o audio-modal existe antes de aplicar eventos
+
 function corrigirAudioModal() {
     const audioModal = document.getElementById('audio-modal');
-    if (!audioModal) return; // Impede que o código quebre caso não exista na tela
+    if (!audioModal) return; 
 
     const closeAudioBtn = audioModal.querySelector('.close-btn') || document.getElementById('close-audio-modal');
     if (closeAudioBtn) {
         closeAudioBtn.onclick = () => {
             audioModal.style.display = 'none';
-            // Se houver um player embutido, pausa ao fechar
             const player = document.getElementById('audio-player-element');
             if (player) player.pause();
         };
@@ -208,10 +177,8 @@ function corrigirAudioModal() {
 }
 window.addEventListener('DOMContentLoaded', corrigirAudioModal);
 
-// Lógica de Preview de Arquivos (Vídeos e Imagens)
-// Vincule isso ao seu input de arquivo, caso tenha um <input type="file" id="file-upload">
 const fileInput = document.getElementById('file-upload'); 
-const previewContainer = document.getElementById('reply-preview'); // Onde vai aparecer o preview
+const previewContainer = document.getElementById('reply-preview');
 
 if (fileInput && previewContainer) {
     fileInput.addEventListener('change', (e) => {
@@ -232,12 +199,11 @@ if (fileInput && previewContainer) {
         }
     });
 }
-// Verifica se já está logado
+
 window.onload = () => {
     const savedUser = localStorage.getItem('rpg_username');
     if (savedUser) login(savedUser);
 };
-// Função que embaralha tudo, exceto o que está entre aspas simples ou duplas (fala)
 
 function embaralharAcoes(texto) {
     let emFala = false;
@@ -246,13 +212,11 @@ function embaralharAcoes(texto) {
     
     for (let i = 0; i < texto.length; i++) {
         let char = texto[i];
-        // Alterna entre estado de "fala" e "ação" ao encontrar aspas
         if (char === '"' || char === "'") {
             emFala = !emFala;
             resultado += char;
             continue;
         }
-        // Se NÃO for fala e for uma letra/número, embaralha
         if (!emFala && char.match(/[a-zA-Z0-9áéíóúãõç]/i)) {
             resultado += glitchChars[Math.floor(Math.random() * glitchChars.length)];
         } else {
@@ -261,7 +225,9 @@ function embaralharAcoes(texto) {
     }
     return resultado;
 }
-// Deriva o "estado geral" a partir dos dois campos reais da ficha
+
+const embaralharInsanidade = embaralharAcoes; // Vinculando a mesma lógica.
+
 function obterEstadoGeral(ficha) {
     if (!ficha) return 'saudavel';
     if (ficha.estadoFisico === 'desacordado') return 'desacordado';
@@ -282,8 +248,6 @@ window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = nul
     }
 
     let textoFinal = texto;
-
-    // Distorção de sanidade (se sanidade baixa ou estado insano/fragmentado)
     let sanidade = (ficha && typeof ficha.sanidade !== 'undefined') ? Number(ficha.sanidade) : 100;
     if ((estado === 'fragmentado' || estado === 'insano' || sanidade < 30) && !forcarEnvioMestre) {
         textoFinal = embaralharInsanidade(textoFinal);
@@ -327,40 +291,28 @@ function login(username) {
     currentUser = username;
     localStorage.setItem('rpg_username', currentUser);
     
-    // Capitaliza o nome para o título
     DOM.userTitle.innerText = `Grimório de ${currentUser.charAt(0).toUpperCase() + currentUser.slice(1)}`;
     DOM.loginScreen.classList.add('hidden');
     DOM.appScreen.classList.remove('hidden');
-    console.log("Sistema: Tentando logar como ->", currentUser); // Rastreador 1
+
     const jogadoresAutorizados = ['mestre', 'gm', 'submestre_id']; 
     const btnGerenciarCanais = document.getElementById('btn-gm-chat-menu');
 
     if (jogadoresAutorizados.includes(currentUser.toLowerCase())) {
         btnGerenciarCanais.style.display = 'inline-block';
-         // Habilita as funções do menu do mestre
         btnGerenciarCanais.onclick = () => abrirMenuCanais(); 
     } else {
-        btnGerenciarCanais.style.display = 'none'; // Esconde para players comuns
+        btnGerenciarCanais.style.display = 'none'; 
     }
 
     if (currentUser.toLowerCase() === "mestre" || currentUser.toLowerCase() === "gm") { 
-        console.log("Sistema: Mestre detectado! Removendo a invisibilidade..."); // Rastreador 2
-        
         const gmControls = document.getElementById("gm-controls");
-        if (gmControls) {
-            gmControls.classList.remove("hidden");
-        } else {
-            console.error("Erro: O HTML do gm-controls não foi encontrado na página!");
-        }
-        
+        if (gmControls) gmControls.classList.remove("hidden");
         const cardPerfil = document.querySelector(".card-perfil");
         if (cardPerfil) cardPerfil.style.display = "none"; 
-        
     } else {
-        console.log("Sistema: Jogador comum detectado.");
         const gmControls = document.getElementById("gm-controls");
         if (gmControls) gmControls.classList.add("hidden");
-        
         const cardPerfil = document.querySelector(".card-perfil");
         if (cardPerfil) cardPerfil.style.display = "block";
     }
@@ -369,16 +321,15 @@ function login(username) {
     carregarGrimorioDoFirebase();
     carregarInventarioDoFirebase();
     carregarFichaDoFirebase();
-   if (currentUser && currentUser.toLowerCase() === 'diogenes') {
-    gerenciarMarcadorTintaDiogenes();
+    
+    if (currentUser && currentUser.toLowerCase() === 'diogenes') {
+        gerenciarMarcadorTintaDiogenes();
+    }
+    iniciarChatAvancado();
 }
-  // Adicione isso dentro da sua função de login, logo após definir quem é o usuário!
-  iniciarChatAvancado();
-}
-
 
 // ==========================================
-// 5. LÓGICA DO FIREBASE (Sincronização)
+// 5. LÓGICA DO FIREBASE E INTERFACE DE CARTAS
 // ==========================================
 function carregarGrimorioDoFirebase() {
     const grimorioRef = ref(db, 'grimoires/' + currentUser);
@@ -387,14 +338,12 @@ function carregarGrimorioDoFirebase() {
         const data = snapshot.val();
         
         if (data) {
-            // Converte objeto do Firebase para Array
             userGrimoire = Object.keys(data).map(key => ({
                 id: key,
                 ...data[key]
             }));
             renderizarCards(userGrimoire);
         } else {
-            // Se for o Diógenes e estiver vazio, insere o compêndio original no Firebase dele
             if (currentUser === 'diogenes') {
                 magiasDiogenes.forEach(magia => {
                     const novaMagiaRef = push(ref(db, 'grimoires/' + currentUser));
@@ -413,19 +362,13 @@ function renderizarCards(lista) {
     
     let listaFinal = lista;
     
-    // Regras exclusivas para o Diógenes
     if (currentUser && currentUser.toLowerCase() === 'diogenes') {
-        // 1. Filtro por cor selecionada nos botões
         if (filtroCorDiogenes !== 'todos') {
             listaFinal = listaFinal.filter(ef => ef.cor === filtroCorDiogenes);
         }
-        
-        // 2. Trava de Tinta Preta e Branca (Exige tirar números iguais nos dados)
         if (!tintaEspecialLiberada) {
             listaFinal = listaFinal.filter(ef => ef.cor !== 'preta' && ef.cor !== 'branca');
         }
-        
-        // 3. Limite de capacidade pela qualidade da tinta
         listaFinal = listaFinal.slice(0, limiteTintaDiogenes);
     }
 
@@ -461,7 +404,6 @@ document.getElementById('btn-save-spell').onclick = () => {
     const novaMagiaRef = push(ref(db, 'grimoires/' + currentUser));
     set(novaMagiaRef, { nome, cor, receita, efeito }).then(() => {
         DOM.modalAdd.style.display = 'none';
-        // Limpar campos
         document.getElementById('new-nome').value = "";
         document.getElementById('new-receita').value = "";
         document.getElementById('new-efeito').value = "";
@@ -469,7 +411,7 @@ document.getElementById('btn-save-spell').onclick = () => {
 };
 
 function abrirModalView(ef) {
-    currentSpellId = ef.id; // Guarda o ID para poder deletar
+    currentSpellId = ef.id; 
     document.getElementById('view-titulo').innerText = ef.nome;
     document.getElementById('view-cor').innerText = ef.cor.toUpperCase();
     document.getElementById('view-receita').innerText = ef.receita;
@@ -477,11 +419,9 @@ function abrirModalView(ef) {
     
     let modalContent = document.querySelector('#modal-view .modal-content') || document.getElementById('view-efeito').parentNode;
     
-    // Remove botão de conjurar antigo se já existir para não duplicar
     let btnAntigo = document.getElementById('btn-conjurar-magia');
     if (btnAntigo) btnAntigo.remove();
     
-    // Cria o botão de conjurar
     const btnConjurar = document.createElement('button');
     btnConjurar.id = 'btn-conjurar-magia';
     btnConjurar.className = 'btn-mystic'; 
@@ -489,18 +429,14 @@ function abrirModalView(ef) {
     btnConjurar.innerText = `✨ Conjurar / Usar Tinta (${ef.cor.toUpperCase()})`;
     
     btnConjurar.onclick = () => {
-        // Tenta usar a tinta usando a função que criamos
         const podeConjurar = usarEfeitoDiogenes(ef);
-        
         if (podeConjurar) {
             alert(`✨ Magia "${ef.nome}" conjurada com sucesso! Uma carga de tinta ${ef.cor} foi consumida.`);
-            DOM.modalView.style.display = 'none'; // Fecha o modal só após conjurar com sucesso
+            DOM.modalView.style.display = 'none'; 
         }
     };
     
     modalContent.appendChild(btnConjurar);
-    
-    // ATENÇÃO AQUI: Deve ser 'flex' para o modal aparecer na tela!
     DOM.modalView.style.display = 'flex'; 
 }
 
@@ -513,7 +449,6 @@ document.getElementById('btn-delete-spell').onclick = () => {
     }
 };
 
-// Pesquisa
 DOM.searchInput.addEventListener('keyup', (e) => {
     const termo = e.target.value.toLowerCase();
     const filtrados = userGrimoire.filter(ef => 
@@ -529,19 +464,13 @@ DOM.searchInput.addEventListener('keyup', (e) => {
 // ==========================================
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        // Remove active de tudo
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        
-        // Ativa o clicado
         btn.classList.add('active');
         document.getElementById(btn.getAttribute('data-target')).classList.remove('hidden');
     });
 });
 
-// ==========================================
-// 8. ROLADOR DE DADOS
-// ==========================================
 // ==========================================
 // 8. ROLADOR DE DADOS
 // ==========================================
@@ -577,7 +506,6 @@ document.getElementById('btn-roll').addEventListener('click', () => {
                 estoqueTintasDiogenes['branca'] = Math.floor(limiteTintaDiogenes / 2);
                 
                 alert("✨ DUPLO MÍSTICO! As tintas especiais (Preta e Branca) foram desbloqueadas e abastecidas!");
-                
                 atualizarPainelTintasVisual();
                 salvarEstoqueNoFirebase();
                 renderizarCards(userGrimoire);
@@ -608,12 +536,10 @@ document.getElementById('btn-roll').addEventListener('click', () => {
 
         registrarLog(`Rolou ${quantidade}D${sides} e obteve o resultado ${totalFinal}`);
 
-        // ======= ENVIO DIRETO PARA O CHAT GERAL/MESTRE =======
         const textoParaChat = `🎲 <strong>${currentUser.toUpperCase()}</strong> rolou ${quantidade}D${sides}${textoMod}<br>Detalhes: ${detalheDados} ➔ <strong>Resultado: ${totalFinal}</strong>`;
         if (typeof window.enviarMensagemChat === "function") {
             window.enviarMensagemChat(textoParaChat, 'roll');
         }
-        // ====================================================
     }, 400);
 });
 
@@ -625,7 +551,6 @@ document.getElementById('btn-calc').addEventListener('click', () => {
     const resultDisplay = document.getElementById('calc-result');
     
     try {
-        // Função anônima eval-like segura e simples para cálculos
         const result = new Function('return ' + input)();
         if(isNaN(result)) throw new Error("Inválido");
         resultDisplay.innerText = result;
@@ -637,29 +562,20 @@ document.getElementById('btn-calc').addEventListener('click', () => {
 // ==========================================
 // 10. COMPARTILHAMENTO MÍSTICO (WHATSAPP)
 // ==========================================
-
-// Compartilhar Dados
 document.getElementById('btn-share-dice').addEventListener('click', () => {
     const total = document.getElementById('dice-result').innerText;
-    
-    // Pega a última rolagem do log para dar mais contexto (Ex: [D20] rolou 15 + 2 = 17)
     const logElements = document.getElementById('dice-log').children;
     let detalhe = logElements.length > 0 ? logElements[0].innerText : "";
 
-    // Trava para não compartilhar se não tiver rolado nada
     if (total === "-" || total === "🎲") {
         return alert("Role os dados antes de invocar o Zap, mestre!");
     }
 
-    // Formata a mensagem com o nome do usuário logado
     const texto = `🎲 *Rolagem do Destino de ${currentUser}* 🎲\n\nResultado Final: *${total}*\nDetalhes: _${detalhe}_\n\n🔮 _Enviado do Grimório Vivo_`;
-    
-    // Abre a URL do WhatsApp
     const zapUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
     window.open(zapUrl, '_blank');
 });
 
-// Compartilhar Calculadora
 document.getElementById('btn-share-calc').addEventListener('click', () => {
     const resultado = document.getElementById('calc-result').innerText;
     const expressao = document.getElementById('calc-input').value;
@@ -669,15 +585,14 @@ document.getElementById('btn-share-calc').addEventListener('click', () => {
     }
 
     const texto = `🧮 *Cálculo de Sistema (${currentUser})* 🧮\n\nEquação: ${expressao}\nResultado: *${resultado}*\n\n🔮 _Enviado do Grimório Vivo_`;
-    
     const zapUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
     window.open(zapUrl, '_blank');
 });
+
 // ==========================================
-// SISTEMA DE AUDITORIA (LOG DO MESTRE)
+// 11. SISTEMA DE AUDITORIA (LOG DO MESTRE)
 // ==========================================
 function registrarLog(acao) {
-    // Não registra ações se o usuário não estiver logado
     if (!currentUser) return; 
     
     const logRef = push(ref(db, 'system_logs'));
@@ -692,13 +607,6 @@ function registrarLog(acao) {
     });
 }
 
-// Injetar o log no login existente
-// Onde você tem a função login(username), adicione dentro dela:
-// registrarLog("Adentrou o grimório.");
-
-// ==========================================
-// AUTENTICAÇÃO DO MESTRE E EXIBIÇÃO DE LOGS
-// ==========================================
 const DOM_GM = {
     modalAuth: document.getElementById('modal-gm-auth'),
     passInput: document.getElementById('gm-password-input'),
@@ -711,12 +619,10 @@ const DOM_GM = {
 
 document.getElementById('btn-tab-gm').addEventListener('click', (e) => {
     if (!isMasterAuthenticated) {
-        // Impede a abertura da aba imediatamente
         e.preventDefault();
         document.getElementById('tab-gm').classList.add('hidden');
         document.getElementById('btn-tab-gm').classList.remove('active');
         
-        // Verifica no Firebase se já existe uma senha
         const dbRef = ref(db);
         get(child(dbRef, `gm_settings/password`)).then((snapshot) => {
             if (snapshot.exists()) {
@@ -743,14 +649,12 @@ DOM_GM.btnSubmit.addEventListener('click', () => {
     const dbRef = ref(db);
     get(child(dbRef, `gm_settings/password`)).then((snapshot) => {
         if (snapshot.exists()) {
-            // Senha já existe, validar
             if (snapshot.val() === inputPass) {
                 liberarAcessoMestre();
             } else {
                 alert("Senha incorreta. A magia o rejeita.");
             }
         } else {
-            // Criar senha pela primeira vez
             set(ref(db, 'gm_settings/password'), inputPass).then(() => {
                 alert("Senha mestre forjada com sucesso!");
                 liberarAcessoMestre();
@@ -764,7 +668,6 @@ function liberarAcessoMestre() {
     DOM_GM.modalAuth.style.display = 'none';
     DOM_GM.passInput.value = "";
     
-    // Força a ativação da aba
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
     document.getElementById('btn-tab-gm').classList.add('active');
@@ -779,7 +682,6 @@ function iniciarEscutaDeLogs() {
         DOM_GM.logContainer.innerHTML = "";
         const data = snapshot.val();
         if (data) {
-            // Converte e ordena por tempo (mais recentes no topo)
             const logsArray = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
             logsArray.forEach(log => {
                 const div = document.createElement('div');
@@ -798,16 +700,13 @@ document.getElementById('btn-clear-log').addEventListener('click', () => {
         remove(ref(db, 'system_logs'));
     }
 });
-// ==========================================
-// 12. SISTEMA DE INVENTÁRIO E FORJA SEPARADOS
-// ==========================================
+
 // ==========================================
 // 12. SISTEMA DE INVENTÁRIO E FORJA DINÂMICA
 // ==========================================
 let userInventory = []; 
-let listaDeMescla = []; // Lista para múltiplos itens no caldeirão
+let listaDeMescla = []; 
 
-// Função precisa para verificar e recarregar tintas comuns ao craftar
 function concluirCrafting(nomeItemCriado) {
     const nomeLower = nomeItemCriado.toLowerCase().trim();
     let corEncontrada = null;
@@ -817,14 +716,13 @@ function concluirCrafting(nomeItemCriado) {
     else if (nomeLower.includes('amarela')) corEncontrada = 'amarela';
 
     if (corEncontrada) {
-        estoqueTintasDiogenes[corEncontrada] = limiteTintaDiogenes; // Restaura 10 cargas
+        estoqueTintasDiogenes[corEncontrada] = limiteTintaDiogenes;
         alert(`🧪 Pote Recarregado! A Tinta ${corEncontrada.toUpperCase()} agora tem ${limiteTintaDiogenes} cargas.`);
         atualizarPainelTintasVisual();
         salvarEstoqueNoFirebase();
     }
 }
 
-// Escuta os itens do Inventário do Firebase
 function carregarInventarioDoFirebase() {
     if (!currentUser) return;
     
@@ -841,7 +739,6 @@ function carregarInventarioDoFirebase() {
     });
 }
 
-// Renderiza os itens na Bolsa de Componentes
 function renderizarInventarioVisual(itens) {
     const grid = document.getElementById('craft-inventory-grid');
     if (!grid) return;
@@ -855,24 +752,19 @@ function renderizarInventarioVisual(itens) {
     
     itens.forEach(item => {
         const icone = item.emoji ? item.emoji : "📦";
-        
         const div = document.createElement('div');
         div.className = 'inv-item';
         div.innerHTML = `<div class="emoji">${icone}</div><div class="name">${item.nome}</div>`;
-        
         div.onclick = () => selecionarParaForja(item, icone);
-        
         grid.appendChild(div);
     });
 }
 
-// Adiciona itens na lista dinâmica da forja
 function selecionarParaForja(item, icone) {
     listaDeMescla.push({ ...item, emojiVisual: icone });
     renderizarListaDeMescla();
 }
 
-// Atualiza a visualização dos itens dentro da forja
 function renderizarListaDeMescla() {
     const container = document.getElementById('forja-lista');
     if (!container) return;
@@ -892,13 +784,11 @@ function renderizarListaDeMescla() {
     }
 }
 
-// Remove item individual da lista de mescla
 window.removerItemDaForja = function(index) {
     listaDeMescla.splice(index, 1);
     renderizarListaDeMescla();
 }
 
-// Botão de Transmutar - Salva no INVENTÁRIO e consome os ingredientes usados
 document.getElementById('btn-craft-visual').addEventListener('click', () => {
     if (listaDeMescla.length < 2) return alert("Coloque pelo menos 2 materiais no caldeirão para mesclar!");
     
@@ -911,8 +801,8 @@ document.getElementById('btn-craft-visual').addEventListener('click', () => {
 
     iniciarAnimacaoMagica(() => {
         const receitaCombinada = listaDeMescla.map(i => i.nome).join(" + ");
-        
         const novoItemRef = push(ref(db, 'inventory/' + currentUser));
+        
         set(novoItemRef, { 
             nome: nomeItem, 
             emoji: emojiItem,
@@ -923,7 +813,6 @@ document.getElementById('btn-craft-visual').addEventListener('click', () => {
                 if (item.id) remove(ref(db, `inventory/${currentUser}/${item.id}`));
             });
 
-            // 🧪 VERIFICAÇÃO DE CRAFT DE TINTA (AQUI É ONDE ELA É CHAMADA!)
             concluirCrafting(nomeItem);
 
             if (typeof registrarLog === "function") {
@@ -941,7 +830,6 @@ document.getElementById('btn-craft-visual').addEventListener('click', () => {
     });
 });
 
-// Adicionar Material Base direto ao Inventário
 document.getElementById('btn-add-material').addEventListener('click', () => {
     const nome = prompt("Nome do Material ou Ingrediente (ex: Minério de Ferro):");
     if (!nome) return;
@@ -957,7 +845,6 @@ document.getElementById('btn-add-material').addEventListener('click', () => {
     });
 });
 
-// Função de Animação Mágica via Canvas
 function iniciarAnimacaoMagica(callbackFinal) {
     const canvas = document.getElementById('craft-canvas');
     if (!canvas) {
@@ -1000,7 +887,6 @@ function iniciarAnimacaoMagica(callbackFinal) {
             ctx.shadowBlur = 10;
             ctx.shadowColor = p.cor;
             ctx.fill();
-            
             p.x += (centerX - p.x) * 0.05 + p.velocidadeX;
             p.y += (centerY - p.y) * 0.05 + p.velocidadeY;
         });
@@ -1022,20 +908,16 @@ function iniciarAnimacaoMagica(callbackFinal) {
         callbackFinal();
     }, 2000);
 }
+
 // ==========================================
 // 14. BIBLIOTECA DE SISTEMAS E PERFIL DINÂMICO
 // ==========================================
-
-// Biblioteca Interna de Sistemas de RPG
 const BibliotecaSistemas = {
     "KULT": {
         nome: "KULT: Divindade Perdida",
         tipoDado: 10,
         quantidadeDados: 2,
-        atributosBase: {
-            "Vontade": 0, "Fortitude": 0, "Reflexos": 0, "Razão": 0,
-            "Intuição": 0, "Percepção": 0, "Carisma": 0, "Alma": 0,"Violencia": 0,"Firmesa": 0
-        },
+        atributosBase: { "Vontade": 0, "Fortitude": 0, "Reflexos": 0, "Razão": 0, "Intuição": 0, "Percepção": 0, "Carisma": 0, "Alma": 0,"Violencia": 0,"Firmesa": 0 },
         calcularHpMax: (atributos) => 10 + (atributos["Fortitude"] || 0),
         custoXpPorNivel: 10
     },
@@ -1049,17 +931,13 @@ const BibliotecaSistemas = {
     }
 };
 
-let fichaAtual = null;
-
-// Inicializa a ficha do jogador se não existir
 function carregarFichaDoFirebase() {
     if (!currentUser) return;
     const fichaRef = ref(db, `characters/${currentUser}`);
     onValue(fichaRef, (snapshot) => {
       const data = snapshot.val();
-    if (data) {
+      if (data) {
         fichaAtual = data;
-        // Ativa o bug no site inteiro caso esteja fragmentado
         let estado = obterEstadoGeral(fichaAtual);
         if (estado === 'fragmentado') {
             document.body.classList.add('glitch-extremo');
@@ -1067,16 +945,13 @@ function carregarFichaDoFirebase() {
             document.body.classList.remove('glitch-extremo');
         }
         renderizarPerfil();
-        } else {
+      } else {
             const novaFicha = {
                 nome: currentUser,
                 sistema: "KULT",
                 xp: 0,
                 nivel: 1,
-                ferimentos: {
-                    graves: 0,   // Máximo 4
-                    criticos: 0  // Máximo 1 (o 2º é fatal/desmaio)
-                },
+                ferimentos: { graves: 0, criticos: 0 },
                 atributos: { ...BibliotecaSistemas["KULT"].atributosBase }
             };
             set(fichaRef, novaFicha);
@@ -1087,11 +962,9 @@ function carregarFichaDoFirebase() {
 function renderizarPerfil() {
     if (!fichaAtual) return;
 
-    // Declaração do estado no início da função
-   let estado = obterEstadoGeral(fichaAtual);
+    let estado = obterEstadoGeral(fichaAtual);
     let sys = BibliotecaSistemas[fichaAtual.sistema] || BibliotecaSistemas["KULT"];
 
-    // Injeção de estilos visuais
     let styleFix = document.getElementById('style-fix-perfil');
     if (!styleFix) {
         styleFix = document.createElement('style');
@@ -1103,7 +976,6 @@ function renderizarPerfil() {
         document.head.appendChild(styleFix);
     }
 
-    // Atualização dos dados básicos na tela
     document.getElementById('nome-personagem').innerText = fichaAtual.nome.toUpperCase();
     document.getElementById('sistema-personagem').innerText = sys.nome;
     document.getElementById('display-xp').innerText = fichaAtual.xp;
@@ -1113,7 +985,6 @@ function renderizarPerfil() {
         medidorSanidade.value = fichaAtual.sanidade || 100;
     }
 
-    // Painel de Ferimentos
     let painelFerimentos = document.getElementById('painel-ferimentos-jogador');
     if (!painelFerimentos) {
         const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
@@ -1134,20 +1005,13 @@ function renderizarPerfil() {
         </div>
     `;
 
-    // Atualização de Avatar e Camadas
     let avatarLayers = [];
     if (fichaAtual.avatares) {
         if (fichaAtual.avatares['saudavel']) avatarLayers.push(fichaAtual.avatares['saudavel']);
-        
         let eFisico = fichaAtual.estadoFisico || 'saudavel';
         let eMental = fichaAtual.estadoMental || 'sao';
-        
         if (eFisico !== 'saudavel' && fichaAtual.avatares[eFisico]) avatarLayers.push(fichaAtual.avatares[eFisico]);
         if (eMental !== 'sao' && fichaAtual.avatares[eMental]) avatarLayers.push(fichaAtual.avatares[eMental]);
-    }
-
-    if (dadosNpc && dadosNpc.foto) {
-        avatarLayers = [dadosNpc.foto];
     }
 
     const containerFichaImg = document.getElementById('imagem-perfil-ficha');
@@ -1159,7 +1023,6 @@ function renderizarPerfil() {
         }
     }
 
-    // Nível e Experiência
     const areaUpar = document.getElementById('area-level-up');
     if (areaUpar) {
         if (fichaAtual.xp >= sys.custoXpPorNivel) {
@@ -1169,7 +1032,6 @@ function renderizarPerfil() {
         }
     }
 
-    // Configuração do Painel de Edição de Avatares
     let painelAvatares = document.getElementById('painel-avatares-jogador');
     if (!painelAvatares) {
         const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
@@ -1178,7 +1040,6 @@ function renderizarPerfil() {
         painelAvatares.style.cssText = "margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--borda-ouro); border-radius: 5px;";
         
         const estados = ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'];
-        
         let htmlInputs = `<h4 style="color: var(--borda-ouro); margin-top: 0;">Fotos de Perfil (Estados)</h4><div class="avatar-config-grid">`;
         estados.forEach(est => {
             htmlInputs += `
@@ -1250,7 +1111,6 @@ function renderizarPerfil() {
                     body: formData
                 });
                 const data = await response.json();
-                
                 if (data.success) {
                     inputTarget.value = data.data.url;
                 } else {
@@ -1284,7 +1144,6 @@ function renderizarPerfil() {
         });
     }
 
-    // Botões de Atributos
     const container = document.getElementById('botoes-atributos');
     if (container) {
         container.style.cssText = "display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 5px;";
@@ -1322,21 +1181,14 @@ function renderizarPerfil() {
         }
     }
 
-    // ==========================================
-    // RENDERIZAR PAINEL DE FERIMENTOS NA FICHA
-    // ==========================================
-    // Revelar controles do Mestre caso esteja autenticado
     if (isMasterAuthenticated) {
         const gmControls = document.getElementById('gm-controls');
         if (gmControls) gmControls.classList.remove('hidden');
     }
-  // Atualiza o valor do editor JSON móvel automaticamente
-   // Preenche o Novo Editor Visual com os atributos atuais da ficha
+
     const containerEditor = document.getElementById('lista-editor-atributos');
     if (containerEditor) {
-        containerEditor.innerHTML = ''; // Limpa as caixinhas antigas
-        
-        // Puxa os atributos da fichaAtual (que veio do Firebase) e cria as linhas
+        containerEditor.innerHTML = '';
         if (fichaAtual.atributos) {
             for (const [nome, valor] of Object.entries(fichaAtual.atributos)) {
                 adicionarLinhaEditor(nome, valor);
@@ -1344,10 +1196,7 @@ function renderizarPerfil() {
         }
     }
 }
-// Salvar alterações feitas manualmente pelo editor de texto JSON
 
-
-// 1. Salvar alterações feitas manualmente pelo editor de texto JSON
 const btnSalvarJson = document.getElementById('btn-salvar-json');
 if (btnSalvarJson) {
     btnSalvarJson.onclick = async () => {
@@ -1369,7 +1218,6 @@ if (btnSalvarJson) {
     };
 }
 
-// 2. Botão de Upar Atributo (Gasta XP)
 const btnUparAttr = document.getElementById('btn-upar-atributo');
 if (btnUparAttr) {
     btnUparAttr.onclick = () => {
@@ -1394,22 +1242,15 @@ if (btnUparAttr) {
 // ==========================================
 // 15. FERRAMENTAS DO MESTRE E QUADRO DE MISSÕES
 // ==========================================
-
-// ==========================================
-// 15. FERRAMENTAS DO MESTRE E QUADRO DE MISSÕES
-// ==========================================
-
-// Variável para armazenar o último alvo selecionado pelo Mestre
 let jogadorAlvoGm = "";
 
-// Função auxiliar para o Mestre escolher o alvo dinamicamente
 async function atualizarListaAlvosGm() {
     const selectAlvo = document.getElementById('gm-select-alvo');
     if (!selectAlvo) return;
 
     try {
         const snapshot = await get(child(ref(db), 'characters'));
-        selectAlvo.innerHTML = ""; // Limpa opções antigas
+        selectAlvo.innerHTML = ""; 
 
         if (!snapshot.exists()) {
             selectAlvo.innerHTML = `<option value="">Nenhum personagem cadastrado</option>`;
@@ -1420,7 +1261,7 @@ async function atualizarListaAlvosGm() {
         Object.keys(personagens).forEach(id => {
             const char = personagens[id];
             const option = document.createElement('option');
-            option.value = id; // Usa a chave do banco (ex: "dominick")
+            option.value = id; 
             option.innerText = char.nome ? char.nome.toUpperCase() : id.toUpperCase();
             selectAlvo.appendChild(option);
         });
@@ -1429,7 +1270,6 @@ async function atualizarListaAlvosGm() {
     }
 }
 
-// Mestre concede XP para qualquer jogador
 document.getElementById('btn-gm-xp').onclick = async () => {
     const valor = parseInt(document.getElementById('gm-mod-valor').value);
     const alvo = document.getElementById('gm-select-alvo').value;
@@ -1455,6 +1295,7 @@ document.getElementById('btn-gm-xp').onclick = async () => {
         }
     });
 };
+
 document.getElementById('btn-gm-mudar-estado').onclick = () => {
     const alvo = document.getElementById('gm-select-alvo').value;
     const novoFisico = document.getElementById('gm-select-estado-fisico').value;
@@ -1474,22 +1315,18 @@ document.getElementById('btn-gm-falar-player').onclick = () => {
     
     const texto = prompt(`Digite a mensagem que você quer enviar como se fosse ${alvo}:`);
     if (texto) {
-        // Envia usando a função modificada, ativando a flag "forcarEnvioMestre = true" 
-        // para quebrar a restrição caso ele esteja desacordado ou fragmentado
         window.enviarMensagemChat(texto, 'chat', alvo, true); 
         if (typeof registrarLog === "function") registrarLog(`GM falou como se fosse o jogador ${alvo}.`);
     }
 };
-// ==========================================
-// CONTROLE DO MESTRE: APLICAR / CURAR FERIMENTOS
-// ==========================================
+
 document.getElementById('btn-gm-ferimento').onclick = async () => {
     const alvo = document.getElementById('gm-select-alvo').value;
     const tipo = prompt("Qual tipo de ferimento deseja alterar? Digite: 'grave' ou 'critico'");
     const acao = prompt("Deseja 'adicionar' ou 'curar'?");
 
     if (!alvo) return alert("Selecione um jogador na lista do Mestre primeiro!");
-    if (tipo !== 'grave' && tipo !== 'critico') return typeError("Tipo inválido. Use 'grave' ou 'critico'.");
+    if (tipo !== 'grave' && tipo !== 'critico') return alert("Tipo inválido. Use 'grave' ou 'critico'.");
 
     const charRef = ref(db, `characters/${alvo}`);
     const snapshot = await get(charRef);
@@ -1504,7 +1341,6 @@ document.getElementById('btn-gm-ferimento').onclick = async () => {
             if (graves < 4) {
                 graves++;
             } else {
-                // Regra: Se tiver o máximo de graves e receber outro, vira crítico!
                 graves = 4;
                 criticos++;
                 alert(`⚠️ O limite de Ferimentos Graves estourou! O ferimento se agravou e virou um FERIMENTO CRÍTICO!`);
@@ -1520,10 +1356,7 @@ document.getElementById('btn-gm-ferimento').onclick = async () => {
         if (tipo === 'critico' && criticos > 0) criticos--;
     }
 
-    // Salva no Firebase
-    update(charRef, {
-        ferimentos: { graves, criticos }
-    }).then(() => {
+    update(charRef, { ferimentos: { graves, criticos } }).then(() => {
         alert(`Ferimentos de ${alvo.toUpperCase()} atualizados com sucesso! (Graves: ${graves}, Críticos: ${criticos})`);
         if (typeof registrarLog === "function") {
             registrarLog(`GM alterou os ferimentos de ${alvo} (${tipo}: ${acao}).`);
@@ -1531,7 +1364,6 @@ document.getElementById('btn-gm-ferimento').onclick = async () => {
     });
 };
 
-// Sincronização do Quadro de Missões (Global para todos os jogadores)
 const missoesRef = ref(db, 'quests');
 onValue(missoesRef, (snapshot) => {
     const data = snapshot.val();
@@ -1573,10 +1405,9 @@ window.apagarMissao = function(key) {
         remove(ref(db, `quests/${key}`));
     }
 };
-// Modificação final: Chame carregarFichaDoFirebase() dentro da sua função login() existente.
 
 // ==========================================
-// 16. IMPORTAÇÃO DE FICHA POR ARQUIVO (.TXT / .JSON)
+// 16. IMPORTAÇÃO DE FICHA POR ARQUIVO
 // ==========================================
 const inputUpload = document.getElementById('upload-ficha');
 const statusImportacao = document.getElementById('status-importacao');
@@ -1591,13 +1422,10 @@ if (inputUpload) {
 
         leitor.onload = function(e) {
             try {
-                // Lê o arquivo do jogador
                 const fichaLida = JSON.parse(e.target.result);
-                
-                // Sobrescreve a ficha atual no Firebase com os dados do arquivo
                 const fichaRef = ref(db, `characters/${currentUser}`);
                 set(fichaRef, {
-                    nome: currentUser, // Trava o nome da ficha para o nome do jogador logado
+                    nome: currentUser, 
                     sistema: fichaLida.sistema || "Personalizado",
                     xp: fichaLida.xp || 0,
                     hpAtual: fichaLida.hpAtual || 10,
@@ -1607,7 +1435,6 @@ if (inputUpload) {
                     statusImportacao.innerText = "Ficha importada com sucesso!";
                     setTimeout(() => statusImportacao.innerText = "", 4000);
                 });
-                
             } catch (erro) {
                 statusImportacao.innerText = "Erro: O pergaminho não tem a formatação mágica correta (JSON inválido).";
                 console.error("Erro ao ler ficha:", erro);
@@ -1616,30 +1443,19 @@ if (inputUpload) {
         leitor.readAsText(arquivo);
     });
 }
-// ==========================================
-// SINCRONIZAÇÃO AUTOMÁTICA DOS ALVOS DO MESTRE
-// ==========================================
-const selectAlvoGm = document.getElementById('gm-select-alvo');
 
+const selectAlvoGm = document.getElementById('gm-select-alvo');
 if (selectAlvoGm) {
     const charactersRef = ref(db, 'characters');
-    
-    // Fica escutando o Firebase em tempo real
     onValue(charactersRef, (snapshot) => {
-        // Limpa as opções atuais para evitar duplicação
         selectAlvoGm.innerHTML = '<option value="">Selecione um jogador...</option>';
-        
         if (snapshot.exists()) {
             const personagens = snapshot.val();
-            
-            // Varre cada personagem salvo no Firebase
             Object.keys(personagens).forEach(key => {
                 const dados = personagens[key];
                 const option = document.createElement('option');
-                
-                option.value = key; // ID do personagem (ex: "dominick")
+                option.value = key; 
                 option.textContent = dados.nome ? dados.nome : key;
-                
                 selectAlvoGm.appendChild(option);
             });
         } else {
@@ -1647,48 +1463,38 @@ if (selectAlvoGm) {
         }
     });
 }
+
 // ==========================================
 // 17. EDITOR VISUAL DE ATRIBUTOS
 // ==========================================
-
-// Função para criar uma linha no editor visual
-// Função para criar uma linha no editor visual (Otimizada para Mobile)
-// Função para criar uma linha no editor visual (Otimizada para Mobile)
 function adicionarLinhaEditor(nome = "", valor = 0) {
     const container = document.getElementById('lista-editor-atributos');
     if (!container) return; 
     
     const div = document.createElement('div');
-    // Adicionado width: 100% e margin-bottom para separar as linhas
     div.style.cssText = "display: flex; gap: 5px; align-items: center; width: 100%; margin-bottom: 5px;";
-
-    // Adicionado min-width: 0 e box-sizing nos inputs; flex-shrink: 0 no botão X
     div.innerHTML = `
         <input type="text" class="input-mystic nome-attr" value="${nome}" placeholder="Nome" style="flex: 2; min-width: 0; box-sizing: border-box; padding: 6px; font-size: 0.85rem;">
         <input type="number" class="input-mystic valor-attr" value="${valor}" placeholder="Valor" style="flex: 1; min-width: 0; box-sizing: border-box; text-align: center; padding: 6px; font-size: 0.85rem;">
         <button class="btn-remover-attr" style="background: #8b0000; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-weight: bold; flex-shrink: 0;">X</button>
     `;
 
-    // Botão de remover a linha
     div.querySelector('.btn-remover-attr').onclick = () => div.remove();
     container.appendChild(div);
 }
 
-// Evento para o botão "+ Novo Atributo"
 const btnNovoAttr = document.getElementById('btn-novo-atributo');
 if (btnNovoAttr) {
     btnNovoAttr.addEventListener('click', () => {
-        adicionarLinhaEditor("", 0); // Adiciona uma linha em branco
+        adicionarLinhaEditor("", 0); 
     });
 }
 
-// Evento para o botão "Salvar Ficha"
 const btnSalvarEditor = document.getElementById('btn-salvar-editor');
 if (btnSalvarEditor) {
     btnSalvarEditor.addEventListener('click', () => {
         if (!currentUser) return alert("Erro: Nenhum usuário logado!");
 
-        // 1. Coleta tudo que foi digitado nas caixinhas
         const novosAtributos = {};
         const linhas = document.querySelectorAll('#lista-editor-atributos > div');
         
@@ -1696,13 +1502,11 @@ if (btnSalvarEditor) {
             const nome = linha.querySelector('.nome-attr').value.trim();
             const valor = parseInt(linha.querySelector('.valor-attr').value) || 0;
             
-            // Só salva se o jogador tiver digitado um nome para o atributo
             if (nome) {
                 novosAtributos[nome] = valor;
             }
         });
 
-        // 2. Salva direto no Firebase
         set(ref(db, `characters/${currentUser}/atributos`), novosAtributos)
             .then(() => {
                 alert("Atributos salvos com sucesso!");
@@ -1713,10 +1517,10 @@ if (btnSalvarEditor) {
             .catch(erro => alert("Erro ao salvar: " + erro));
     });
 }
+
 // ==========================================
 // 18. MARCADOR DE QUALIDADE DE TINTA (DIÓGENES)
 // ==========================================
-
 function gerenciarMarcadorTintaDiogenes() {
     let painelTinta = document.getElementById('painel-tinta-diogenes');
     
@@ -1727,61 +1531,51 @@ function gerenciarMarcadorTintaDiogenes() {
                 painelTinta = document.createElement('div');
                 painelTinta.id = 'painel-tinta-diogenes';
                 painelTinta.style.cssText = "background: rgba(20, 20, 20, 0.95); border: 1px solid #c9b037; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; color: #fff; font-size: 0.85rem; width: 100%; box-sizing: border-box;";
-                // Dentro da função gerenciarMarcadorTintaDiogenes, atualize o innerHTML do painelTinta:
-painelTinta.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px;">
-        <div>
-            🖋️ <strong>Qualidade:</strong> 
-            <select id="select-qualidade-tinta" style="background: #111; color: #fff; border: 1px solid #555; padding: 3px; border-radius: 4px; font-size: 0.8rem;">
-                <option value="ruim">Ruim (2)</option>
-                <option value="boa" selected>Boa (5)</option>
-                <option value="perfeita">Perfeita (10)</option>
-            </select>
-        </div>
-        <div id="status-tinta-especial" style="color: ${tintaEspecialLiberada ? '#0f0' : '#888'}; font-size: 0.75rem;">
-            ${tintaEspecialLiberada ? '🔓 P/B Liberadas' : '🔒 P/B Bloqueadas (Role Duplo)'}
-        </div>
-    </div>
-    
-    <!-- Visão de Estoque de Tintas por Cor -->
-    <div style="display: flex; gap: 8px; justify-content: space-around; background: #111; padding: 6px; border-radius: 4px; border: 1px solid #333; font-size: 0.75rem;">
-        <span>🔴 V: <strong id='estoque-vermelha'>${estoqueTintasDiogenes.vermelha}</strong></span>
-        <span>🔵 A: <strong id='estoque-azul'>${estoqueTintasDiogenes.azul}</strong></span>
-        <span>🟡 Am: <strong id='estoque-amarela'>${estoqueTintasDiogenes.amarela}</strong></span>
-        <span>⚫ P: <strong id='estoque-preta'>${estoqueTintasDiogenes.preta}</strong></span>
-        <span>⚪ B: <strong id='estoque-branca'>${estoqueTintasDiogenes.branca}</strong></span>
-        <span>🟣 M: <strong id='estoque-mescla'>${estoqueTintasDiogenes.mescla}</strong></span>
-    </div>
-    
-    <!-- Botões de Filtro por Cor -->
-    <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; border-top: 1px solid #333; padding-top: 6px;">
-        <button class="btn-filtro-cor" data-cor="todos" style="background: #333; color: #fff; border: 1px solid #555; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer; font-weight: bold;">Todas</button>
-        <button class="btn-filtro-cor" data-cor="vermelha" style="background: #8b0000; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Vermelha</button>
-        <button class="btn-filtro-cor" data-cor="azul" style="background: #00008b; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Azul</button>
-        <button class="btn-filtro-cor" data-cor="amarela" style="background: #b8860b; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Amarela</button>
-        <button class="btn-filtro-cor" data-cor="preta" style="background: #222; color: #fff; border: 1px solid #555; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Preta</button>
-        <button class="btn-filtro-cor" data-cor="branca" style="background: #ddd; color: #000; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Branca</button>
-        <button class="btn-filtro-cor" data-cor="mescla" style="background: #551a8b; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Mescla</button>
-    </div>
-`;
-  
-                
+                painelTinta.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px;">
+                        <div>
+                            🖋️ <strong>Qualidade:</strong> 
+                            <select id="select-qualidade-tinta" style="background: #111; color: #fff; border: 1px solid #555; padding: 3px; border-radius: 4px; font-size: 0.8rem;">
+                                <option value="ruim">Ruim (2)</option>
+                                <option value="boa" selected>Boa (5)</option>
+                                <option value="perfeita">Perfeita (10)</option>
+                            </select>
+                        </div>
+                        <div id="status-tinta-especial" style="color: ${tintaEspecialLiberada ? '#0f0' : '#888'}; font-size: 0.75rem;">
+                            ${tintaEspecialLiberada ? '🔓 P/B Liberadas' : '🔒 P/B Bloqueadas (Role Duplo)'}
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; justify-content: space-around; background: #111; padding: 6px; border-radius: 4px; border: 1px solid #333; font-size: 0.75rem;">
+                        <span>🔴 V: <strong id='estoque-vermelha'>${estoqueTintasDiogenes.vermelha}</strong></span>
+                        <span>🔵 A: <strong id='estoque-azul'>${estoqueTintasDiogenes.azul}</strong></span>
+                        <span>🟡 Am: <strong id='estoque-amarela'>${estoqueTintasDiogenes.amarela}</strong></span>
+                        <span>⚫ P: <strong id='estoque-preta'>${estoqueTintasDiogenes.preta}</strong></span>
+                        <span>⚪ B: <strong id='estoque-branca'>${estoqueTintasDiogenes.branca}</strong></span>
+                        <span>🟣 M: <strong id='estoque-mescla'>${estoqueTintasDiogenes.mescla}</strong></span>
+                    </div>
+                    
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; border-top: 1px solid #333; padding-top: 6px;">
+                        <button class="btn-filtro-cor" data-cor="todos" style="background: #333; color: #fff; border: 1px solid #555; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer; font-weight: bold;">Todas</button>
+                        <button class="btn-filtro-cor" data-cor="vermelha" style="background: #8b0000; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Vermelha</button>
+                        <button class="btn-filtro-cor" data-cor="azul" style="background: #00008b; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Azul</button>
+                        <button class="btn-filtro-cor" data-cor="amarela" style="background: #b8860b; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Amarela</button>
+                        <button class="btn-filtro-cor" data-cor="preta" style="background: #222; color: #fff; border: 1px solid #555; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Preta</button>
+                        <button class="btn-filtro-cor" data-cor="branca" style="background: #ddd; color: #000; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Branca</button>
+                        <button class="btn-filtro-cor" data-cor="mescla" style="background: #551a8b; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Mescla</button>
+                    </div>
+                `;
                 gridMagias.parentNode.insertBefore(painelTinta, gridMagias);
                 
-                // Evento ao mudar a qualidade da tinta
                 document.getElementById('select-qualidade-tinta').onchange = (e) => {
                     salvarEAtualizarTinta(e.target.value);
                 };
                 
-                // Eventos dos botões de filtro de cor
                 painelTinta.querySelectorAll('.btn-filtro-cor').forEach(btn => {
                     btn.onclick = (e) => {
                         filtroCorDiogenes = e.target.getAttribute('data-cor');
-                        
-                        // Destaca visualmente o botão ativo
                         painelTinta.querySelectorAll('.btn-filtro-cor').forEach(b => b.style.outline = 'none');
                         e.target.style.outline = '2px solid #fff';
-                        
                         renderizarCards(userGrimoire);
                     };
                 });
@@ -1805,12 +1599,10 @@ function salvarEAtualizarTinta(qualidade) {
         statusEl.innerText = `Capacidade: ${limiteTintaDiogenes}`;
     }
     
-    // Atualiza os cards na tela imediatamente baseando-se no novo limite
     if (typeof userGrimoire !== 'undefined') {
         renderizarCards(userGrimoire);
     }
     
-    // Salva a escolha no Firebase
     set(ref(db, `characters/diogenes/qualidadeTinta`), {
         qualidade: qualidade,
         limite: limiteTintaDiogenes
@@ -1833,13 +1625,13 @@ function carregarTintaDoFirebase() {
             const statusEl = document.getElementById('status-limite-tinta');
             if (statusEl) statusEl.innerText = `Capacidade: ${limiteTintaDiogenes}`;
             
-            // Renderiza o grimório já aplicando o limite carregado
             if (typeof userGrimoire !== 'undefined') {
                 renderizarCards(userGrimoire);
             }
         }
     }, { onlyOnce: true });
 }
+
 // ==========================================
 // 19. CONSUMO DE TINTA (DIÓGENES)
 // ==========================================
@@ -1849,10 +1641,8 @@ function usarEfeitoDiogenes(efeito) {
     const coresNecessarias = [];
 
     if (efeito.cor !== 'mescla') {
-        // Magia simples: consome apenas a própria cor
         coresNecessarias.push(efeito.cor);
     } else {
-        // Magia de Mescla: identifica quais tintas estão na receita[cite: 5]
         const receitaLower = efeito.receita.toLowerCase();
         
         if (receitaLower.includes('todas')) {
@@ -1866,7 +1656,6 @@ function usarEfeitoDiogenes(efeito) {
         }
     }
 
-    // 1. Verifica se há estoque suficiente para TODAS as tintas exigidas
     const tintasFaltando = [];
     coresNecessarias.forEach(cor => {
         if (!estoqueTintasDiogenes[cor] || estoqueTintasDiogenes[cor] <= 0) {
@@ -1876,15 +1665,13 @@ function usarEfeitoDiogenes(efeito) {
 
     if (tintasFaltando.length > 0) {
         alert(`❌ Tinta insuficiente para a mescla! Faltam cargas de: ${tintasFaltando.join(', ')}.`);
-        return false; // Bloqueia a conjuração
+        return false; 
     }
 
-    // 2. Consome 1 carga de cada tinta envolvida na mescla[cite: 5]
     coresNecessarias.forEach(cor => {
         estoqueTintasDiogenes[cor]--;
     });
 
-    // 3. Sincroniza a interface e o Firebase[cite: 5]
     atualizarPainelTintasVisual();
     salvarEstoqueNoFirebase();
 
@@ -1893,6 +1680,7 @@ function usarEfeitoDiogenes(efeito) {
 
     return true;
 }
+
 function atualizarPainelTintasVisual() {
     ['vermelha', 'azul', 'amarela', 'preta', 'branca', 'mescla'].forEach(cor => {
         const el = document.getElementById(`estoque-${cor}`);
@@ -1905,16 +1693,11 @@ function salvarEstoqueNoFirebase() {
 }
 
 // ==========================================
-// 20. SISTEMA VTT AVANÇADO (API, CHAT, NPCS E MURAL)
+// 20. SISTEMA VTT AVANÇADO (API, CHAT E MURAL)
 // ==========================================
 
-
-// ==========================================
-// A. INICIALIZAÇÃO E ESCUTA BASE
-// ==========================================
 function iniciarChatAvancado() {
     const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    // Revela botões exclusivos do Mestre
     if (isGM) {
         document.getElementById('btn-gm-chat-menu').classList.remove('hidden');
         document.getElementById('gm-upload-board').classList.remove('hidden');
@@ -1923,7 +1706,6 @@ function iniciarChatAvancado() {
 
     update(ref(db, 'canais/taverna'), { nome: 'Taverna', aprovado: true, criador: 'Sistema' });
 
-    // 1. Escutar Destino Global das Rolagens
     onValue(ref(db, 'configuracoes/destino_rolagens'), (snapshot) => {
         if (snapshot.exists()) {
             canalRolagemDestino = snapshot.val();
@@ -1934,7 +1716,6 @@ function iniciarChatAvancado() {
         }
     });
 
-    // 2. Fundo Customizado do Chat
     onValue(ref(db, 'gm_settings/chat_bg'), (snapshot) => {
         const bgContainer = document.getElementById('chat-fundo');
         if(snapshot.exists() && snapshot.val() !== "") {
@@ -1944,7 +1725,6 @@ function iniciarChatAvancado() {
         }
     });
 
-    // 3. Sistema de Áudio Global
     onValue(ref(db, 'configuracoes/audio_ambiente'), (snapshot) => {
         const urlEmbed = snapshot.val();
         const container = document.getElementById('global-audio-container');
@@ -1958,7 +1738,6 @@ function iniciarChatAvancado() {
         }
     });
 
-    // 4. Sistema de Mute / Punições
     onValue(ref(db, 'mutes/' + currentUser.toLowerCase()), (snapshot) => {
         const data = snapshot.val();
         if (data && data.expiraEm > Date.now()) {
@@ -1986,7 +1765,6 @@ function iniciarChatAvancado() {
         }
     });
 
-    // 5. Gerenciamento de Canais
     onValue(ref(db, 'canais'), (snapshot) => {
         const lista = document.getElementById('channel-list');
         lista.innerHTML = "";
@@ -2023,14 +1801,10 @@ function iniciarChatAvancado() {
         if(isGM) gmSelect.value = canalRolagemDestino;
     });
 
-    // Inicia Chat na Taverna e Liga Mural
     mudarCanal('taverna', 'Taverna');
     escutarMuralFitas();
 }
 
-// ==========================================
-// B. CONTROLES DO MESTRE (MODAL, NPCS E FUNDO)
-// ==========================================
 window.abrirModalGmChat = function() { document.getElementById('modal-gm-chat-controls').style.display = 'flex'; }
 window.fecharModalGmChat = function() { document.getElementById('modal-gm-chat-controls').style.display = 'none'; }
 
@@ -2068,20 +1842,11 @@ window.salvarNovoNPC = function() {
     });
 }
 
-// ==========================================
-// C. UPLOAD UNIVERSAL NA NUVEM VIA IMGBB
-// ==========================================
-// Função para conectar qualquer botão 📎 a qualquer campo de texto
-// ==========================================
-// C. UPLOAD UNIVERSAL NA NUVEM VIA IMGBB (COM SUPORTE A VÍDEO)
-// ==========================================
 function configurarUploadImgBB(idFileInput, idTextInput) {
     const fileInput = document.getElementById(idFileInput);
     if (!fileInput) return;
 
-    // Garante que o html vai permitir o usuário escolher vídeo
     fileInput.setAttribute('accept', 'image/*, video/*');
-
     fileInput.addEventListener('change', async function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -2091,11 +1856,9 @@ function configurarUploadImgBB(idFileInput, idTextInput) {
         textInput.value = "";
         textInput.disabled = true;
 
-        // --- TRATAMENTO SE FOR VÍDEO ---
         if (file.type.startsWith('video/')) {
             textInput.placeholder = "Processando vídeo... ⏳";
             
-            // Limite de 5MB para o Firebase não colapsar com Base64 gigantesca
             if (file.size > 5 * 1024 * 1024) {
                 alert("O vídeo é maior que 5MB. A magia não suporta arquivos tão pesados. Hospede no Drive/YouTube e cole o link!");
                 textInput.disabled = false;
@@ -2114,7 +1877,6 @@ function configurarUploadImgBB(idFileInput, idTextInput) {
             return;
         }
 
-        // --- TRATAMENTO NORMAL PARA IMAGENS ---
         textInput.placeholder = "Fazendo upload mágico para a nuvem... ⏳";
         const formData = new FormData();
         formData.append("image", file);
@@ -2127,7 +1889,7 @@ function configurarUploadImgBB(idFileInput, idTextInput) {
             const data = await response.json();
             
             if(data.success) {
-                textInput.value = data.data.url; // URL pura da nuvem
+                textInput.value = data.data.url; 
             } else {
                 alert("Falha na magia de upload da ImgBB.");
             }
@@ -2137,559 +1899,120 @@ function configurarUploadImgBB(idFileInput, idTextInput) {
         
         textInput.disabled = false;
         textInput.placeholder = originalPlaceholder;
-        e.target.value = ''; // Limpa o input file
+        e.target.value = ''; 
     });
 }
-// Conectar os 4 botões de upload aos seus respectivos campos de texto
-configurarUploadImgBB('upload-midia', 'chat-input');        // Chat Geral
-configurarUploadImgBB('upload-mural', 'link-arquivo');      // Mural do Mestre
-configurarUploadImgBB('upload-chat-bg', 'input-chat-bg');   // Cenário de Fundo
-configurarUploadImgBB('upload-npc-foto', 'novo-npc-foto');  // Avatar do NPC
 
+configurarUploadImgBB('upload-midia', 'chat-input');        
+configurarUploadImgBB('upload-mural', 'link-arquivo');      
+configurarUploadImgBB('upload-chat-bg', 'input-chat-bg');   
+configurarUploadImgBB('upload-npc-foto', 'novo-npc-foto');  
 
 // ==========================================
-// D. RENDERIZAÇÃO DO CHAT (MENÇÕES, RESPOSTAS, MÍDIA)
+// D. SISTEMA DE CHAT, MURAL E UTILITÁRIOS
 // ==========================================
-window.setarResposta = function(nomeUsuario) {
-    respondendoA = nomeUsuario;
-    document.getElementById('reply-user').innerText = nomeUsuario.toUpperCase();
-    document.getElementById('reply-preview').classList.remove('hidden');
-    document.getElementById('chat-input').focus();
+
+function abrirMenuCanais() {
+    const modal = document.getElementById('modal-gm-chat-controls');
+    if (modal) modal.style.display = 'flex';
 }
 
-window.cancelarResposta = function() {
-    respondendoA = null;
-    document.getElementById('reply-preview').classList.add('hidden');
+window.aprovarFirebase = function(caminho) {
+    update(ref(db, caminho), { aprovado: true })
+        .then(() => alert("Canal aprovado com sucesso!"))
+        .catch(err => console.error(err));
 }
 
-function mudarCanal(idCanal, nomeCanal) {
-    canalAtual = idCanal;
-    document.querySelectorAll('.channel-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if(btn.innerText.includes(nomeCanal)) btn.classList.add('active');
-    });
-
+function mudarCanal(id, nome) {
+    canalAtual = id;
+    
+    const tituloCanal = document.getElementById('canal-atual-nome');
+    if (tituloCanal) tituloCanal.innerText = nome;
+    
     if (unsubscribeChat) unsubscribeChat();
     
-   unsubscribeChat = onValue(ref(db, `mensagens/${canalAtual}`), (snapshot) => {
-    let quantidadeMensagensAntiga = 0;
-    const data = snapshot.val();
-    const container = document.getElementById('chat-messages');
-    if (!container) return;
-    container.innerHTML = ""; 
+    const chatWindow = document.getElementById('chat-mensagens');
+    if (chatWindow) chatWindow.innerHTML = '';
     
-    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    const mensagens = [];
-    snapshot.forEach(child => { mensagens.push({ id: child.key, ...child.val() }); });
-    
-    mensagens.forEach(msg => {
-        let tipo = 'other';
-        const remetenteRaw = msg.remetente || 'Sistema';
-        let nomeExibicao = remetenteRaw.toUpperCase();
-
-        // 1. Lógica de Detecção e Tipo
-        if (msg.tipo === 'roll') { 
-            tipo = 'roll'; 
-            nomeExibicao = '🎲 DADOS'; 
-        } else if (msg.tipo === 'npc') { 
-            tipo = 'npc'; 
-            nomeExibicao = (msg.npcData && msg.npcData.nome) ? msg.npcData.nome.toUpperCase() : 'NPC'; 
-        } else if (remetenteRaw.toLowerCase() === currentUser.toLowerCase()) { 
-            tipo = 'mine'; 
-        } else if (remetenteRaw.toLowerCase() === 'mestre' || remetenteRaw.toLowerCase() === 'gm') { 
-            tipo = 'gm'; 
-            nomeExibicao = '👑 MESTRE'; 
-        }
-        
-        const hora = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--';
-        
-        // 2. Notificações (@ Mencionado / Respondido)
-        const textoUpper = (msg.texto || '').toUpperCase();
-        const foiMarcado = textoUpper.includes(`@${currentUser.toUpperCase()}`) || (msg.replyTo && msg.replyTo.toUpperCase() === currentUser.toUpperCase());
-        const htmlBolinha = foiMarcado ? `<div class="notificacao-marcado"></div>` : '';
-        const htmlReply = msg.replyTo ? `<div class="reply-badge">↳ Respondendo a ${msg.replyTo.toUpperCase()}</div>` : '';
-        const novasMensagens = Object.keys(data).length;
-        if (novasMensagens > quantidadeMensagensAntiga && quantidadeMensagensAntiga !== 0) {
-            const ultimaMensagem = Object.values(data).pop();
-              if (ultimaMensagem.remetente !== currentUser) {
-              // Toca notificação e pisca aba
-                new Audio('notification.mp3').play().catch(e => {});
-                document.title = "(🔔) Nova Mensagem - Turno Noturno";
-            }
-        }
-          quantidadeMensagensAntiga = novasMensagens;
-          rolarParaFundo();
-
-        // 3. LÓGICA DO AVATAR (CAMADAS PNG, NPC E FALLBACKS)
-        let htmlAvatar = '';
-        if (tipo === 'npc' && msg.npcData && msg.npcData.foto) {
-            htmlAvatar = `<img src="${msg.npcData.foto}" class="chat-avatar-img" alt="NPC">`;
-        } else if (msg.avatarLayers && Array.isArray(msg.avatarLayers) && msg.avatarLayers.length > 0) {
-            // Renderiza o avatar empilhado em camadas PNG
-            htmlAvatar = `<div class="chat-avatar-container" style="position: relative; width: 45px; height: 45px; flex-shrink: 0;">`;
-            msg.avatarLayers.forEach((layerUrl, index) => {
-                htmlAvatar += `<img src="${layerUrl}" class="chat-avatar-layer" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: ${index + 1}; object-fit: cover; border-radius: 50%;">`;
-            });
-            htmlAvatar += `</div>`;
-        } else if (msg.avatarUrl) {
-            htmlAvatar = `<img src="${msg.avatarUrl}" class="chat-avatar-img" alt="Avatar">`;
-        } else if (tipo !== 'roll' && tipo !== 'gm') {
-            htmlAvatar = `<img src="https://i.imgur.com/z4bK9V3.png" class="chat-avatar-img" alt="Avatar">`;
-        }
-
-        // 4. Formatação de Texto e Mídia
-       let textoRenderizado = formatarTextoChat(msg.texto || '');
-        if (textoRenderizado.match(/\.(jpeg|jpg|gif|png)$/i)) {
-            textoRenderizado = `<a href="${textoRenderizado}" target="_blank"><img src="${textoRenderizado}" class="chat-media"></a>`;
-        } else if (textoRenderizado.match(/\.(mp4|webm)$/i)) {
-            textoRenderizado = `<video src="${textoRenderizado}" class="chat-media" controls></video>`;
-        }
-
-        // 5. Construção do Balão de Mensagem
-        let htmlBalao = `${htmlBolinha}`; 
-        htmlBalao += `<div style="overflow:hidden; flex: 1;">`;
-        htmlBalao += `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
-        htmlBalao += `${htmlReply} <div>${textoRenderizado} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
-
-        // Botões de Ação
-        if (tipo !== 'roll') {
-            htmlBalao += `<div class="msg-actions">`;
-            if (tipo !== 'mine') {
-                htmlBalao += `<span onclick="setarResposta('${remetenteRaw}')">↩️ Responder</span>`;
-            }
-            if (remetenteRaw.toLowerCase() === currentUser.toLowerCase() || isGM) {
-                htmlBalao += `<span onclick="editarMensagem('${msg.id}', '${(msg.texto || '').replace(/'/g, "\\'")}')">✏️ Edit</span>`;
-                htmlBalao += `<span onclick="apagarMensagem('${msg.id}')">🗑️ Del</span>`;
-            }
-            htmlBalao += `</div>`;
-        }
-        htmlBalao += `</div>`;
-
-        // 6. Montagem Final e Inserção no DOM
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `chat-msg-wrapper ${tipo}`;
-        msgDiv.innerHTML = htmlAvatar + `<div class="chat-msg ${tipo}">${htmlBalao}</div>`;
-
-        container.appendChild(msgDiv);
-    });
-
-    // Rola o chat para a última mensagem enviada
-    container.scrollTop = container.scrollHeight;
-});
-}
-// ==========================================
-// ==========================================
-// ==========================================
-// E. ENVIO DE MENSAGENS COMPLETO
-// ==========================================
-let ultimoEnterTime = 0;
-
-window.enviarMensagemCompleta = function() {
-    if (jogadorSilenciado) return;
-    const input = document.getElementById('chat-input');
-    const texto = input.value.trim();
-    if (!texto || !currentUser) return;
-  chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            const agora = Date.now();
-            // Se apertou Enter duas vezes em menos de 500ms ou usou Shift+Enter
-            if (agora - ultimoEnterTime < 500 && !e.shiftKey) {
-                e.preventDefault();
-                if (btnSend) btnSend.click();
-                ultimoEnterTime = 0;
-            } else {
-                ultimoEnterTime = agora;
-                // Deixa quebrar linha normalmente
-            }
-        }
+    const mensagensRef = ref(db, `mensagens/${id}`);
+    unsubscribeChat = onValue(mensagensRef, (snapshot) => {
+        if (chatWindow) chatWindow.innerHTML = '';
+        snapshot.forEach(child => {
+            renderizarMensagem(child.val(), child.key);
+        });
+        rolarParaFundo();
     });
 }
-  
-    // Detectar uso de NPC
-    const npcSelect = document.getElementById('select-npc-salvo');
-    const npcAtivoId = npcSelect ? npcSelect.value : null;
-    let dadosNpc = null;
 
-    if (npcAtivoId && npcsSalvos[npcAtivoId]) {
-        dadosNpc = npcsSalvos[npcAtivoId];
+function renderizarMensagem(msg, key) {
+    const chatWindow = document.getElementById('chat-mensagens');
+    if (!chatWindow) return;
+
+    const div = document.createElement('div');
+    div.className = `chat-mensagem ${msg.remetente === currentUser ? 'minha-mensagem' : ''}`;
+    
+    const nomeExibicao = msg.falarComo ? msg.falarComo.toUpperCase() : msg.remetente.toUpperCase();
+    const avatar = msg.avatarUrl || 'https://via.placeholder.com/65';
+    const cor = msg.corBalao || '#ccc';
+    
+    let conteudoTexto = msg.texto;
+    if (conteudoTexto.startsWith('data:image') || conteudoTexto.startsWith('http')) {
+        if (conteudoTexto.match(/\.(jpeg|jpg|gif|png)$/i) || conteudoTexto.startsWith('data:image')) {
+            conteudoTexto = `<img src="${conteudoTexto}" style="max-width:200px; border-radius:8px;">`;
+        } else if (conteudoTexto.match(/\.(mp4|webm)$/i) || conteudoTexto.startsWith('data:video')) {
+            conteudoTexto = `<video src="${conteudoTexto}" controls style="max-width:200px; border-radius:8px;"></video>`;
+        }
     }
 
-    let avatarLayers = [];
-    if (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.avatares) {
-        if (fichaAtual.avatares['saudavel']) avatarLayers.push(fichaAtual.avatares['saudavel']);
-
-        let eFisico = fichaAtual.estadoFisico || 'saudavel';
-        let eMental = fichaAtual.estadoMental || 'sao';
-
-        if (eFisico !== 'saudavel' && fichaAtual.avatares[eFisico]) avatarLayers.push(fichaAtual.avatares[eFisico]);
-        if (eMental !== 'sao' && fichaAtual.avatares[eMental]) avatarLayers.push(fichaAtual.avatares[eMental]);
-    }
-
-    if (dadosNpc && dadosNpc.foto) {
-        avatarLayers = [dadosNpc.foto];
-    }
-
-    push(ref(db, `mensagens/${canalAtual}`), {
-        remetente: currentUser,
-        tipo: dadosNpc ? 'npc' : 'chat',
-        npcData: dadosNpc,
-        texto: texto,
-        replyTo: respondendoA,
-        avatarUrl: avatarLayers[0] || '',
-        avatarLayers: avatarLayers,
-        timestamp: Date.now(),
-        editada: false
-    });
-
-    input.value = "";
-    cancelarResposta();
-
-document.getElementById('btn-send-chat').addEventListener('click', enviarMensagemCompleta);
-document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') enviarMensagemCompleta(); });
-
-// ==========================================
-// F. MURAL DE FITAS (ARQUIVOS DO MESTRE)
-// ==========================================
-window.postarArquivoMestre = function() {
-    const titulo = document.getElementById('titulo-arquivo').value.trim();
-    const link = document.getElementById('link-arquivo').value.trim();
-    if(!titulo || !link) return alert("Preencha título e link do artefato!");
-    
-    push(ref(db, 'tapes'), { titulo, link, data: Date.now(), autor: currentUser }).then(() => {
-        document.getElementById('titulo-arquivo').value = "";
-        document.getElementById('link-arquivo').value = "";
-        alert("Fita arquivada no mural com sucesso!");
-    });
-};
-
-window.apagarArquivoMural = function(id) {
-    if(confirm("Deseja destruir esta fita?")) remove(ref(db, `tapes/${id}`));
-}
-function formatarTextoChat(texto) {
-    if (!texto) return '';
-
-    let res = texto
-        // Bloco de código: ```código```
-        .replace(/```([\s\S]*?)```/g, '<pre class="chat-code-block"><code>$1</code></pre>')
-        // Monospace inline: `código`
-        .replace(/`([^`]+)`/g, '<code class="chat-code-inline">$1</code>')
-        // Negrito: *texto*
-        .replace(/\*([^\*]+)\*/g, '<strong>$1</strong>')
-        // Itálico: _texto_
-        .replace(/_([^_]+)_/g, '<em>$1</em>')
-        // Riscado: ~texto~
-        .replace(/~([^~]+)~/g, '<del>$1</del>')
-        // Ações Narrativas: '''ação''' ou *ação*
-        .replace(/'''([^']+)'''/g, '<span class="chat-acao">❖ $1 ❖</span>')
-        // Citações: > citação
-        .replace(/^>\s*(.+)$/gm, '<blockquote class="chat-quote">$1</blockquote>')
-        // Menções: @Nome
-        .replace(/@([a-zA-Z0-9_]+)/g, '<span class="chat-mencao" onclick="localizarUsuario(\'$1\')">@$1</span>')
-        // Quebras de linha
-        .replace(/\n/g, '<br>');
-
-    return res;
+    div.innerHTML = `
+        <img src="${avatar}" class="avatar" alt="Avatar">
+        <div class="balao" style="border: 1px solid ${cor};">
+            <div class="nome-remetente" style="color: ${cor};">${nomeExibicao}</div>
+            <div class="texto-mensagem">${conteudoTexto}</div>
+        </div>
+    `;
+    chatWindow.appendChild(div);
 }
 
-function obterCorBalao(nome) {
-    if (!nome) return '#2a2a2a';
-    const n = nome.toLowerCase();
-    if (n === 'mestre' || n === 'gm') return '#1a1a1a'; // Fixo Mestre
-    
-    // Gera uma cor fixa baseada nas letras do nome do player
+function rolarParaFundo() {
+    const chat = document.getElementById('chat-mensagens');
+    if (chat) chat.scrollTop = chat.scrollHeight;
+}
+
+function obterCorBalao(username) {
+    const cores = ['#ff4444', '#44ff44', '#4444ff', '#ffff44', '#ff44ff', '#44ffff'];
     let hash = 0;
-    for (let i = 0; i < n.length; i++) hash = n.charCodeAt(i) + ((hash << 5) - hash);
-    return `hsl(${Math.abs(hash) % 360}, 50%, 25%)`; 
+    for (let i = 0; i < username.length; i++) {
+        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return cores[Math.abs(hash) % cores.length];
 }
+
 function escutarMuralFitas() {
-    onValue(ref(db, 'tapes'), (snapshot) => {
-        const mural = document.getElementById('mural-arquivos');
-        if(!mural) return;
-        mural.innerHTML = "";
+    onValue(ref(db, 'mural_fitas'), (snapshot) => {
+        const mural = document.getElementById('lista-mural-fitas');
+        if (!mural) return;
+        mural.innerHTML = '';
         
-        if(!snapshot.exists()) {
-            mural.innerHTML = "<p class='text-muted' style='grid-column: 1/-1;'>O Akasha não possui fitas ou documentos registrados no momento.</p>";
-            return;
-        }
-
-        const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-        const fitas = snapshot.val();
-        
-        Object.keys(fitas).forEach(id => {
-            const fita = fitas[id];
-            
-            // Detecta formato para renderizar o preview
-            let previewHTML = `<a href="${fita.link}" target="_blank" class="btn-mystic small w-full" style="text-align:center; display:block; padding:15px; box-sizing:border-box;">🔗 Acessar Documento / Fita</a>`;
-            if(fita.link.match(/\.(jpeg|jpg|gif|png)$/i)) {
-                previewHTML = `<img src="${fita.link}" style="width:100%; height:auto; border-radius:4px; margin-top:5px;">`;
-            } else if (fita.link.match(/\.(mp4|webm)$/i)) {
-                previewHTML = `<video src="${fita.link}" controls style="width:100%; border-radius:4px; margin-top:5px;"></video>`;
-            } else if (fita.link.includes('youtube.com') || fita.link.includes('youtu.be')) {
-                // Tenta criar iframe de youtube pro mural
-                let vidId = fita.link.includes('v=') ? fita.link.split('v=')[1].split('&')[0] : fita.link.split('youtu.be/')[1];
-                if(vidId) previewHTML = `<iframe width="100%" height="200" src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen style="border-radius:4px;"></iframe>`;
-            }
-
-            const btnDeletar = isGM ? `<button onclick="apagarArquivoMural('${id}')" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold; position:absolute; top:5px; right:5px;">X</button>` : '';
-
-            mural.innerHTML += `
-                <div class="card alive-container" style="flex-direction: column; justify-content: flex-start; text-align: left; padding: 15px; position: relative; cursor: default;">
-                    ${btnDeletar}
-                    <strong style="color: var(--borda-ouro); font-size:1.1rem; display:block; margin-bottom:10px;">💾 ${fita.titulo}</strong>
-                    ${previewHTML}
-                </div>
-            `;
-        });
-    });
-}
-
-// ==========================================
-// G. FUNÇÕES AUXILIARES MANTIDAS
-// ==========================================
-window.registrarRolagemGlobal = function(motivo, expressao, resultado) {
-    if (!currentUser) return;
-    const destinoFinal = canalRolagemDestino || 'taverna';
-    push(ref(db, `mensagens/${destinoFinal}`), {
-        remetente: currentUser,
-        texto: `🎲 <strong>${currentUser.toUpperCase()}</strong> rolou para <em>${motivo}</em><br>Fórmula: [${expressao}] ➔ <strong>Resultado: ${resultado}</strong>`,
-        timestamp: Date.now(), tipo: 'roll', editada: false
-    });
-}
-window.mudarDestinoRolagens = function(idCanalDestino) { set(ref(db, 'configuracoes/destino_rolagens'), idCanalDestino); }
-window.abrirModalAudio = function() { document.getElementById('audio-modal').style.display = 'flex'; }
-window.fecharModalAudio = function() { document.getElementById('audio-modal').style.display = 'none'; }
-window.pararAudio = function() { remove(ref(db, 'configuracoes/audio_ambiente')); fecharModalAudio(); }
-window.rolarParaFundo = function() {
-    const chatContainer = document.getElementById('chat-messages') || document.getElementById('chat-container') || document.getElementById('lista-mensagens');
-    if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-};
-window.sincronizarAudio = function() {
-    const rawUrl = document.getElementById('youtube-url').value.trim();
-    if (!rawUrl) return;
-    let videoId = "";
-    if (rawUrl.includes("v=")) videoId = rawUrl.split("v=")[1].split("&")[0];
-    else if (rawUrl.includes("youtu.be/")) videoId = rawUrl.split("youtu.be/")[1].split("?")[0];
-    
-    if (videoId) {
-        set(ref(db, 'configuracoes/audio_ambiente'), `https://www.youtube.com/embed/${videoId}?autoplay=1&loop=1&playlist=${videoId}`);
-        fecharModalAudio();
-    } else alert("Link inválido.");
-}
-window.solicitarNovoCanal = function() {
-    const nome = prompt("Nome da Nova Sala:");
-    if (!nome) return;
-    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    update(ref(db, `canais/${nome.toLowerCase().replace(/[^a-z0-9]/g, '')}`), { nome: nome, criador: currentUser, aprovado: isGM });
-}
-window.aprovarFirebase = function(caminho) { update(ref(db, caminho), { aprovado: true }); }
-window.apagarMensagem = function(id) { if(confirm("Apagar dos registros?")) remove(ref(db, `mensagens/${canalAtual}/${id}`)); }
-window.editarMensagem = function(id, txt) { 
-    const novo = prompt("Altere sua mensagem:", txt); 
-    if (novo && novo.trim() !== "") update(ref(db, `mensagens/${canalAtual}/${id}`), { texto: novo.trim(), editada: true }); 
-}
-window.silenciarJogador = function() {
-    const alvo = document.getElementById('mute-player-name').value.trim().toLowerCase();
-    const minutos = parseInt(document.getElementById('mute-time').value);
-    if (alvo && minutos) set(ref(db, 'mutes/' + alvo), { expiraEm: Date.now() + (minutos * 60 * 1000), mutadoPor: currentUser });
-    alert(`Jogador ${alvo} silenciado por ${minutos} minutos.`);
-}
-document.getElementById('input-pesquisa-chat').addEventListener('keyup', (e) => {
-    const termo = e.target.value.toLowerCase();
-    const mensagensUI = document.querySelectorAll('.chat-msg-wrapper');
-    
-    mensagensUI.forEach(msgDiv => {
-        if (msgDiv.innerText.toLowerCase().includes(termo)) {
-            msgDiv.style.display = 'flex';
-        } else {
-            msgDiv.style.display = 'none';
+        if (snapshot.exists()) {
+            snapshot.forEach(child => {
+                const item = child.val();
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="${item.url}" target="_blank">${item.nome}</a>`;
+                mural.appendChild(li);
+            });
         }
     });
-});
-window.gerenciarCanalGm = function(idCanal) {
-    const acao = prompt("Opções do Canal:\n1 - Renomear\n2 - Excluir\n3 - Trancar (Senha)\n4 - Limitar (Privado)\nDigite o número:");
-    
-    if (acao === "1") {
-        const novoNome = prompt("Novo nome:");
-        if (novoNome) update(ref(db, `canais/${idCanal}`), { nome: novoNome });
-    } else if (acao === "2") {
-        if (confirm("Apagar o canal destruirá todas as mensagens. Tem certeza?")) {
-            remove(ref(db, `canais/${idCanal}`));
-            remove(ref(db, `mensagens/${idCanal}`)); // Apaga as mensagens atreladas
+}
+
+const btnSendChat = document.getElementById('btn-send-chat');
+if (btnSendChat) {
+    btnSendChat.addEventListener('click', () => {
+        const input = document.getElementById('chat-input');
+        const npcSalvo = document.getElementById('select-npc-salvo');
+        const falarComo = npcSalvo ? npcSalvo.value : null;
+        if (input && typeof window.enviarMensagemChat === 'function') {
+            window.enviarMensagemChat(input.value, 'chat', falarComo);
         }
-    } else if (acao === "3") {
-        const senha = prompt("Defina a senha (deixe em branco para remover):");
-        update(ref(db, `canais/${idCanal}`), { senha: senha || null });
-    } else if (acao === "4") {
-        const trancar = confirm("Deseja tornar este canal privado apenas para marcados?");
-        update(ref(db, `canais/${idCanal}`), { privado: trancar });
-    }
-}
-document.getElementById('medidor-sanidade').addEventListener('change', (e) => {
-    let valor = e.target.value;
-    update(ref(db, `characters/${currentUser}`), { sanidade: valor });
-    
-    // Quanto maior a sanidade perdida (valor baixo), mais bugado fica
-    if (valor < 30) {
-        document.body.classList.add('glitch-extremo');
-    } else {
-        document.body.classList.remove('glitch-extremo');
-    }
-});
-document.getElementById('btn-anti-glitch').addEventListener('click', () => {
-    document.body.classList.toggle('no-glitch');
-    alert("Filtro de estabilidade visual alternado.");
-});
-const CodigosInsanos = {
-    morseMap: {
-        'a': '.-', 'b': '-...', 'c': '-.-.', 'd': '-..', 'e': '.', 'f': '..-.',
-        'g': '--.', 'h': '....', 'i': '..', 'j': '.---', 'k': '-.-', 'l': '.-..',
-        'm': '--', 'n': '-.', 'o': '---', 'p': '.--.', 'q': '--.-', 'r': '.-.',
-        's': '...', 't': '-', 'u': '..-', 'v': '...-', 'w': '.--', 'x': '-..-',
-        'y': '-.--', 'z': '--..', ' ': '/'
-    },
-    paraMorse(txt) {
-        return txt.toLowerCase().split('').map(c => this.morseMap[c] || c).join(' ');
-    },
-    deMorse(txt) {
-        const invertido = Object.fromEntries(Object.entries(this.morseMap).map(([k, v]) => [v, k]));
-        return txt.split(' ').map(c => invertido[c] || (c === '/' ? ' ' : c)).join('');
-    },
-    paraBinario(txt) {
-        return txt.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
-    },
-    deBinario(txt) {
-        return txt.split(' ').map(bin => String.fromCharCode(parseInt(bin, 2))).join('');
-    },
-    paraNumerico(txt) {
-        return txt.toLowerCase().split('').map(c => {
-            const code = c.charCodeAt(0);
-            return (code >= 97 && code <= 122) ? (code - 96) : c;
-        }).join('-');
-    },
-    deNumerico(txt) {
-        return txt.split('-').map(num => {
-            const n = parseInt(num);
-            return (!isNaN(n) && n >= 1 && n <= 26) ? String.fromCharCode(n + 96) : num;
-        }).join('');
-    },
-    paraBlur(txt) {
-        return `<span class="spoiler-blur" onclick="this.classList.toggle('revelado')">${txt}</span>`;
-    }
-};
-
-function inicializarTradutor() {
-    const btnCifrar = document.getElementById('btn-cifrar');
-    const btnDecifrar = document.getElementById('btn-decifrar');
-    const txtInput = document.getElementById('tradutor-input');
-    const selectTipo = document.getElementById('tradutor-tipo');
-    const output = document.getElementById('tradutor-output');
-
-    if (!btnCifrar || !btnDecifrar || !txtInput) return;
-
-    btnCifrar.addEventListener('click', () => {
-        const texto = txtInput.value.trim();
-        const tipo = selectTipo.value;
-        if (!texto) return;
-
-        if (tipo === 'morse') output.innerText = CodigosInsanos.paraMorse(texto);
-        else if (tipo === 'binario') output.innerText = CodigosInsanos.paraBinario(texto);
-        else if (tipo === 'numerico') output.innerText = CodigosInsanos.paraNumerico(texto);
-        else if (tipo === 'blur') output.innerHTML = CodigosInsanos.paraBlur(texto);
-        else if (tipo === 'bugado') output.innerText = embaralharInsanidade(texto);
-    });
-
-    btnDecifrar.addEventListener('click', () => {
-        const texto = txtInput.value.trim();
-        const tipo = selectTipo.value;
-        if (!texto) return;
-
-        if (tipo === 'morse') output.innerText = CodigosInsanos.deMorse(texto);
-        else if (tipo === 'binario') output.innerText = CodigosInsanos.deBinario(texto);
-        else if (tipo === 'numerico') output.innerText = CodigosInsanos.deNumerico(texto);
-        else output.innerText = texto;
     });
 }
-
-
-// Modifique o envio na window.enviarMensagemChat:
-// Adicione esta declaração antes da linha que utiliza a variável "estado":
-let estado = (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.estadoAtual) 
-    ? fichaAtual.estadoAtual 
-    : 'saudavel';
-
-if ((estado === 'fragmentado' || estado === 'insano') && !forcarEnvioMestre) {
-    textoFinal = embaralharInsanidade(textoFinal);
-}
-
-// Botão de remover efeitos restrito ao chat para insanos
-function atualizarBotaoEfeitosChat() {
-    let btnLimpar = document.getElementById('btn-remover-efeitos-chat');
-    if (!btnLimpar) {
-        btnLimpar = document.createElement('button');
-        btnLimpar.id = 'btn-remover-efeitos-chat';
-        btnLimpar.className = 'btn-remover-efeitos-insano';
-        btnLimpar.innerText = "👁️ Tentar Focar (Remover Alucinações)";
-        document.getElementById('chat-controls-container').appendChild(btnLimpar);
-        
-        btnLimpar.onclick = () => {
-            alert("Sua mente tenta clarear...");
-            document.querySelectorAll('.chat-mensagem').forEach(msg => msg.style.filter = 'none');
-            document.body.classList.remove('glitch-extremo');
-        };
-    }
-    
-    // Aparece apenas se insano/fragmentado
-    if (obterEstadoGeral(fichaAtual) === 'insano' || obterEstadoGeral(fichaAtual) === 'fragmentado') {
-        btnLimpar.style.display = 'block';
-    } else {
-        btnLimpar.style.display = 'none';
-    }
-}
-// Chame atualizarBotaoEfeitosChat() no final de renderizarPerfil()
-// Garantir que iniciarChatAvancado seja chamado no fluxo antigo caso o login já esteja atrelado lá.
-// Se você possuía uma chamada `iniciarChatAvancado()` na sua função `login()`, ela chamará essa nova automaticamente.
-
-
-let tutorialAtivo = false;
-const tutoriais = {
-    'tab-grimoire': 'Aqui você armazena e conjura magias, poções e itens especiais. Utilize a busca rápida para filtrar.',
-    'tab-dice': 'Efetue rolagens de dados com múltiplos lados e modificadores de atributos positivos ou negativos.',
-    'tab-calc': 'Calculadora mística para operações aritméticas diretas e compartilhamento de contas no chat.',
-    'tab-craft': 'Forja de itens, gestão de ingredientes e estoque de tintas de Diógenes.',
-    'tab-perfil': 'Gerencie sua sanidade, karma, estados físicos/mentais e avatares do personagem.',
-    'tab-chat': 'Canal de comunicação entre jogadores e o Mestre. Enter duplo envia a mensagem.',
-    'tab-tradutor': 'Decodifique transmissões cifradas em binário, morse, números e textos corrompidos pelo vazio.'
-};
-
-function inicializarTutorial() {
-    const btnToggle = document.getElementById('btn-toggle-tutorial');
-    const modal = document.getElementById('modal-tutorial');
-    const btnFechar = document.getElementById('btn-fechar-tutorial');
-
-    if (btnToggle) {
-        btnToggle.addEventListener('click', () => {
-            tutorialAtivo = !tutorialAtivo;
-            btnToggle.innerText = `📚 Tutorial: ${tutorialAtivo ? 'Ativo' : 'Desativado'}`;
-            btnToggle.classList.toggle('ativo', tutorialAtivo);
-        });
-    }
-
-    if (btnFechar && modal) {
-        btnFechar.addEventListener('click', () => modal.classList.add('hidden'));
-    }
-
-    // Vincula a troca de abas
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const target = btn.getAttribute('data-target');
-            if (tutorialAtivo && tutoriais[target] && modal) {
-                document.getElementById('tutorial-title').innerText = btn.innerText;
-                document.getElementById('tutorial-body').innerText = tutoriais[target];
-                modal.classList.remove('hidden');
-            }
-        });
-    });
-}
-
