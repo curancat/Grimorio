@@ -1,10 +1,11 @@
 // Importações do Firebase v9 (SDK Modular)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getDatabase, ref, onValue, set, push, remove, get, child, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-
 // ==========================================
 // 1. CONFIGURAÇÃO DO FIREBASE
+// COLOQUE SUAS CHAVES AQUI, MESTRE!
 // ==========================================
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyB5rYYzsbn7rSfh2Q7iv20VtmWcvUTySaA",
   authDomain: "turno-noturno.firebaseapp.com",
@@ -19,7 +20,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const IMGBB_API_KEY = "1fd4d8fc1d8b3f9bb172de4e42dabe37";
-
 // ==========================================
 // 2. VARIÁVEIS GLOBAIS E ESTADOS
 // ==========================================
@@ -34,120 +34,145 @@ let unsubscribeChat = null;
 let jogadorSilenciado = false;
 let intervaloMute = null;
 
+// Variáveis para Menções e NPCs
 let respondendoA = null;
 let npcsSalvos = {};
-let limiteTintaDiogenes = 10;
-let filtroCorDiogenes = 'todos';
-let tintaEspecialLiberada = false;
-let estoqueTintasDiogenes = { vermelha: 10, azul: 10, amarela: 10, preta: 0, branca: 0, mescla: 0 };
-let fichaAtual = null;
-
+let limiteTintaDiogenes = 10;      // Limite padrão pela qualidade (Boa = 5)
+let filtroCorDiogenes = 'todos';   // Filtro de cor ativo
+let tintaEspecialLiberada = false; // Controla se preto/branco foram liberados por dados iguais
+let estoqueTintasDiogenes = {
+    vermelha: 10,
+    azul: 10,
+    amarela: 10,
+    preta: 0,
+    branca: 0,
+    mescla: 0
+};
+// Quando carregar/atualizar os dados do personagem:
 // ==========================================
-// 3. O GRIMÓRIO ATUALIZADO DE DIÓGENES
+// 3. O GRIMÓRIO ATUALIZADO DE DIÓGENES (100 EFEITOS)
 // ==========================================
 const magiasDiogenes = [
-    { nome: "Bola de fogo", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Cria um pequeno fogo autônomo que ilumina e causa 1 de dano de fogo." },
-    { nome: "Manto de Calor", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Concede resistência a dano de frio por uma cena." },
-    { nome: "Projétil Incandescente", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Dispara um dardo flamejante que causa 2 de dano de fogo." },
-    { nome: "Explosão de Brasa", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Cria uma explosão em área de 3 metros que empurra inimigos. causando 2 dano nos alvos" },
-    { nome: "Arma Ardente", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Adiciona +1 de dano de fogo a uma arma por uma cena" },
-    { nome: "Sopro de Fênix", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Libera um cone de fogo de 4 metros causando 3 de dano." },
-    { nome: "Muro de labaredas", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Ergue uma barreira de chamas bloqueando a passagem por 2 rodadas. causando 3 de dano a quem tenta ultrapassar" },
-    { nome: "Marca das Brasas", cor: "vermelha", receita: "Tinta Vermelha", efeito: "ao desenhar uma marca no alvo, sobe o comando do conjurador, a marca explode, queimando o alvo e causando 5 de dano" },
-    { nome: "Adrenalina", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Aumenta temporariamente a velocidade de movimento em 3 metros.aumentando em +2 os testes fisicos, porem se a marca permanecer por tempo estendido, podera ganhar ferimentos graves, e se abusado morre" },
-    { nome: "Estilhaço Magmático", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Dispara estilhaços quentes que perfuram armaduras leves. destruindo o equipamento atingido, se for metal ficara incandecente" },
-    { nome: "Cura das Marés", cor: "azul", receita: "Tinta Azul", efeito: "faz 1 ferimento estabilizado sumir da ficha" },
-    { nome: "Bolha de Oxigênio", cor: "azul", receita: "Tinta Azul", efeito: "cria bolhas, permitindo respiraçao em qualquer local, por tempo indeterminado" },
-    { nome: "Passo Sobre Águas", cor: "azul", receita: "Tinta Azul", efeito: "Permite caminhar sobre superfícies líquidas como se fossem solidas por uma cena" },
-    { nome: "Sussurro Espiritual", cor: "azul", receita: "Tinta Azul", efeito: "Permite enxergar e conversar com espíritos recem mortos, por uma cena" },
-    { nome: "Nevoeiro Purificador", cor: "azul", receita: "Tinta Azul", efeito: "Remove condições de veneno ou doença leve de um aliado." },
-    { nome: "Escudo de Gelo", cor: "azul", receita: "Tinta Azul", efeito: "Bloqueia completamente o próximo ataque corpo a corpo recebido." },
-    { nome: "Lágrima dos Mares", cor: "azul", receita: "Tinta Azul", efeito: "restaura estabilidade mental." },
-    { nome: "Voz do Oceano", cor: "azul", receita: "Tinta Azul", efeito: "Permite comunicação telepática de longo alcance com aliados." },
-    { nome: "Bênção da Névoa", cor: "azul", receita: "Tinta Azul", efeito: "Cria uma névoa densa ao redor concedendo camuflagem arcana." },
-    { nome: "Onda de Retorno", cor: "azul", receita: "Tinta Azul", efeito: "Empurra todos os inimigos ao redor para longe com força hidráulica., deixa o campo umido, lançado o alvo ate 5 metros" },
-    { nome: "Clarão Ofuscante", cor: "amarela", receita: "Tinta Amarela", efeito: "Cega temporariamente inimigos em um raio de 5 metros." },
-    { nome: "Lâmina de Luz", cor: "amarela", receita: "Tinta Amarela", efeito: "Infunde uma arma com luz radiante, permite ferir criaturais e causa dano extra em criaturas sobrenaturais maliguinas" },
-    { nome: "Faro da Verdade", cor: "amarela", receita: "Tinta Amarela", efeito: "Revela ilusões, metamorfos e invisibilidade em até 10 metros." },
-    { nome: "Aura de Proteção", cor: "amarela", receita: "Tinta Amarela", efeito: "Concede +2 no suporta lesao do alvo por uma cena. " },
-    { nome: "Feixe Solar", cor: "amarela", receita: "Tinta Amarela", efeito: "Dispara um raio de luz concentrada em linha reta ignorando armaduras leves." },
-    { nome: "Luz Guia", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria uma esfera de luz flutuante que ilumina locais escuros., inimigos que estao sobre a luz sao revelados,e aliados recebem um buf de +2 em acerto contra inimigos revelados" },
-    { nome: "Claridade Mental", cor: "amarela", receita: "Tinta Amarela", efeito: "Remove efeitos de medo ou confusão mental de um aliado,permitindo tambem exorcirsar o alvo" },
-    { nome: "Selo Solar", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria uma runa no chão que prende criaturas ao pisarem.,machuca ao tentar ultrapassar , porem nao poderam ultrapassar por inteiro" },
-    { nome: "Reflexo Espelhado", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria cópias ilusórias de algo ou alguem." },
-    { nome: "Toque do Amanhecer", cor: "amarela", receita: "Tinta Amarela", efeito: "estabiliza um ferimento temporariamente" },
-    { nome: "Parede de Ferro", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma parede sólida de matéria de 2x2 metros para bloqueio físico." },
-    { nome: "Criação de Ferramentas", cor: "preta", receita: "Tinta Preta", efeito: "Materializa instantaneamente uma ferramenta útil (chave, alavanca, corda)." },
-    { nome: "Armadura Sólida", cor: "preta", receita: "Tinta Preta", efeito: "Concede +3 de bônus na armadura do conjurador por 1 rodada." },
-    { nome: "Projétil Físico Denso", cor: "preta", receita: "Tinta Preta", efeito: "Cria e arremessa um pedregulho maciço com alto dano de impacto." },
-    { nome: "Selo de Prisão Material", cor: "preta", receita: "Tinta Preta", efeito: "Invoca algemas materiais do chão que prendem os pés do alvo." },
-    { nome: "Pilar de Sustentação", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma coluna instantânea para sustentar tetos desabando." },
-    { nome: "Bloco de Contenção", cor: "preta", receita: "Tinta Preta", efeito: "Cria um cubo de pedra ao redor de um item ou inimigo pequeno." },
-    { nome: "Lâmina Materializada", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma espada física improvisada de alta durabilidade." },
-    { nome: "Escudo de Chumbo", cor: "preta", receita: "Tinta Preta", efeito: "Cria um escudo pesado bloqueando magias baseadas em radiação ou luz." },
-    { nome: "Maciço Colossal", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma estrutura grossa de metal para bloquear passagens inteiras." },
-    { nome: "Desintegrar Objeto", cor: "branca", receita: "Tinta Branca", efeito: "Apaga e desintegra um objeto pequeno não mágico do cenário." },
-    { nome: "Silêncio Absoluto", cor: "branca", receita: "Tinta Branca", efeito: "Cria uma zona esférica de silêncio mágico onde nenhum som escapa." },
-    { nome: "Apagar Memória Recente", cor: "branca", receita: "Tinta Branca", efeito: "Apaga os últimos 10 segundos da mente de um alvo afetado." },
-    { nome: "Cancelamento de Magia", cor: "branca", receita: "Tinta Branca", efeito: "Anula um efeito mágico ativo de nível baixo." },
-    { nome: "Invisibilidade Óptica", cor: "branca", receita: "Tinta Branca", efeito: "Apaga a imagem visível do usuário do espectro óptico por 1 minuto." },
-    { nome: "Buraco Vazio", cor: "branca", receita: "Tinta Branca", efeito: "Cria um pequeno vácuo que suga e aprisiona projéteis inimigos." },
-    { nome: "Apagar Traços", cor: "branca", receita: "Tinta Branca", efeito: "Apaga pegadas, rastros e odores deixados pelo grupo." },
-    { nome: "Nulificação de Efeito", cor: "branca", receita: "Tinta Branca", efeito: "Remove uma maldição menor ou efeito de veneno persistente." },
-    { nome: "Apagão de Chamas", cor: "branca", receita: "Tinta Branca", efeito: "Extingue instantaneamente qualquer fogo natural ou mágico em área." },
-    { nome: "Vazio de Cor", cor: "branca", receita: "Tinta Branca", efeito: "Cria uma área sem cor que desorienta a visão de criaturas comuns." },
-    { nome: "Torrente de Vapor Quente", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Jato de vapor escaldante que causa 2 dano de fogo e cega o alvo." },
-    { nome: "Gêiser Eruptivo", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Faz brotar água fervente do chão em área de 3 metros causando 3 (dano misto)." },
-    { nome: "Cura Calcinante", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cura um aliado, mas cauteriza feridas com calor mágico instantâneo." },
-    { nome: "Nevoeiro Termal", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cria uma névoa espessa e quente que confunde sensores térmicos." },
-    { nome: "Escudo de Vapor", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cria uma barreira defensiva que repele projeteis e queima quem se aproxima." },
-    { nome: "Lâmina de Água Fervente", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "remove efeitos de arma ou armadura" },
-    { nome: "Chama Líquida", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Dispara um fluido pegajoso que queima mesmo sob a água, 1 de dano constante" },
-    { nome: "Purificação Ígnea", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Purifica o corpo de doenças queimando impurezas espirituais." },
-    { nome: "Pulso de Vapor", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "cria uma curtina de gas,enquanto nimguem tapar a fenda continuara enchendo o local com o gas, sufucando quem a respira, tempo de duraçao 1 cena " },
-    { nome: "Termoterapia Mágica", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Recupera fadiga extrema, podendo acordar pessoas desmaiadas" },
-    { nome: "Plasma Solar", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Cria uma esfera de plasma superaquecido que causa 4 dano massivo." },
-    { nome: "Aura de Fogo Sagrado", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Envolve o usuário em chamas douradas que blindam contra criaturas sobrenaturais." },
-    { nome: "Lança de Radiância Ardente", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "cria uma laça luz que lhe permite trocar de lugar com ela" },
-    { nome: "Explosão Prateada", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "purifica todos os efeitos negativos" },
-    { nome: "Manto de Ouro Vivo", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Aumenta em +2 o suporta lesao e concede aura de calor blindada por 1 cena., inimigos proximos sao queimados levando 1 de dano" },
-    { nome: "Brilho Magmático", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "permite colocar um ponto brilhante em um local atraindo qualquer coisa feita de metal" },
-    { nome: "Chama Solar Refletida", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Reflete feixes de luz concentrada em alvos específicos." },
-    { nome: "Fúria Radiante", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "faz o inimigo atacar qualquer um proximo a ele." },
-    { nome: "Farol de Combate", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Marca um inimigo com luz incandescente visível a longa distância." },
-    { nome: "Supernova Menor", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Pequena explosão luz-fogo em grande área 10 de dano, so explodindo depois de uma cena" },
-    { nome: "Luz das Marés", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "ao desenhar sobre o aliado, cura todos seus ferimentos" },
-    { nome: "Prisma Espiritual", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "permite conversa com alguem idependente da distancia viva ou morta" },
-    { nome: "Escudo de Aurora", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "protege alguem contra posseçao e efeitos sobrenaturais" },
-    { nome: "Água Cristalina", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cria água benta com propriedades de cura aprimoradas." },
-    { nome: "Bênção dos Mares", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "cria uma poça no chao que concede 1 de dano constante a quem pisa sobre ela" },
-    { nome: "Nevoeiro Arco-Íris", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cria ilusões óticas fantásticas na névoa d'água." },
-    { nome: "Pulso de Cura Astral", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cura em área moderada e afasta presenças espirituais malignas." },
-    { nome: "Olhar da Verdade Oceânica", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Permite encherga atravez de materia" },
-    { nome: "Cristalização de Luz", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "o diogenes cria um feiche de luz que congela o alvo, apenas podendo um alvo por vez" },
-    { nome: "Onda Radiante", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "lança uma onda de energia que deliga aoarelhos por um determinado tempo" },
-    { nome: "Matéria Vazia", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Cria e desfaz simultaneamente um objeto para abrir fechaduras." },
-    { nome: "Escudo de Antimatéria", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Anula o impacto de qualquer projétil físico ou mágico recebido." },
-    { nome: "Criação Silenciosa", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Materializa uma estrutura física sem emitir absolutamente nenhum som." },
-    { nome: "Apagar e Substituir", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Apaga um obstáculo pequeno e cria uma passagem no lugar." },
-    { nome: "Anulação Térmica", cor: "mescla", receita: "Tinta Vermelha + Tinta Branca + Tinta Preta", efeito: "Cria um campo onde o fogo é instantaneamente anulado pelo vazio." },
-    { nome: "Forja Fantasma", cor: "mescla", receita: "Tinta Vermelha + Tinta Preta + Tinta Amarela", efeito: "Cria armas metálicas incandescentes prontas para uso imediato." },
-    { nome: "Cristalização do Vazio", cor: "mescla", receita: "Tinta Azul + Tinta Branca + Tinta Preta", efeito: "Cria um bloco de gelo indestrutível que absorve feitiços." },
-    { nome: "Prisão Absoluta", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Prende o alvo em uma caixa dimensional de matéria apagada." },
-    { nome: "Silêncio de Ferro", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Cria uma barreira física e sonora intransponível." },
-    { nome: "Correção da Realidade", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Habilidade suprema: Altera um pequeno aspecto físico ou mágico do ambiente." },
-    { nome: "Fúria dos Quatro Elementos", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Tinta Amarela + Tinta Preta", efeito: "Libera uma tempestade elementar massiva ao redor do conjurador." },
-    { nome: "Cura Total do Pelo Mágico", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Tinta Branca", efeito: "Restaura 100% da vida usando os estoques guardados no pelo." },
-    { nome: "Barreira do Armazém Ambulante", cor: "mescla", receita: "Tinta Preta + Tinta Branca + Tinta Vermelha", efeito: "Protege o inventário guardado no pelo místico contra roubos e danos." },
-    { nome: "Super-Nova Arcana", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Tinta Branca", efeito: "Explosão gigantesca de luz e calor sob supervisão mística." },
-    { nome: "Véu Etéreo Absoluto", cor: "mescla", receita: "Tinta Azul + Tinta Branca + Tinta Preta", efeito: "Dá invisibilidade completa e intangibilidade física por 30 segundos." },
-    { nome: "Lança Mestra", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Tinta Amarela", efeito: "Cria uma arma lendária temporária com efeitos elementais combinados." },
-    { nome: "Ressurreição de Tinta", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Milagre supremo do grimório: Estabiliza um aliado à beira da morte." },
-    { nome: "Campo Anti-Magia", cor: "mescla", receita: "Tinta Branca + Tinta Preta", efeito: "Anula todas as magias ativas em um raio de 6 metros." },
-    { nome: "Labaredas Espirituais", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Causa dano de fogo espiritual que ignora defesas físicas comuns." },
-    { nome: "Apotéose Mágica", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Canaliza essência pura, dobrando o poder de todas as tintas por 3 rodadas." }
-];
+        // --- TINTA VERMELHA (FOGO) [1 a 10] ---
+        { nome: "Bola de fogo", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Cria um pequeno fogo autônomo que ilumina e causa 1 de dano de fogo." },
+        { nome: "Manto de Calor", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Concede resistência a dano de frio por uma cena." },
+        { nome: "Projétil Incandescente", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Dispara um dardo flamejante que causa 2 de dano de fogo." },
+        { nome: "Explosão de Brasa", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Cria uma explosão em área de 3 metros que empurra inimigos. causando 2 dano nos alvos" },
+        { nome: "Arma Ardente", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Adiciona +1 de dano de fogo a uma arma por uma cena" },
+        { nome: "Sopro de Fênix", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Libera um cone de fogo de 4 metros causando 3 de dano." },
+        { nome: "Muro de labaredas", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Ergue uma barreira de chamas bloqueando a passagem por 2 rodadas. causando 3 de dano a quem tenta ultrapassar" },
+        { nome: "Marca das Brasas", cor: "vermelha", receita: "Tinta Vermelha", efeito: "ao desenhar uma marca no alvo, sobe o comando do conjurador, a marca explode, queimando o alvo e causando 5 de dano" },
+        { nome: "Adrenalina", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Aumenta temporariamente a velocidade de movimento em 3 metros.aumentando em +2 os testes fisicos, porem se a marca permanecer por tempo estendido, podera ganhar ferimentos graves, e se abusado morre" },
+        { nome: "Estilhaço Magmático", cor: "vermelha", receita: "Tinta Vermelha", efeito: "Dispara estilhaços quentes que perfuram armaduras leves. destruindo o equipamento atingido, se for metal ficara incandecente" },
 
+        // --- TINTA AZUL (ÁGUA E ESPIRITUALIDADE) [11 a 20] ---
+        { nome: "Cura das Marés", cor: "azul", receita: "Tinta Azul", efeito: "faz 1 ferimento estabilizado sumir da ficha" },
+        { nome: "Bolha de Oxigênio", cor: "azul", receita: "Tinta Azul", efeito: "cria bolhas, permitindo respiraçao em qualquer local, por tempo indeterminado" },
+        { nome: "Passo Sobre Águas", cor: "azul", receita: "Tinta Azul", efeito: "Permite caminhar sobre superfícies líquidas como se fossem solidas por uma cena" },
+        { nome: "Sussurro Espiritual", cor: "azul", receita: "Tinta Azul", efeito: "Permite enxergar e conversar com espíritos recem mortos, por uma cena" },
+        { nome: "Nevoeiro Purificador", cor: "azul", receita: "Tinta Azul", efeito: "Remove condições de veneno ou doença leve de um aliado." },
+        { nome: "Escudo de Gelo", cor: "azul", receita: "Tinta Azul", efeito: "Bloqueia completamente o próximo ataque corpo a corpo recebido." },
+        { nome: "Lágrima dos Mares", cor: "azul", receita: "Tinta Azul", efeito: "restaura  estabilidade mental." },
+        { nome: "Voz do Oceano", cor: "azul", receita: "Tinta Azul", efeito: "Permite comunicação telepática de longo alcance com aliados." },
+        { nome: "Bênção da Névoa", cor: "azul", receita: "Tinta Azul", efeito: "Cria uma névoa densa ao redor concedendo camuflagem arcana." },
+        { nome: "Onda de Retorno", cor: "azul", receita: "Tinta Azul", efeito: "Empurra todos os inimigos ao redor para longe com força hidráulica., deixa o campo umido, lançado o alvo ate 5 metros" },
+
+        // --- TINTA AMARELA (LUZ) [21 a 30] ---
+        { nome: "Clarão Ofuscante", cor: "amarela", receita: "Tinta Amarela", efeito: "Cega temporariamente inimigos em um raio de 5 metros." },
+        { nome: "Lâmina de Luz", cor: "amarela", receita: "Tinta Amarela", efeito: "Infunde uma arma com luz radiante, permite ferir criaturais e causa dano extra em criaturas sobrenaturais maliguinas" },
+        { nome: "Faro da Verdade", cor: "amarela", receita: "Tinta Amarela", efeito: "Revela ilusões, metamorfos e invisibilidade em até 10 metros." },
+        { nome: "Aura de Proteção", cor: "amarela", receita: "Tinta Amarela", efeito: "Concede +2 no suporta lesao do alvo por uma cena. " },
+        { nome: "Feixe Solar", cor: "amarela", receita: "Tinta Amarela", efeito: "Dispara um raio de luz concentrada em linha reta ignorando armaduras leves." },
+        { nome: "Luz Guia", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria uma esfera de luz flutuante que ilumina locais escuros., inimigos que estao sobre a luz sao revelados,e aliados recebem um buf de +2 em acerto contra inimigos revelados" },
+        { nome: "Claridade Mental", cor: "amarela", receita: "Tinta Amarela", efeito: "Remove efeitos de medo ou confusão mental de um aliado,permitindo tambem exorcirsar o alvo" },
+        { nome: "Selo Solar", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria uma runa no chão que prende criaturas ao pisarem.,machuca ao tentar ultrapassar , porem nao poderam ultrapassar por inteiro" },
+        { nome: "Reflexo Espelhado", cor: "amarela", receita: "Tinta Amarela", efeito: "Cria cópias ilusórias de algo ou alguem." },
+        { nome: "Toque do Amanhecer", cor: "amarela", receita: "Tinta Amarela", efeito: "estabiliza um ferimento temporariamente" },
+
+        // --- TINTA PRETA (MATÉRIA - PASSIVA DE CRÍTICO) [31 a 40] ---
+        { nome: "Parede de Ferro", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma parede sólida de matéria de 2x2 metros para bloqueio físico." },
+        { nome: "Criação de Ferramentas", cor: "preta", receita: "Tinta Preta", efeito: "Materializa instantaneamente uma ferramenta útil (chave, alavanca, corda)." },
+        { nome: "Armadura Sólida", cor: "preta", receita: "Tinta Preta", efeito: "Concede +3 de bônus na armadura do conjurador por 1 rodada." },
+        { nome: "Projétil Físico Denso", cor: "preta", receita: "Tinta Preta", efeito: "Cria e arremessa um pedregulho maciço com alto dano de impacto." },
+        { nome: "Selo de Prisão Material", cor: "preta", receita: "Tinta Preta", efeito: "Invoca algemas materiais do chão que prendem os pés do alvo." },
+        { nome: "Pilar de Sustentação", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma coluna instantânea para sustentar tetos desabando." },
+        { nome: "Bloco de Contenção", cor: "preta", receita: "Tinta Preta", efeito: "Cria um cubo de pedra ao redor de um item ou inimigo pequeno." },
+        { nome: "Lâmina Materializada", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma espada física improvisada de alta durabilidade." },
+        { nome: "Escudo de Chumbo", cor: "preta", receita: "Tinta Preta", efeito: "Cria um escudo pesado bloqueando magias baseadas em radiação ou luz." },
+        { nome: "Maciço Colossal", cor: "preta", receita: "Tinta Preta", efeito: "Cria uma estrutura grossa de metal para bloquear passagens inteiras." },
+
+        // --- TINTA BRANCA (APAGAR - PASSIVA DE CRÍTICO) [41 a 50] ---
+        { nome: "Desintegrar Objeto", cor: "branca", receita: "Tinta Branca", efeito: "Apaga e desintegra um objeto pequeno não mágico do cenário." },
+        { nome: "Silêncio Absoluto", cor: "branca", receita: "Tinta Branca", efeito: "Cria uma zona esférica de silêncio mágico onde nenhum som escapa." },
+        { nome: "Apagar Memória Recente", cor: "branca", receita: "Tinta Branca", efeito: "Apaga os últimos 10 segundos da mente de um alvo afetado." },
+        { nome: "Cancelamento de Magia", cor: "branca", receita: "Tinta Branca", efeito: "Anula um efeito mágico ativo de nível baixo." },
+        { nome: "Invisibilidade Óptica", cor: "branca", receita: "Tinta Branca", efeito: "Apaga a imagem visível do usuário do espectro óptico por 1 minuto." },
+        { nome: "Buraco Vazio", cor: "branca", receita: "Tinta Branca", efeito: "Cria um pequeno vácuo que suga e aprisiona projéteis inimigos." },
+        { nome: "Apagar Traços", cor: "branca", receita: "Tinta Branca", efeito: "Apaga pegadas, rastros e odores deixados pelo grupo." },
+        { nome: "Nulificação de Efeito", cor: "branca", receita: "Tinta Branca", efeito: "Remove uma maldição menor ou efeito de veneno persistente." },
+        { nome: "Apagão de Chamas", cor: "branca", receita: "Tinta Branca", efeito: "Extingue instantaneamente qualquer fogo natural ou mágico em área." },
+        { nome: "Vazio de Cor", cor: "branca", receita: "Tinta Branca", efeito: "Cria uma área sem cor que desorienta a visão de criaturas comuns." },
+
+        // --- MESCLAS DUPLAS: VERMELHA + AZUL [51 a 60] ---
+        { nome: "Torrente de Vapor Quente", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Jato de vapor escaldante que causa 2 dano de fogo e cega o alvo." },
+        { nome: "Gêiser Eruptivo", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Faz brotar água fervente do chão em área de 3 metros causando 3 (dano misto)." },
+        { nome: "Cura Calcinante", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cura um aliado, mas cauteriza feridas com calor mágico instantâneo." },
+        { nome: "Nevoeiro Termal", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cria uma névoa espessa e quente que confunde sensores térmicos." },
+        { nome: "Escudo de Vapor", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Cria uma barreira defensiva que repele projeteis e queima quem se aproxima." },
+        { nome: "Lâmina de Água Fervente", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "remove efeitos de arma ou armadura" },
+        { nome: "Chama Líquida", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Dispara um fluido pegajoso que queima mesmo sob a água, 1 de dano constante" },
+        { nome: "Purificação Ígnea", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Purifica o corpo de doenças queimando impurezas espirituais." },
+        { nome: "Pulso de Vapor", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "cria uma curtina de gas,enquanto nimguem tapar a fenda continuara enchendo o local com o gas, sufucando quem a respira, tempo de duraçao 1 cena " },
+        { nome: "Termoterapia Mágica", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Recupera fadiga extrema, podendo acordar pessoas desmaiadas" },
+
+        // --- MESCLAS DUPLAS: VERMELHA + AMARELA [61 a 70] ---
+        { nome: "Plasma Solar", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Cria uma esfera de plasma superaquecido que causa 4 dano massivo." },
+        { nome: "Aura de Fogo Sagrado", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Envolve o usuário em chamas douradas que blindam contra criaturas sobrenaturais." },
+        { nome: "Lança de Radiância Ardente", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "cria uma laça luz que lhe permite trocar de lugar com ela" },
+        { nome: "Explosão Prateada", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "purifica todos os efeitos negativos" },
+        { nome: "Manto de Ouro Vivo", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Aumenta em +2 o suporta lesao e concede aura de calor blindada por 1 cena., inimigos proximos sao queimados levando 1 de dano" },
+        { nome: "Brilho Magmático", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "permite colocar um ponto brilhante em um local atraindo qualquer coisa feita de metal" },
+        { nome: "Chama Solar Refletida", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Reflete feixes de luz concentrada em alvos específicos." },
+        { nome: "Fúria Radiante", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "faz o inimigo atacar qualquer um proximo a ele." },
+        { nome: "Farol de Combate", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Marca um inimigo com luz incandescente visível a longa distância." },
+        { nome: "Supernova Menor", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela", efeito: "Pequena explosão luz-fogo em grande área 10 de dano, so explodindo depois de uma cena" },
+
+        // --- MESCLAS DUPLAS: AZUL + AMARELA [71 a 80] ---
+        { nome: "Luz das Marés", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "ao desenhar sobre o aliado, cura todos seus ferimentos" },
+        { nome: "Prisma Espiritual", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "permite conversa com alguem idependente da distancia viva ou morta" },
+        { nome: "Escudo de Aurora", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "protege alguem contra posseçao e efeitos sobrenaturais" },
+        { nome: "Água Cristalina", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cria água benta com propriedades de cura aprimoradas." },
+        { nome: "Bênção dos Mares", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "cria uma poça no chao que concede 1 de dano constante a quem pisa sobre ela" },
+        { nome: "Nevoeiro Arco-Íris", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cria ilusões óticas fantásticas na névoa d'água." },
+        { nome: "Pulso de Cura Astral", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Cura em área moderada e afasta presenças espirituais malignas." },
+        { nome: "Olhar da Verdade Oceânica", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "Permite encherga atravez de materia" },
+        { nome: "Cristalização de Luz", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "o diogenes cria um feiche de luz que congela o alvo, apenas podendo um alvo por vez" },
+        { nome: "Onda Radiante", cor: "mescla", receita: "Tinta Azul + Tinta Amarela", efeito: "lança uma onda de energia que deliga aoarelhos por um determinado tempo" },
+
+        // --- MESCLAS COM PRETA E BRANCA (MATÉRIA E NADA) [81 a 90] ---
+        { nome: "Matéria Vazia", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Cria e desfaz simultaneamente um objeto para abrir fechaduras." },
+        { nome: "Escudo de Antimatéria", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Anula o impacto de qualquer projétil físico ou mágico recebido." },
+        { nome: "Criação Silenciosa", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Materializa uma estrutura física sem emitir absolutamente nenhum som." },
+        { nome: "Apagar e Substituir", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Apaga um obstáculo pequeno e cria uma passagem no lugar." },
+        { nome: "Anulação Térmica", cor: "mescla", receita: "Tinta Vermelha + Tinta Branca + Tinta Preta", efeito: "Cria um campo onde o fogo é instantaneamente anulado pelo vazio." },
+        { nome: "Forja Fantasma", cor: "mescla", receita: "Tinta Vermelha + Tinta Preta + Tinta Amarela", efeito: "Cria armas metálicas incandescentes prontas para uso imediato." },
+        { nome: "Cristalização do Vazio", cor: "mescla", receita: "Tinta Azul + Tinta Branca + Tinta Preta", efeito: "Cria um bloco de gelo indestrutível que absorve feitiços." },
+        { nome: "Prisão Absoluta", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Prende o alvo em uma caixa dimensional de matéria apagada." },
+        { nome: "Silêncio de Ferro", cor: "mescla", receita: "Tinta Preta + Tinta Branca", efeito: "Cria uma barreira física e sonora intransponível." },
+        { nome: "Correção da Realidade", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Habilidade suprema: Altera um pequeno aspecto físico ou mágico do ambiente." },
+
+        // --- MESCLAS COMPLEXAS E MULTITINTAS SUPREMAS [91 a 100] ---
+        { nome: "Fúria dos Quatro Elementos", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Tinta Amarela + Tinta Preta", efeito: "Libera uma tempestade elementar massiva ao redor do conjurador." },
+        { nome: "Cura Total do Pelo Mágico", cor: "mescla", receita: "Tinta Azul + Tinta Amarela + Tinta Branca", efeito: "Restaura 100% da vida usando os estoques guardados no pelo." },
+        { nome: "Barreira do Armazém Ambulante", cor: "mescla", receita: "Tinta Preta + Tinta Branca + Tinta Vermelha", efeito: "Protege o inventário guardado no pelo místico contra roubos e danos." },
+        { nome: "Super-Nova Arcana", cor: "mescla", receita: "Tinta Vermelha + Tinta Amarela + Tinta Branca", efeito: "Explosão gigantesca de luz e calor sob supervisão mística." },
+        { nome: "Véu Etéreo Absoluto", cor: "mescla", receita: "Tinta Azul + Tinta Branca + Tinta Preta", efeito: "Dá invisibilidade completa e intangibilidade física por 30 segundos." },
+        { nome: "Lança Mestra", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul + Tinta Amarela", efeito: "Cria uma arma lendária temporária com efeitos elementais combinados." },
+        { nome: "Ressurreição de Tinta", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Milagre supremo do grimório: Estabiliza um aliado à beira da morte." },
+        { nome: "Campo Anti-Magia", cor: "mescla", receita: "Tinta Branca + Tinta Preta", efeito: "Anula todas as magias ativas em um raio de 6 metros." },
+        { nome: "Labaredas Espirituais", cor: "mescla", receita: "Tinta Vermelha + Tinta Azul", efeito: "Causa dano de fogo espiritual que ignora defesas físicas comuns." },
+        { nome: "Apotéose Mágica", cor: "mescla", receita: "Todas as Tintas (Vermelha, Azul, Amarela, Preta, Branca)", efeito: "Canaliza essência pura, dobrando o poder de todas as tintas por 3 rodadas." }
+];
 // ==========================================
 // 4. CONTROLE DE LOGIN / INTERFACE
 // ==========================================
@@ -161,7 +186,7 @@ const DOM = {
     modalAdd: document.getElementById('modal-add'),
     modalView: document.getElementById('modal-view')
 };
-
+// Prevenção de erro: Verifica se o audio-modal existe antes de aplicar eventos
 function corrigirAudioModal() {
     const audioModal = document.getElementById('audio-modal');
     if (!audioModal) return; 
@@ -178,7 +203,7 @@ function corrigirAudioModal() {
 window.addEventListener('DOMContentLoaded', corrigirAudioModal);
 
 const fileInput = document.getElementById('file-upload'); 
-const previewContainer = document.getElementById('reply-preview');
+const previewContainer = document.getElementById('reply-preview'); 
 
 if (fileInput && previewContainer) {
     fileInput.addEventListener('change', (e) => {
@@ -226,8 +251,6 @@ function embaralharAcoes(texto) {
     return resultado;
 }
 
-const embaralharInsanidade = embaralharAcoes; // Vinculando a mesma lógica.
-
 function obterEstadoGeral(ficha) {
     if (!ficha) return 'saudavel';
     if (ficha.estadoFisico === 'desacordado') return 'desacordado';
@@ -248,6 +271,7 @@ window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = nul
     }
 
     let textoFinal = texto;
+
     let sanidade = (ficha && typeof ficha.sanidade !== 'undefined') ? Number(ficha.sanidade) : 100;
     if ((estado === 'fragmentado' || estado === 'insano' || sanidade < 30) && !forcarEnvioMestre) {
         textoFinal = embaralharInsanidade(textoFinal);
@@ -294,7 +318,7 @@ function login(username) {
     DOM.userTitle.innerText = `Grimório de ${currentUser.charAt(0).toUpperCase() + currentUser.slice(1)}`;
     DOM.loginScreen.classList.add('hidden');
     DOM.appScreen.classList.remove('hidden');
-
+    
     const jogadoresAutorizados = ['mestre', 'gm', 'submestre_id']; 
     const btnGerenciarCanais = document.getElementById('btn-gm-chat-menu');
 
@@ -325,18 +349,18 @@ function login(username) {
     if (currentUser && currentUser.toLowerCase() === 'diogenes') {
         gerenciarMarcadorTintaDiogenes();
     }
+    
     iniciarChatAvancado();
 }
 
 // ==========================================
-// 5. LÓGICA DO FIREBASE E INTERFACE DE CARTAS
+// 5. LÓGICA DO FIREBASE (Sincronização)
 // ==========================================
 function carregarGrimorioDoFirebase() {
     const grimorioRef = ref(db, 'grimoires/' + currentUser);
     
     onValue(grimorioRef, (snapshot) => {
         const data = snapshot.val();
-        
         if (data) {
             userGrimoire = Object.keys(data).map(key => ({
                 id: key,
@@ -359,7 +383,6 @@ function carregarGrimorioDoFirebase() {
 
 function renderizarCards(lista) {
     DOM.grid.innerHTML = "";
-    
     let listaFinal = lista;
     
     if (currentUser && currentUser.toLowerCase() === 'diogenes') {
@@ -411,14 +434,13 @@ document.getElementById('btn-save-spell').onclick = () => {
 };
 
 function abrirModalView(ef) {
-    currentSpellId = ef.id; 
+    currentSpellId = ef.id;
     document.getElementById('view-titulo').innerText = ef.nome;
     document.getElementById('view-cor').innerText = ef.cor.toUpperCase();
     document.getElementById('view-receita').innerText = ef.receita;
     document.getElementById('view-efeito').innerText = ef.efeito;
     
     let modalContent = document.querySelector('#modal-view .modal-content') || document.getElementById('view-efeito').parentNode;
-    
     let btnAntigo = document.getElementById('btn-conjurar-magia');
     if (btnAntigo) btnAntigo.remove();
     
@@ -432,7 +454,7 @@ function abrirModalView(ef) {
         const podeConjurar = usarEfeitoDiogenes(ef);
         if (podeConjurar) {
             alert(`✨ Magia "${ef.nome}" conjurada com sucesso! Uma carga de tinta ${ef.cor} foi consumida.`);
-            DOM.modalView.style.display = 'none'; 
+            DOM.modalView.style.display = 'none';
         }
     };
     
@@ -466,6 +488,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        
         btn.classList.add('active');
         document.getElementById(btn.getAttribute('data-target')).classList.remove('hidden');
     });
@@ -506,6 +529,7 @@ document.getElementById('btn-roll').addEventListener('click', () => {
                 estoqueTintasDiogenes['branca'] = Math.floor(limiteTintaDiogenes / 2);
                 
                 alert("✨ DUPLO MÍSTICO! As tintas especiais (Preta e Branca) foram desbloqueadas e abastecidas!");
+                
                 atualizarPainelTintasVisual();
                 salvarEstoqueNoFirebase();
                 renderizarCards(userGrimoire);
@@ -590,7 +614,7 @@ document.getElementById('btn-share-calc').addEventListener('click', () => {
 });
 
 // ==========================================
-// 11. SISTEMA DE AUDITORIA (LOG DO MESTRE)
+// SISTEMA DE AUDITORIA (LOG DO MESTRE)
 // ==========================================
 function registrarLog(acao) {
     if (!currentUser) return; 
@@ -607,6 +631,9 @@ function registrarLog(acao) {
     });
 }
 
+// ==========================================
+// AUTENTICAÇÃO DO MESTRE E EXIBIÇÃO DE LOGS
+// ==========================================
 const DOM_GM = {
     modalAuth: document.getElementById('modal-gm-auth'),
     passInput: document.getElementById('gm-password-input'),
@@ -801,8 +828,8 @@ document.getElementById('btn-craft-visual').addEventListener('click', () => {
 
     iniciarAnimacaoMagica(() => {
         const receitaCombinada = listaDeMescla.map(i => i.nome).join(" + ");
-        const novoItemRef = push(ref(db, 'inventory/' + currentUser));
         
+        const novoItemRef = push(ref(db, 'inventory/' + currentUser));
         set(novoItemRef, { 
             nome: nomeItem, 
             emoji: emojiItem,
@@ -887,6 +914,7 @@ function iniciarAnimacaoMagica(callbackFinal) {
             ctx.shadowBlur = 10;
             ctx.shadowColor = p.cor;
             ctx.fill();
+            
             p.x += (centerX - p.x) * 0.05 + p.velocidadeX;
             p.y += (centerY - p.y) * 0.05 + p.velocidadeY;
         });
@@ -917,7 +945,10 @@ const BibliotecaSistemas = {
         nome: "KULT: Divindade Perdida",
         tipoDado: 10,
         quantidadeDados: 2,
-        atributosBase: { "Vontade": 0, "Fortitude": 0, "Reflexos": 0, "Razão": 0, "Intuição": 0, "Percepção": 0, "Carisma": 0, "Alma": 0,"Violencia": 0,"Firmesa": 0 },
+        atributosBase: {
+            "Vontade": 0, "Fortitude": 0, "Reflexos": 0, "Razão": 0,
+            "Intuição": 0, "Percepção": 0, "Carisma": 0, "Alma": 0,"Violencia": 0,"Firmesa": 0
+        },
         calcularHpMax: (atributos) => 10 + (atributos["Fortitude"] || 0),
         custoXpPorNivel: 10
     },
@@ -931,12 +962,14 @@ const BibliotecaSistemas = {
     }
 };
 
+let fichaAtual = null;
+
 function carregarFichaDoFirebase() {
     if (!currentUser) return;
     const fichaRef = ref(db, `characters/${currentUser}`);
     onValue(fichaRef, (snapshot) => {
       const data = snapshot.val();
-      if (data) {
+    if (data) {
         fichaAtual = data;
         let estado = obterEstadoGeral(fichaAtual);
         if (estado === 'fragmentado') {
@@ -945,7 +978,7 @@ function carregarFichaDoFirebase() {
             document.body.classList.remove('glitch-extremo');
         }
         renderizarPerfil();
-      } else {
+        } else {
             const novaFicha = {
                 nome: currentUser,
                 sistema: "KULT",
@@ -1008,8 +1041,10 @@ function renderizarPerfil() {
     let avatarLayers = [];
     if (fichaAtual.avatares) {
         if (fichaAtual.avatares['saudavel']) avatarLayers.push(fichaAtual.avatares['saudavel']);
+        
         let eFisico = fichaAtual.estadoFisico || 'saudavel';
         let eMental = fichaAtual.estadoMental || 'sao';
+        
         if (eFisico !== 'saudavel' && fichaAtual.avatares[eFisico]) avatarLayers.push(fichaAtual.avatares[eFisico]);
         if (eMental !== 'sao' && fichaAtual.avatares[eMental]) avatarLayers.push(fichaAtual.avatares[eMental]);
     }
@@ -1040,6 +1075,7 @@ function renderizarPerfil() {
         painelAvatares.style.cssText = "margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--borda-ouro); border-radius: 5px;";
         
         const estados = ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'];
+        
         let htmlInputs = `<h4 style="color: var(--borda-ouro); margin-top: 0;">Fotos de Perfil (Estados)</h4><div class="avatar-config-grid">`;
         estados.forEach(est => {
             htmlInputs += `
@@ -1111,6 +1147,7 @@ function renderizarPerfil() {
                     body: formData
                 });
                 const data = await response.json();
+                
                 if (data.success) {
                     inputTarget.value = data.data.url;
                 } else {
@@ -1185,7 +1222,7 @@ function renderizarPerfil() {
         const gmControls = document.getElementById('gm-controls');
         if (gmControls) gmControls.classList.remove('hidden');
     }
-
+  
     const containerEditor = document.getElementById('lista-editor-atributos');
     if (containerEditor) {
         containerEditor.innerHTML = '';
@@ -1280,9 +1317,7 @@ document.getElementById('btn-gm-xp').onclick = async () => {
     const charRef = ref(db, `characters/${alvo}`);
     const snapshot = await get(charRef);
     
-    if (!snapshot.exists()) {
-        return alert(`O personagem não foi encontrado no Firebase.`);
-    }
+    if (!snapshot.exists()) return alert(`O personagem não foi encontrado no Firebase.`);
     
     const dadosChar = snapshot.val();
     const qtdXp = Math.abs(valor);
@@ -1290,9 +1325,7 @@ document.getElementById('btn-gm-xp').onclick = async () => {
     
     update(charRef, { xp: novoXp }).then(() => {
         alert(`${qtdXp} XP concedido para ${alvo.toUpperCase()}. Total XP: ${novoXp}`);
-        if (typeof registrarLog === "function") {
-            registrarLog(`GM concedeu ${qtdXp} XP para ${alvo}.`);
-        }
+        if (typeof registrarLog === "function") registrarLog(`GM concedeu ${qtdXp} XP para ${alvo}.`);
     });
 };
 
@@ -1358,9 +1391,7 @@ document.getElementById('btn-gm-ferimento').onclick = async () => {
 
     update(charRef, { ferimentos: { graves, criticos } }).then(() => {
         alert(`Ferimentos de ${alvo.toUpperCase()} atualizados com sucesso! (Graves: ${graves}, Críticos: ${criticos})`);
-        if (typeof registrarLog === "function") {
-            registrarLog(`GM alterou os ferimentos de ${alvo} (${tipo}: ${acao}).`);
-        }
+        if (typeof registrarLog === "function") registrarLog(`GM alterou os ferimentos de ${alvo} (${tipo}: ${acao}).`);
     });
 };
 
@@ -1407,7 +1438,7 @@ window.apagarMissao = function(key) {
 };
 
 // ==========================================
-// 16. IMPORTAÇÃO DE FICHA POR ARQUIVO
+// 16. IMPORTAÇÃO DE FICHA POR ARQUIVO (.TXT / .JSON)
 // ==========================================
 const inputUpload = document.getElementById('upload-ficha');
 const statusImportacao = document.getElementById('status-importacao');
@@ -1435,6 +1466,7 @@ if (inputUpload) {
                     statusImportacao.innerText = "Ficha importada com sucesso!";
                     setTimeout(() => statusImportacao.innerText = "", 4000);
                 });
+                
             } catch (erro) {
                 statusImportacao.innerText = "Erro: O pergaminho não tem a formatação mágica correta (JSON inválido).";
                 console.error("Erro ao ler ficha:", erro);
@@ -1444,7 +1476,11 @@ if (inputUpload) {
     });
 }
 
+// ==========================================
+// SINCRONIZAÇÃO AUTOMÁTICA DOS ALVOS DO MESTRE
+// ==========================================
 const selectAlvoGm = document.getElementById('gm-select-alvo');
+
 if (selectAlvoGm) {
     const charactersRef = ref(db, 'characters');
     onValue(charactersRef, (snapshot) => {
@@ -1454,7 +1490,7 @@ if (selectAlvoGm) {
             Object.keys(personagens).forEach(key => {
                 const dados = personagens[key];
                 const option = document.createElement('option');
-                option.value = key; 
+                option.value = key;
                 option.textContent = dados.nome ? dados.nome : key;
                 selectAlvoGm.appendChild(option);
             });
@@ -1473,6 +1509,7 @@ function adicionarLinhaEditor(nome = "", valor = 0) {
     
     const div = document.createElement('div');
     div.style.cssText = "display: flex; gap: 5px; align-items: center; width: 100%; margin-bottom: 5px;";
+
     div.innerHTML = `
         <input type="text" class="input-mystic nome-attr" value="${nome}" placeholder="Nome" style="flex: 2; min-width: 0; box-sizing: border-box; padding: 6px; font-size: 0.85rem;">
         <input type="number" class="input-mystic valor-attr" value="${valor}" placeholder="Valor" style="flex: 1; min-width: 0; box-sizing: border-box; text-align: center; padding: 6px; font-size: 0.85rem;">
@@ -1501,7 +1538,6 @@ if (btnSalvarEditor) {
         linhas.forEach(linha => {
             const nome = linha.querySelector('.nome-attr').value.trim();
             const valor = parseInt(linha.querySelector('.valor-attr').value) || 0;
-            
             if (nome) {
                 novosAtributos[nome] = valor;
             }
@@ -1531,6 +1567,7 @@ function gerenciarMarcadorTintaDiogenes() {
                 painelTinta = document.createElement('div');
                 painelTinta.id = 'painel-tinta-diogenes';
                 painelTinta.style.cssText = "background: rgba(20, 20, 20, 0.95); border: 1px solid #c9b037; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; color: #fff; font-size: 0.85rem; width: 100%; box-sizing: border-box;";
+                
                 painelTinta.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px;">
                         <div>
@@ -1565,6 +1602,7 @@ function gerenciarMarcadorTintaDiogenes() {
                         <button class="btn-filtro-cor" data-cor="mescla" style="background: #551a8b; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; cursor: pointer;">Mescla</button>
                     </div>
                 `;
+                
                 gridMagias.parentNode.insertBefore(painelTinta, gridMagias);
                 
                 document.getElementById('select-qualidade-tinta').onchange = (e) => {
@@ -1680,7 +1718,6 @@ function usarEfeitoDiogenes(efeito) {
 
     return true;
 }
-
 function atualizarPainelTintasVisual() {
     ['vermelha', 'azul', 'amarela', 'preta', 'branca', 'mescla'].forEach(cor => {
         const el = document.getElementById(`estoque-${cor}`);
@@ -1693,7 +1730,7 @@ function salvarEstoqueNoFirebase() {
 }
 
 // ==========================================
-// 20. SISTEMA VTT AVANÇADO (API, CHAT E MURAL)
+// 20. SISTEMA VTT AVANÇADO (API, CHAT, NPCS E MURAL)
 // ==========================================
 
 function iniciarChatAvancado() {
@@ -1847,6 +1884,7 @@ function configurarUploadImgBB(idFileInput, idTextInput) {
     if (!fileInput) return;
 
     fileInput.setAttribute('accept', 'image/*, video/*');
+
     fileInput.addEventListener('change', async function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -1902,117 +1940,303 @@ function configurarUploadImgBB(idFileInput, idTextInput) {
         e.target.value = ''; 
     });
 }
-
 configurarUploadImgBB('upload-midia', 'chat-input');        
 configurarUploadImgBB('upload-mural', 'link-arquivo');      
 configurarUploadImgBB('upload-chat-bg', 'input-chat-bg');   
 configurarUploadImgBB('upload-npc-foto', 'novo-npc-foto');  
 
-// ==========================================
-// D. SISTEMA DE CHAT, MURAL E UTILITÁRIOS
-// ==========================================
-
-function abrirMenuCanais() {
-    const modal = document.getElementById('modal-gm-chat-controls');
-    if (modal) modal.style.display = 'flex';
+window.setarResposta = function(nomeUsuario) {
+    respondendoA = nomeUsuario;
+    document.getElementById('reply-user').innerText = nomeUsuario.toUpperCase();
+    document.getElementById('reply-preview').classList.remove('hidden');
+    document.getElementById('chat-input').focus();
 }
 
-window.aprovarFirebase = function(caminho) {
-    update(ref(db, caminho), { aprovado: true })
-        .then(() => alert("Canal aprovado com sucesso!"))
-        .catch(err => console.error(err));
+window.cancelarResposta = function() {
+    respondendoA = null;
+    document.getElementById('reply-preview').classList.add('hidden');
 }
 
-function mudarCanal(id, nome) {
-    canalAtual = id;
-    
-    const tituloCanal = document.getElementById('canal-atual-nome');
-    if (tituloCanal) tituloCanal.innerText = nome;
-    
+function mudarCanal(idCanal, nomeCanal) {
+    canalAtual = idCanal;
+    document.querySelectorAll('.channel-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if(btn.innerText.includes(nomeCanal)) btn.classList.add('active');
+    });
+
     if (unsubscribeChat) unsubscribeChat();
     
-    const chatWindow = document.getElementById('chat-mensagens');
-    if (chatWindow) chatWindow.innerHTML = '';
+   unsubscribeChat = onValue(ref(db, `mensagens/${canalAtual}`), (snapshot) => {
+    let quantidadeMensagensAntiga = 0;
+    const data = snapshot.val();
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+    container.innerHTML = ""; 
     
-    const mensagensRef = ref(db, `mensagens/${id}`);
-    unsubscribeChat = onValue(mensagensRef, (snapshot) => {
-        if (chatWindow) chatWindow.innerHTML = '';
-        snapshot.forEach(child => {
-            renderizarMensagem(child.val(), child.key);
-        });
-        rolarParaFundo();
+    const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
+    const mensagens = [];
+    snapshot.forEach(child => { mensagens.push({ id: child.key, ...child.val() }); });
+    
+    mensagens.forEach(msg => {
+        let tipo = 'other';
+        const remetenteRaw = msg.remetente || 'Sistema';
+        let nomeExibicao = remetenteRaw.toUpperCase();
+
+        if (msg.tipo === 'roll') { 
+            tipo = 'roll'; 
+            nomeExibicao = '🎲 DADOS'; 
+        } else if (msg.tipo === 'npc') { 
+            tipo = 'npc'; 
+            nomeExibicao = (msg.npcData && msg.npcData.nome) ? msg.npcData.nome.toUpperCase() : 'NPC'; 
+        } else if (remetenteRaw.toLowerCase() === currentUser.toLowerCase()) { 
+            tipo = 'mine'; 
+        } else if (remetenteRaw.toLowerCase() === 'mestre' || remetenteRaw.toLowerCase() === 'gm') { 
+            tipo = 'gm'; 
+            nomeExibicao = '👑 MESTRE'; 
+        }
+        
+        const hora = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--';
+        
+        const textoUpper = (msg.texto || '').toUpperCase();
+        const foiMarcado = textoUpper.includes(`@${currentUser.toUpperCase()}`) || (msg.replyTo && msg.replyTo.toUpperCase() === currentUser.toUpperCase());
+        const htmlBolinha = foiMarcado ? `<div class="notificacao-marcado"></div>` : '';
+        const htmlReply = msg.replyTo ? `<div class="reply-badge">↳ Respondendo a ${msg.replyTo.toUpperCase()}</div>` : '';
+        const novasMensagens = Object.keys(data).length;
+        if (novasMensagens > quantidadeMensagensAntiga && quantidadeMensagensAntiga !== 0) {
+            const ultimaMensagem = Object.values(data).pop();
+              if (ultimaMensagem.remetente !== currentUser) {
+                new Audio('notification.mp3').play().catch(e => {});
+                document.title = "(🔔) Nova Mensagem - Turno Noturno";
+            }
+        }
+          quantidadeMensagensAntiga = novasMensagens;
+          rolarParaFundo();
+
+        let htmlAvatar = '';
+        if (tipo === 'npc' && msg.npcData && msg.npcData.foto) {
+            htmlAvatar = `<img src="${msg.npcData.foto}" class="chat-avatar-img" alt="NPC">`;
+        } else if (msg.avatarLayers && Array.isArray(msg.avatarLayers) && msg.avatarLayers.length > 0) {
+            htmlAvatar = `<div class="chat-avatar-container" style="position: relative; width: 45px; height: 45px; flex-shrink: 0;">`;
+            msg.avatarLayers.forEach((layerUrl, index) => {
+                htmlAvatar += `<img src="${layerUrl}" class="chat-avatar-layer" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: ${index + 1}; object-fit: cover; border-radius: 50%;">`;
+            });
+            htmlAvatar += `</div>`;
+        } else if (msg.avatarUrl) {
+            htmlAvatar = `<img src="${msg.avatarUrl}" class="chat-avatar-img" alt="Avatar">`;
+        } else if (tipo !== 'roll' && tipo !== 'gm') {
+            htmlAvatar = `<img src="https://i.imgur.com/z4bK9V3.png" class="chat-avatar-img" alt="Avatar">`;
+        }
+
+       let textoRenderizado = formatarTextoChat(msg.texto || '');
+        if (textoRenderizado.match(/\.(jpeg|jpg|gif|png)$/i)) {
+            textoRenderizado = `<a href="${textoRenderizado}" target="_blank"><img src="${textoRenderizado}" class="chat-media"></a>`;
+        } else if (textoRenderizado.match(/\.(mp4|webm)$/i)) {
+            textoRenderizado = `<video src="${textoRenderizado}" class="chat-media" controls></video>`;
+        }
+
+        let htmlBalao = `${htmlBolinha}`; 
+        htmlBalao += `<div style="overflow:hidden; flex: 1;">`;
+        htmlBalao += `<span class="chat-header">${nomeExibicao} <span style="color:#666; font-size:0.65rem;">(${hora})</span></span>`;
+        htmlBalao += `${htmlReply} <div>${textoRenderizado} ${msg.editada ? '<span class="msg-editada">(editada)</span>' : ''}</div>`;
+
+        if (tipo !== 'roll') {
+            htmlBalao += `<div class="msg-actions">`;
+            if (tipo !== 'mine') {
+                htmlBalao += `<span onclick="setarResposta('${remetenteRaw}')">↩️ Responder</span>`;
+            }
+            if (remetenteRaw.toLowerCase() === currentUser.toLowerCase() || isGM) {
+                htmlBalao += `<span onclick="editarMensagem('${msg.id}', '${(msg.texto || '').replace(/'/g, "\\'")}')">✏️ Edit</span>`;
+                htmlBalao += `<span onclick="apagarMensagem('${msg.id}')">🗑️ Del</span>`;
+            }
+            htmlBalao += `</div>`;
+        }
+        htmlBalao += `</div>`;
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-msg-wrapper ${tipo}`;
+        msgDiv.innerHTML = htmlAvatar + `<div class="chat-msg ${tipo}">${htmlBalao}</div>`;
+
+        container.appendChild(msgDiv);
+    });
+
+    container.scrollTop = container.scrollHeight;
+});
+}
+
+// ==========================================
+// E. ENVIO DE MENSAGENS COMPLETO
+// ==========================================
+let ultimoEnterTime = 0;
+
+window.enviarMensagemCompleta = function() {
+    if (jogadorSilenciado) return;
+    const input = document.getElementById('chat-input');
+    const texto = input.value.trim();
+    if (!texto || !currentUser) return;
+
+    const npcSelect = document.getElementById('select-npc-salvo');
+    const npcAtivoId = npcSelect ? npcSelect.value : null;
+    let dadosNpc = null;
+
+    if (npcAtivoId && npcsSalvos[npcAtivoId]) {
+        dadosNpc = npcsSalvos[npcAtivoId];
+    }
+
+    let avatarLayers = [];
+    if (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.avatares) {
+        if (fichaAtual.avatares['saudavel']) avatarLayers.push(fichaAtual.avatares['saudavel']);
+
+        let eFisico = fichaAtual.estadoFisico || 'saudavel';
+        let eMental = fichaAtual.estadoMental || 'sao';
+
+        if (eFisico !== 'saudavel' && fichaAtual.avatares[eFisico]) avatarLayers.push(fichaAtual.avatares[eFisico]);
+        if (eMental !== 'sao' && fichaAtual.avatares[eMental]) avatarLayers.push(fichaAtual.avatares[eMental]);
+    }
+
+    if (dadosNpc && dadosNpc.foto) {
+        avatarLayers = [dadosNpc.foto];
+    }
+
+    push(ref(db, `mensagens/${canalAtual}`), {
+        remetente: currentUser,
+        tipo: dadosNpc ? 'npc' : 'chat',
+        npcData: dadosNpc,
+        texto: texto,
+        replyTo: respondendoA,
+        avatarUrl: avatarLayers[0] || '',
+        avatarLayers: avatarLayers,
+        timestamp: Date.now(),
+        editada: false
+    });
+
+    input.value = "";
+    cancelarResposta();
+}
+
+const chatInput = document.getElementById('chat-input');
+const btnSend = document.getElementById('btn-send-chat');
+
+if (btnSend) {
+    btnSend.addEventListener('click', enviarMensagemCompleta);
+}
+
+if (chatInput) {
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const agora = Date.now();
+            if (agora - ultimoEnterTime < 500 && !e.shiftKey) {
+                e.preventDefault();
+                if (btnSend) btnSend.click();
+                ultimoEnterTime = 0;
+            } else {
+                ultimoEnterTime = agora;
+            }
+        }
     });
 }
 
-function renderizarMensagem(msg, key) {
-    const chatWindow = document.getElementById('chat-mensagens');
-    if (!chatWindow) return;
-
-    const div = document.createElement('div');
-    div.className = `chat-mensagem ${msg.remetente === currentUser ? 'minha-mensagem' : ''}`;
+// ==========================================
+// F. MURAL DE FITAS (ARQUIVOS DO MESTRE)
+// ==========================================
+window.postarArquivoMestre = function() {
+    const titulo = document.getElementById('titulo-arquivo').value.trim();
+    const link = document.getElementById('link-arquivo').value.trim();
+    if(!titulo || !link) return alert("Preencha título e link do artefato!");
     
-    const nomeExibicao = msg.falarComo ? msg.falarComo.toUpperCase() : msg.remetente.toUpperCase();
-    const avatar = msg.avatarUrl || 'https://via.placeholder.com/65';
-    const cor = msg.corBalao || '#ccc';
-    
-    let conteudoTexto = msg.texto;
-    if (conteudoTexto.startsWith('data:image') || conteudoTexto.startsWith('http')) {
-        if (conteudoTexto.match(/\.(jpeg|jpg|gif|png)$/i) || conteudoTexto.startsWith('data:image')) {
-            conteudoTexto = `<img src="${conteudoTexto}" style="max-width:200px; border-radius:8px;">`;
-        } else if (conteudoTexto.match(/\.(mp4|webm)$/i) || conteudoTexto.startsWith('data:video')) {
-            conteudoTexto = `<video src="${conteudoTexto}" controls style="max-width:200px; border-radius:8px;"></video>`;
-        }
-    }
+    push(ref(db, 'tapes'), { titulo, link, data: Date.now(), autor: currentUser }).then(() => {
+        document.getElementById('titulo-arquivo').value = "";
+        document.getElementById('link-arquivo').value = "";
+        alert("Fita arquivada no mural com sucesso!");
+    });
+};
 
-    div.innerHTML = `
-        <img src="${avatar}" class="avatar" alt="Avatar">
-        <div class="balao" style="border: 1px solid ${cor};">
-            <div class="nome-remetente" style="color: ${cor};">${nomeExibicao}</div>
-            <div class="texto-mensagem">${conteudoTexto}</div>
-        </div>
-    `;
-    chatWindow.appendChild(div);
+window.apagarArquivoMural = function(id) {
+    if(confirm("Deseja destruir esta fita?")) remove(ref(db, `tapes/${id}`));
+}
+
+// ==========================================
+// G. FORMATAÇÃO DE TEXTO DO CHAT E FUNÇÕES AUXILIARES FALTANTES
+// ==========================================
+function formatarTextoChat(texto) {
+    if (!texto) return '';
+
+    let res = texto
+        // Bloco de código: ```código```
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        // Negrito: **texto**
+        .replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>')
+        // Itálico: *texto*
+        .replace(/\*([^\*]+)\*/g, '<em>$1</em>')
+        // Riscado: ~~texto~~
+        .replace(/~~([^~]+)~~/g, '<del>$1</del>')
+        // Quebras de linha
+        .replace(/\n/g, '<br>');
+
+    return res;
 }
 
 function rolarParaFundo() {
-    const chat = document.getElementById('chat-mensagens');
-    if (chat) chat.scrollTop = chat.scrollHeight;
+    const container = document.getElementById('chat-messages');
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
 }
 
-function obterCorBalao(username) {
-    const cores = ['#ff4444', '#44ff44', '#4444ff', '#ffff44', '#ff44ff', '#44ffff'];
-    let hash = 0;
-    for (let i = 0; i < username.length; i++) {
-        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+function embaralharInsanidade(texto) {
+    return embaralharAcoes(texto);
+}
+
+function obterCorBalao(user) {
+    // Retorna uma cor padrão se não houver um sistema de cores implementado ainda
+    return "#333333";
+}
+
+window.editarMensagem = function(id, textoAtual) {
+    const novoTexto = prompt("Edite sua mensagem:", textoAtual);
+    if (novoTexto !== null && novoTexto.trim() !== "") {
+        update(ref(db, `mensagens/${canalAtual}/${id}`), {
+            texto: novoTexto.trim(),
+            editada: true
+        }).catch(err => console.error("Erro ao editar:", err));
     }
-    return cores[Math.abs(hash) % cores.length];
+}
+
+window.apagarMensagem = function(id) {
+    if (confirm("Tem certeza que deseja apagar esta mensagem?")) {
+        remove(ref(db, `mensagens/${canalAtual}/${id}`));
+    }
 }
 
 function escutarMuralFitas() {
-    onValue(ref(db, 'mural_fitas'), (snapshot) => {
-        const mural = document.getElementById('lista-mural-fitas');
-        if (!mural) return;
-        mural.innerHTML = '';
+    onValue(ref(db, 'tapes'), (snapshot) => {
+        const container = document.getElementById('mural-fitas-container');
+        if (!container) return;
         
-        if (snapshot.exists()) {
-            snapshot.forEach(child => {
-                const item = child.val();
-                const li = document.createElement('li');
-                li.innerHTML = `<a href="${item.url}" target="_blank">${item.nome}</a>`;
-                mural.appendChild(li);
+        container.innerHTML = "";
+        const data = snapshot.val();
+        
+        if (data) {
+            Object.keys(data).forEach(id => {
+                const fita = data[id];
+                const btnApagar = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm' || fita.autor === currentUser) 
+                    ? `<button onclick="apagarArquivoMural('${id}')" style="color:red; background:none; border:none; cursor:pointer;">X</button>` 
+                    : '';
+                    
+                container.innerHTML += `
+                    <div class="fita-item" style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <a href="${fita.link}" target="_blank">📼 ${fita.titulo}</a>
+                        ${btnApagar}
+                    </div>
+                `;
             });
+        } else {
+            container.innerHTML = "<span class='text-muted'>Mural vazio.</span>";
         }
     });
 }
 
-const btnSendChat = document.getElementById('btn-send-chat');
-if (btnSendChat) {
-    btnSendChat.addEventListener('click', () => {
-        const input = document.getElementById('chat-input');
-        const npcSalvo = document.getElementById('select-npc-salvo');
-        const falarComo = npcSalvo ? npcSalvo.value : null;
-        if (input && typeof window.enviarMensagemChat === 'function') {
-            window.enviarMensagemChat(input.value, 'chat', falarComo);
-        }
+window.aprovarFirebase = function(path) {
+    update(ref(db, path), { aprovado: true }).then(() => {
+        alert("Aprovado com sucesso!");
     });
 }
