@@ -1297,7 +1297,7 @@ function renderizarPerfil() {
             container.appendChild(btn);
         }
     }
-}
+
     // ==========================================
     // RENDERIZAR PAINEL DE FERIMENTOS NA FICHA
     // ==========================================
