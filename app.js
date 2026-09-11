@@ -19,7 +19,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-
+const IMGBB_API_KEY = "1fd4d8fc1d8b3f9bb172de4e42dabe37";
 // ==========================================
 // 2. VARIÁVEIS GLOBAIS E ESTADOS
 // ==========================================
@@ -1309,6 +1309,7 @@ if (container) {
         container.appendChild(btn);
     }
 }
+}
     // ==========================================
     // RENDERIZAR PAINEL DE FERIMENTOS NA FICHA
     // ==========================================
@@ -1912,7 +1913,7 @@ function salvarEstoqueNoFirebase() {
 // ==========================================
 // 20. SISTEMA VTT AVANÇADO (API, CHAT, NPCS E MURAL)
 // ==========================================
-const IMGBB_API_KEY = "1fd4d8fc1d8b3f9bb172de4e42dabe37";
+
 
 let canalAtual = 'taverna';
 let canalRolagemDestino = 'taverna';
