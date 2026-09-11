@@ -1067,17 +1067,11 @@ function renderizarPerfil() {
     if (!sys) {
         sys = BibliotecaSistemas["KULT"];
     }
-    
+  document.head.appendChild(styleFix);
     // Atualiza dados básicos na tela
     document.getElementById('nome-personagem').innerText = fichaAtual.nome.toUpperCase();
     document.getElementById('sistema-personagem').innerText = sys.nome;
     document.getElementById('display-xp').innerText = fichaAtual.xp;
-    const styleFix = document.createElement('style');
-   styleFix.innerHTML = `
-      .chat-mensagem .avatar, .perfil-npc-icone { width: 65px !important; height: 65px !important; border-radius: 50%; object-fit: cover; }
-      .btn-remover-efeitos-insano { background: #8b0000; color: white; padding: 5px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; display: none; margin-top: 5px; }
-   `;
-  document.head.appendChild(styleFix);
   
    const medidorSanidade = document.getElementById('medidor-sanidade');
     if (medidorSanidade) {
@@ -1947,7 +1941,11 @@ let npcsSalvos = {};
 // ==========================================
 function iniciarChatAvancado() {
     const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    
+    const styleFix = document.createElement('style');
+   styleFix.innerHTML = `
+      .chat-mensagem .avatar, .perfil-npc-icone { width: 65px !important; height: 65px !important; border-radius: 50%; object-fit: cover; }
+      .btn-remover-efeitos-insano { background: #8b0000; color: white; padding: 5px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; display: none; margin-top: 5px; }
+   `;
     // Revela botões exclusivos do Mestre
     if (isGM) {
         document.getElementById('btn-gm-chat-menu').classList.remove('hidden');
