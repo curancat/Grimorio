@@ -239,6 +239,7 @@ window.onload = () => {
     if (savedUser) login(savedUser);
 };
 // Função que embaralha tudo, exceto o que está entre aspas simples ou duplas (fala)
+
 function embaralharAcoes(texto) {
     let emFala = false;
     let resultado = "";
@@ -261,11 +262,18 @@ function embaralharAcoes(texto) {
     }
     return resultado;
 }
+// Deriva o "estado geral" a partir dos dois campos reais da ficha
+function obterEstadoGeral(ficha) {
+    if (!ficha) return 'saudavel';
+    if (ficha.estadoFisico === 'desacordado') return 'desacordado';
+    if (ficha.estadoMental === 'insano' || ficha.estadoMental === 'fragmentado') return ficha.estadoMental;
+    return ficha.estadoFisico || 'saudavel';
+}
 
 window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = null, forcarEnvioMestre = false) {
     if (!currentUser) return;
 
-    let estado = (fichaAtual && fichaAtual.estadoAtual) ? fichaAtual.estadoAtual : 'saudavel';
+    let estado = obterEstadoGeral(fichaAtual);
     let fotoAtual = (fichaAtual && fichaAtual.avatares) ? fichaAtual.avatares[estado] : '';
 
     // TRAVA 1: Jogador Desacordado
@@ -1045,7 +1053,7 @@ function carregarFichaDoFirebase() {
     if (data) {
         fichaAtual = data;
         // Ativa o bug no site inteiro caso esteja fragmentado
-        let estado = fichaAtual.estadoAtual || 'saudavel';
+        let estado = obterEstadoGeral(fichaAtual);
         if (estado === 'fragmentado') {
             document.body.classList.add('glitch-extremo');
         } else {
@@ -1073,7 +1081,7 @@ function renderizarPerfil() {
     if (!fichaAtual) return;
 
     // Declaração do estado no início da função
-    let estado = fichaAtual.estadoAtual || 'saudavel';
+   let estado = obterEstadoGeral(fichaAtual);
     let sys = BibliotecaSistemas[fichaAtual.sistema] || BibliotecaSistemas["KULT"];
 
     // Injeção de estilos visuais
@@ -2270,23 +2278,6 @@ function mudarCanal(idCanal, nomeCanal) {
 window.enviarMensagemCompleta = function() {
     if (jogadorSilenciado) return;
     const input = document.getElementById('chat-input');
-   const chatContainer = document.getElementById('chat-container');
-   if (chatInput) {
-    chatInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault(); // Impede a quebra padrão e envia
-            document.getElementById('btn-send-chat').click();
-        }
-    });
-}
-
-// Chame esta função sempre que uma nova mensagem for renderizada do Firebase
-function rolarParaFundo() {
-    const chatContainer = document.getElementById('chat-messages');
-    if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-}
     const texto = input.value.trim();
     if (!texto || !currentUser) return;
 
@@ -2294,25 +2285,26 @@ function rolarParaFundo() {
     const npcSelect = document.getElementById('select-npc-salvo');
     const npcAtivoId = npcSelect ? npcSelect.value : null;
     let dadosNpc = null;
-    
+
     if (npcAtivoId && npcsSalvos[npcAtivoId]) {
         dadosNpc = npcsSalvos[npcAtivoId];
     }
+
     let avatarLayers = [];
     if (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.avatares) {
         if (fichaAtual.avatares['saudavel']) avatarLayers.push(fichaAtual.avatares['saudavel']);
-        
+
         let eFisico = fichaAtual.estadoFisico || 'saudavel';
         let eMental = fichaAtual.estadoMental || 'sao';
-        
+
         if (eFisico !== 'saudavel' && fichaAtual.avatares[eFisico]) avatarLayers.push(fichaAtual.avatares[eFisico]);
         if (eMental !== 'sao' && fichaAtual.avatares[eMental]) avatarLayers.push(fichaAtual.avatares[eMental]);
     }
 
-    // Se for NPC, sobrepõe a lógica e usa apenas a foto do NPC
     if (dadosNpc && dadosNpc.foto) {
         avatarLayers = [dadosNpc.foto];
     }
+
     push(ref(db, `mensagens/${canalAtual}`), {
         remetente: currentUser,
         tipo: dadosNpc ? 'npc' : 'chat',
@@ -2527,6 +2519,7 @@ function embaralharInsanidade(texto) {
 let estado = (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.estadoAtual) 
     ? fichaAtual.estadoAtual 
     : 'saudavel';
+
 if ((estado === 'fragmentado' || estado === 'insano') && !forcarEnvioMestre) {
     textoFinal = embaralharInsanidade(textoFinal);
 }
@@ -2549,7 +2542,7 @@ function atualizarBotaoEfeitosChat() {
     }
     
     // Aparece apenas se insano/fragmentado
-    if (fichaAtual && (fichaAtual.estadoAtual === 'insano' || fichaAtual.estadoAtual === 'fragmentado')) {
+    if (obterEstadoGeral(fichaAtual) === 'insano' || obterEstadoGeral(fichaAtual) === 'fragmentado') {
         btnLimpar.style.display = 'block';
     } else {
         btnLimpar.style.display = 'none';
