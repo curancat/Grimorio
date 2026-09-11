@@ -1260,8 +1260,6 @@ if (fichaAtual.avatares) {
     });
 }
     // Calcula penalidade de bônus negativo baseada nos ferimentos graves (-1 por ferimento grave)
-    const fGraves = fichaAtual.ferimentos ? fichaAtual.ferimentos.graves : 0;
-    const penalidadeGrave = fGraves * -1; 
 
     // Gerar Botões de Atributos (já aplicando a penalidade dos ferimentos)
 const container = document.getElementById('botoes-atributos');
