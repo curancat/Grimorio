@@ -1062,7 +1062,12 @@ function carregarFichaDoFirebase() {
 
 function renderizarPerfil() {
     if (!fichaAtual) return;
-    
+        const styleFix = document.createElement('style');
+        styleFix.innerHTML = `
+           .chat-mensagem .avatar, .perfil-npc-icone { width: 65px !important; height: 65px !important; border-radius: 50%; object-fit: cover; }
+           .btn-remover-efeitos-insano { background: #8b0000; color: white; padding: 5px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; display: none; margin-top: 5px; }
+         `;
+       document.head.appendChild(styleFix);
     let sys = BibliotecaSistemas[fichaAtual.sistema];
     if (!sys) {
         sys = BibliotecaSistemas["KULT"];
@@ -1085,9 +1090,10 @@ function renderizarPerfil() {
         painelFerimentos.style.cssText = "margin: 15px 0; padding: 10px; background: rgba(50,0,0,0.4); border: 1px solid #800; border-radius: 5px;";
         containerPerfil.appendChild(painelFerimentos);
     }
-
-    const fCriticos = fichaAtual.ferimentos ? fichaAtual.ferimentos.criticos : 0;
-painelFerimentos.innerHTML = `
+    let fGraves = fichaAtual.ferimentos ? fichaAtual.ferimentos.graves : 0;
+    let fCriticos = fichaAtual.ferimentos ? fichaAtual.ferimentos.criticos : 0;
+    let penalidadeGrave = fGraves * -1;
+   painelFerimentos.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
         <span>⚠️ Graves: <strong>${fGraves}/4</strong> ${fGraves > 0 ? `(Mod: ${penalidadeGrave})` : ''}</span>
         <span style="color: ${fCriticos > 0 ? '#ff4444' : 'inherit'}">💀 Críticos: <strong>${fCriticos}/1</strong></span>
@@ -1941,11 +1947,6 @@ let npcsSalvos = {};
 // ==========================================
 function iniciarChatAvancado() {
     const isGM = (currentUser.toLowerCase() === 'mestre' || currentUser.toLowerCase() === 'gm');
-    const styleFix = document.createElement('style');
-   styleFix.innerHTML = `
-      .chat-mensagem .avatar, .perfil-npc-icone { width: 65px !important; height: 65px !important; border-radius: 50%; object-fit: cover; }
-      .btn-remover-efeitos-insano { background: #8b0000; color: white; padding: 5px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; display: none; margin-top: 5px; }
-   `;
     // Revela botões exclusivos do Mestre
     if (isGM) {
         document.getElementById('btn-gm-chat-menu').classList.remove('hidden');
@@ -2205,6 +2206,7 @@ function mudarCanal(idCanal, nomeCanal) {
     
    unsubscribeChat = onValue(ref(db, `mensagens/${canalAtual}`), (snapshot) => {
     let quantidadeMensagensAntiga = 0;
+    const data = snapshot.val();
     const container = document.getElementById('chat-messages');
     if (!container) return;
     container.innerHTML = ""; 
