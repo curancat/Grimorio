@@ -308,6 +308,16 @@ function login(username) {
     DOM.loginScreen.classList.add('hidden');
     DOM.appScreen.classList.remove('hidden');
     console.log("Sistema: Tentando logar como ->", currentUser); // Rastreador 1
+    const jogadoresAutorizados = ['mestre', 'gm', 'submestre_id']; 
+    const btnGerenciarCanais = document.getElementById('btn-gm-chat-menu');
+
+    if (jogadoresAutorizados.includes(currentUser.toLowerCase())) {
+        btnGerenciarCanais.style.display = 'inline-block';
+         // Habilita as funções do menu do mestre
+        btnGerenciarCanais.onclick = () => abrirMenuCanais(); 
+    } else {
+        btnGerenciarCanais.style.display = 'none'; // Esconde para players comuns
+    }
 
     if (currentUser.toLowerCase() === "mestre" || currentUser.toLowerCase() === "gm") { 
         console.log("Sistema: Mestre detectado! Removendo a invisibilidade..."); // Rastreador 2
@@ -1062,11 +1072,35 @@ function renderizarPerfil() {
     document.getElementById('nome-personagem').innerText = fichaAtual.nome.toUpperCase();
     document.getElementById('sistema-personagem').innerText = sys.nome;
     document.getElementById('display-xp').innerText = fichaAtual.xp;
+    const styleFix = document.createElement('style');
+   styleFix.innerHTML = `
+      .chat-mensagem .avatar, .perfil-npc-icone { width: 65px !important; height: 65px !important; border-radius: 50%; object-fit: cover; }
+      .btn-remover-efeitos-insano { background: #8b0000; color: white; padding: 5px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; display: none; margin-top: 5px; }
+   `;
+  document.head.appendChild(styleFix);
   
    const medidorSanidade = document.getElementById('medidor-sanidade');
     if (medidorSanidade) {
         medidorSanidade.value = fichaAtual.sanidade || 100; // Se não tiver valor, assume 100
     }
+  let painelFerimentos = document.getElementById('painel-ferimentos-jogador');
+    if (!painelFerimentos) {
+        const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
+        painelFerimentos = document.createElement('div');
+        painelFerimentos.id = 'painel-ferimentos-jogador';
+        painelFerimentos.style.cssText = "margin: 15px 0; padding: 10px; background: rgba(50,0,0,0.4); border: 1px solid #800; border-radius: 5px;";
+        containerPerfil.appendChild(painelFerimentos);
+    }
+
+    const fCriticos = fichaAtual.ferimentos ? fichaAtual.ferimentos.criticos : 0;
+painelFerimentos.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+        <span>⚠️ Graves: <strong>${fGraves}/4</strong> ${fGraves > 0 ? `(Mod: ${penalidadeGrave})` : ''}</span>
+        <span style="color: ${fCriticos > 0 ? '#ff4444' : 'inherit'}">💀 Críticos: <strong>${fCriticos}/1</strong></span>
+    </div>
+`;
+painelFerimentos.style.cssText = "margin: 10px 0; padding: 6px 10px; background: rgba(50,0,0,0.3); border: 1px solid #600; border-radius: 4px;";
+    
   // ADICIONE ESTAS 3 LINHAS PARA ATUALIZAR A IMAGEM DE PERFIL:
     let estado = fichaAtual.estadoAtual || 'saudavel';
     let fotoAtual = (fichaAtual.avatares && fichaAtual.avatares[estado]) ? fichaAtual.avatares[estado] : 'https://via.placeholder.com/150';
@@ -1308,29 +1342,12 @@ if (container) {
         };
         container.appendChild(btn);
     }
+  atualizarBotaoEfeitosChat();
 }
 
     // ==========================================
     // RENDERIZAR PAINEL DE FERIMENTOS NA FICHA
     // ==========================================
-    let painelFerimentos = document.getElementById('painel-ferimentos-jogador');
-    if (!painelFerimentos) {
-        const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
-        painelFerimentos = document.createElement('div');
-        painelFerimentos.id = 'painel-ferimentos-jogador';
-        painelFerimentos.style.cssText = "margin: 15px 0; padding: 10px; background: rgba(50,0,0,0.4); border: 1px solid #800; border-radius: 5px;";
-        containerPerfil.appendChild(painelFerimentos);
-    }
-
-    const fCriticos = fichaAtual.ferimentos ? fichaAtual.ferimentos.criticos : 0;
-painelFerimentos.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
-        <span>⚠️ Graves: <strong>${fGraves}/4</strong> ${fGraves > 0 ? `(Mod: ${penalidadeGrave})` : ''}</span>
-        <span style="color: ${fCriticos > 0 ? '#ff4444' : 'inherit'}">💀 Críticos: <strong>${fCriticos}/1</strong></span>
-    </div>
-`;
-painelFerimentos.style.cssText = "margin: 10px 0; padding: 6px 10px; background: rgba(50,0,0,0.3); border: 1px solid #600; border-radius: 4px;";
-    
     // Revelar controles do Mestre caso esteja autenticado
     if (isMasterAuthenticated) {
         const gmControls = document.getElementById('gm-controls');
@@ -2189,6 +2206,7 @@ function mudarCanal(idCanal, nomeCanal) {
     if (unsubscribeChat) unsubscribeChat();
     
    unsubscribeChat = onValue(ref(db, `mensagens/${canalAtual}`), (snapshot) => {
+    let quantidadeMensagensAntiga = 0;
     const container = document.getElementById('chat-messages');
     if (!container) return;
     container.innerHTML = ""; 
@@ -2223,6 +2241,17 @@ function mudarCanal(idCanal, nomeCanal) {
         const foiMarcado = textoUpper.includes(`@${currentUser.toUpperCase()}`) || (msg.replyTo && msg.replyTo.toUpperCase() === currentUser.toUpperCase());
         const htmlBolinha = foiMarcado ? `<div class="notificacao-marcado"></div>` : '';
         const htmlReply = msg.replyTo ? `<div class="reply-badge">↳ Respondendo a ${msg.replyTo.toUpperCase()}</div>` : '';
+        const novasMensagens = Object.keys(data).length;
+        if (novasMensagens > quantidadeMensagensAntiga && quantidadeMensagensAntiga !== 0) {
+            const ultimaMensagem = Object.values(data).pop();
+              if (ultimaMensagem.remetente !== currentUser) {
+              // Toca notificação e pisca aba
+                new Audio('').play().catch(e => {});
+                document.title = "(🔔) Nova Mensagem - Turno Noturno";
+            }
+        }
+          quantidadeMensagensAntiga = novasMensagens;
+          rolarParaFundo();
 
         // 3. LÓGICA DO AVATAR (CAMADAS PNG, NPC E FALLBACKS)
         let htmlAvatar = '';
@@ -2289,23 +2318,22 @@ function mudarCanal(idCanal, nomeCanal) {
 window.enviarMensagemCompleta = function() {
     if (jogadorSilenciado) return;
     const input = document.getElementById('chat-input');
-    let ultimoEnter = 0;
-    document.getElementById('chat-input').addEventListener('keydown', function(e) {
-          if (e.key === 'Enter') {
-              e.preventDefault(); // Impede o envio padrão
-              let agora = Date.now();
-        
-          // Se apertar Enter 2 vezes em menos de 500ms, ele envia a mensagem
-          if (agora - ultimoEnter < 500) {
-              enviarMensagemCompleta(); // Sua função de envio
-              ultimoEnter = 0; // Reseta
-          } else {
-              // Quebra a linha inserindo \n no input
-              this.value += '\n';
-              ultimoEnter = agora;
-          }
-      }
-  });
+   const chatContainer = document.getElementById('chat-container');
+   if (chatInput) {
+    chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // Impede a quebra padrão e envia
+            document.getElementById('btn-send-chat').click();
+        }
+    });
+}
+
+// Chame esta função sempre que uma nova mensagem for renderizada do Firebase
+function rolarParaFundo() {
+    if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+}
     const texto = input.value.trim();
     if (!texto || !currentUser) return;
 
@@ -2369,21 +2397,25 @@ window.apagarArquivoMural = function(id) {
     if(confirm("Deseja destruir esta fita?")) remove(ref(db, `tapes/${id}`));
 }
 function formatarTextoChat(texto) {
-    if (!texto) return '';
-    let formatado = texto;
-    // Negrito *texto*
-    formatado = formatado.replace(/\*([^\*]+)\*/g, '<strong>$1</strong>');
-    // Itálico _texto_
-    formatado = formatado.replace(/\_([^\_]+)\_/g, '<em>$1</em>');
-    // Riscado ~texto~
-    formatado = formatado.replace(/\~([^\~]+)\~/g, '<del>$1</del>');
-    // Ações de RPG '''ação''' ou >ação<
-    formatado = formatado.replace(/'''(.*?)'''/g, '<span style="color: #ffaa00; font-style: italic;">* $1 *</span>');
-    formatado = formatado.replace(/\>(.*?)\</g, '<span style="color: #00ffaa; font-style: italic;">$1</span>');
+    if (!texto) return "";
+    return texto
+        .replace(/\n/g, '<br>') // Quebra de linha no Enter
+        .replace(/\*(.*?)\*/g, '<strong>$1</strong>') // Negrito (WhatsApp)
+        .replace(/_(.*?)_/g, '<em>$1</em>') // Itálico (WhatsApp)
+        .replace(/~(.*?)~/g, '<del>$1</del>') // Risco (WhatsApp)
+        .replace(/```(.*?)```/g, '<code>$1</code>') // Monospace
+        .replace(/'''(.*?)'''/g, '<span style="color: #ffaa00; font-style: italic; font-weight: bold;">*$1*</span>'); // Ação
+}
+
+function obterCorBalao(nome) {
+    if (!nome) return '#2a2a2a';
+    const n = nome.toLowerCase();
+    if (n === 'mestre' || n === 'gm') return '#1a1a1a'; // Fixo Mestre
     
-    // Quebra de linha
-    formatado = formatado.replace(/\n/g, '<br>');
-    return formatado;
+    // Gera uma cor fixa baseada nas letras do nome do player
+    let hash = 0;
+    for (let i = 0; i < n.length; i++) hash = n.charCodeAt(i) + ((hash << 5) - hash);
+    return `hsl(${Math.abs(hash) % 360}, 50%, 25%)`; 
 }
 function escutarMuralFitas() {
     onValue(ref(db, 'tapes'), (snapshot) => {
@@ -2519,21 +2551,47 @@ document.getElementById('btn-anti-glitch').addEventListener('click', () => {
     document.body.classList.toggle('no-glitch');
     alert("Filtro de estabilidade visual alternado.");
 });
-window.traduzirInsanidade = function() {
-    const textoInsano = document.getElementById('input-tradutor').value;
-    const tipoCodigo = document.getElementById('select-tipo-codigo').value; // emojis, binario, morse, etc
-    let resultado = "";
-
-    if (tipoCodigo === "binario") {
-        resultado = textoInsano.split(' ').map(bin => String.fromCharCode(parseInt(bin, 2))).join('');
-    } else if (tipoCodigo === "morse") {
-        // Objeto dicionário morse reverso simples
-        const morseDict = { ".-": "A", "-...": "B", /* complete o dicionario */ };
-        resultado = textoInsano.split(' ').map(m => morseDict[m] || ' ').join('');
-    } else {
-        resultado = "Tentando descriptografar o caos... [Função em construção para: " + tipoCodigo + "]";
-    }
-    document.getElementById('resultado-tradutor').innerText = resultado;
+function embaralharInsanidade(texto) {
+    const corrupcao = ['̷', '̴', '̵', '̱', '̲', '̯', '̤', '̥', '͒', '̐', '̙', '̘'];
+    return texto.split('').map(char => {
+        if (char === ' ' || char === '\n') return char;
+        // 40% de chance de corromper o caractere
+        if (Math.random() < 0.40) {
+            return char + corrupcao[Math.floor(Math.random() * corrupcao.length)] + corrupcao[Math.floor(Math.random() * corrupcao.length)];
+        }
+        return char;
+    }).join('');
 }
+
+// Modifique o envio na window.enviarMensagemChat:
+if ((estado === 'fragmentado' || estado === 'insano') && !forcarEnvioMestre) {
+    textoFinal = embaralharInsanidade(textoFinal);
+}
+
+// Botão de remover efeitos restrito ao chat para insanos
+function atualizarBotaoEfeitosChat() {
+    let btnLimpar = document.getElementById('btn-remover-efeitos-chat');
+    if (!btnLimpar) {
+        btnLimpar = document.createElement('button');
+        btnLimpar.id = 'btn-remover-efeitos-chat';
+        btnLimpar.className = 'btn-remover-efeitos-insano';
+        btnLimpar.innerText = "👁️ Tentar Focar (Remover Alucinações)";
+        document.getElementById('chat-controls-container').appendChild(btnLimpar);
+        
+        btnLimpar.onclick = () => {
+            alert("Sua mente tenta clarear...");
+            document.querySelectorAll('.chat-mensagem').forEach(msg => msg.style.filter = 'none');
+            document.body.classList.remove('glitch-extremo');
+        };
+    }
+    
+    // Aparece apenas se insano/fragmentado
+    if (fichaAtual && (fichaAtual.estadoAtual === 'insano' || fichaAtual.estadoAtual === 'fragmentado')) {
+        btnLimpar.style.display = 'block';
+    } else {
+        btnLimpar.style.display = 'none';
+    }
+}
+// Chame atualizarBotaoEfeitosChat() no final de renderizarPerfil()
 // Garantir que iniciarChatAvancado seja chamado no fluxo antigo caso o login já esteja atrelado lá.
 // Se você possuía uma chamada `iniciarChatAvancado()` na sua função `login()`, ela chamará essa nova automaticamente.
