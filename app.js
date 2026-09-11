@@ -2246,7 +2246,7 @@ function mudarCanal(idCanal, nomeCanal) {
             const ultimaMensagem = Object.values(data).pop();
               if (ultimaMensagem.remetente !== currentUser) {
               // Toca notificação e pisca aba
-                new Audio('').play().catch(e => {});
+                new Audio('notification.mp3').play().catch(e => {});
                 document.title = "(🔔) Nova Mensagem - Turno Noturno";
             }
         }
