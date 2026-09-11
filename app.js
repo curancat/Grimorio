@@ -2343,7 +2343,7 @@ window.enviarMensagemCompleta = function() {
 
     input.value = "";
     cancelarResposta();
-}
+
 document.getElementById('btn-send-chat').addEventListener('click', enviarMensagemCompleta);
 document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') enviarMensagemCompleta(); });
 
