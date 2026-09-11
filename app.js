@@ -271,12 +271,12 @@ function obterEstadoGeral(ficha) {
 }
 
 window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = null, forcarEnvioMestre = false) {
-    if (!currentUser) return;
+    if (!currentUser || !texto.trim()) return;
 
-    let estado = obterEstadoGeral(fichaAtual);
-    let fotoAtual = (fichaAtual && fichaAtual.avatares) ? fichaAtual.avatares[estado] : '';
+    let ficha = typeof fichaAtual !== 'undefined' ? fichaAtual : null;
+    let estado = obterEstadoGeral(ficha);
+    let fotoAtual = (ficha && ficha.avatares) ? (ficha.avatares[estado] || ficha.fotoPerfil || '') : '';
 
-    // TRAVA 1: Jogador Desacordado
     if (estado === 'desacordado' && !forcarEnvioMestre) {
         alert("Você está DESACORDADO. Não pode falar ou realizar ações.");
         return;
@@ -284,28 +284,36 @@ window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = nul
 
     let textoFinal = texto;
 
-    // TRAVA 2: Mente Fragmentada (O Mestre pode ignorar isso usando forcarEnvioMestre)
-    if (estado === 'fragmentado' && !forcarEnvioMestre) {
-        textoFinal = embaralharAcoes(texto);
+    // Distorção de sanidade (se sanidade baixa ou estado insano/fragmentado)
+    let sanidade = (ficha && typeof ficha.sanidade !== 'undefined') ? Number(ficha.sanidade) : 100;
+    if ((estado === 'fragmentado' || estado === 'insano' || sanidade < 30) && !forcarEnvioMestre) {
+        textoFinal = embaralharInsanidade(textoFinal);
     }
 
-    const canalDestino = (tipoMensagem === 'roll' && typeof canalRolagemDestino !== 'undefined' && canalRolagemDestino) 
-        ? canalRolagemDestino 
-        : (typeof canalAtual !== 'undefined' ? canalAtual : 'taverna');
+    const canalDestino = (tipoMensagem === 'roll' && canalRolagemDestino) ? canalRolagemDestino : canalAtual;
 
-    if (typeof db !== 'undefined') {
-        const mensagensRef = ref(db, `mensagens/${canalDestino}`);
-        push(mensagensRef, {
-            remetente: currentUser,
-            falarComo: nomeNpc || null,
-            texto: textoFinal,
-            avatarUrl: fotoAtual, // Adiciona a foto do estado no Firebase
-            timestamp: Date.now(),
-            tipo: tipoMensagem,
-            editada: false
-        }).catch(err => console.error("Erro ao enviar mensagem para o Firebase:", err));
-    }
+    const novaMsg = {
+        remetente: currentUser,
+        falarComo: nomeNpc || null,
+        texto: textoFinal,
+        avatarUrl: fotoAtual,
+        timestamp: Date.now(),
+        tipo: tipoMensagem,
+        corBalao: obterCorBalao(currentUser),
+        respondendoA: respondendoA || null,
+        editada: false
+    };
+
+    push(ref(db, `mensagens/${canalDestino}`), novaMsg)
+        .then(() => {
+            respondendoA = null;
+            const input = document.getElementById('chat-input');
+            if (input) input.value = '';
+            rolarParaFundo();
+        })
+        .catch(err => console.error("Erro ao enviar mensagem:", err));
 };
+
 document.getElementById('btn-login').addEventListener('click', () => {
     const name = DOM.usernameInput.value.trim().toLowerCase();
     if (name) login(name);
@@ -2275,12 +2283,29 @@ function mudarCanal(idCanal, nomeCanal) {
 // ==========================================
 // E. ENVIO DE MENSAGENS COMPLETO
 // ==========================================
+let ultimoEnterTime = 0;
+
 window.enviarMensagemCompleta = function() {
     if (jogadorSilenciado) return;
     const input = document.getElementById('chat-input');
     const texto = input.value.trim();
     if (!texto || !currentUser) return;
-
+  chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const agora = Date.now();
+            // Se apertou Enter duas vezes em menos de 500ms ou usou Shift+Enter
+            if (agora - ultimoEnterTime < 500 && !e.shiftKey) {
+                e.preventDefault();
+                if (btnSend) btnSend.click();
+                ultimoEnterTime = 0;
+            } else {
+                ultimoEnterTime = agora;
+                // Deixa quebrar linha normalmente
+            }
+        }
+    });
+}
+  
     // Detectar uso de NPC
     const npcSelect = document.getElementById('select-npc-salvo');
     const npcAtivoId = npcSelect ? npcSelect.value : null;
@@ -2342,14 +2367,29 @@ window.apagarArquivoMural = function(id) {
     if(confirm("Deseja destruir esta fita?")) remove(ref(db, `tapes/${id}`));
 }
 function formatarTextoChat(texto) {
-    if (!texto) return "";
-    return texto
-        .replace(/\n/g, '<br>') // Quebra de linha no Enter
-        .replace(/\*(.*?)\*/g, '<strong>$1</strong>') // Negrito (WhatsApp)
-        .replace(/_(.*?)_/g, '<em>$1</em>') // Itálico (WhatsApp)
-        .replace(/~(.*?)~/g, '<del>$1</del>') // Risco (WhatsApp)
-        .replace(/```(.*?)```/g, '<code>$1</code>') // Monospace
-        .replace(/'''(.*?)'''/g, '<span style="color: #ffaa00; font-style: italic; font-weight: bold;">*$1*</span>'); // Ação
+    if (!texto) return '';
+
+    let res = texto
+        // Bloco de código: ```código```
+        .replace(/```([\s\S]*?)```/g, '<pre class="chat-code-block"><code>$1</code></pre>')
+        // Monospace inline: `código`
+        .replace(/`([^`]+)`/g, '<code class="chat-code-inline">$1</code>')
+        // Negrito: *texto*
+        .replace(/\*([^\*]+)\*/g, '<strong>$1</strong>')
+        // Itálico: _texto_
+        .replace(/_([^_]+)_/g, '<em>$1</em>')
+        // Riscado: ~texto~
+        .replace(/~([^~]+)~/g, '<del>$1</del>')
+        // Ações Narrativas: '''ação''' ou *ação*
+        .replace(/'''([^']+)'''/g, '<span class="chat-acao">❖ $1 ❖</span>')
+        // Citações: > citação
+        .replace(/^>\s*(.+)$/gm, '<blockquote class="chat-quote">$1</blockquote>')
+        // Menções: @Nome
+        .replace(/@([a-zA-Z0-9_]+)/g, '<span class="chat-mencao" onclick="localizarUsuario(\'$1\')">@$1</span>')
+        // Quebras de linha
+        .replace(/\n/g, '<br>');
+
+    return res;
 }
 
 function obterCorBalao(nome) {
@@ -2502,17 +2542,77 @@ document.getElementById('btn-anti-glitch').addEventListener('click', () => {
     document.body.classList.toggle('no-glitch');
     alert("Filtro de estabilidade visual alternado.");
 });
-function embaralharInsanidade(texto) {
-    const corrupcao = ['̷', '̴', '̵', '̱', '̲', '̯', '̤', '̥', '͒', '̐', '̙', '̘'];
-    return texto.split('').map(char => {
-        if (char === ' ' || char === '\n') return char;
-        // 40% de chance de corromper o caractere
-        if (Math.random() < 0.40) {
-            return char + corrupcao[Math.floor(Math.random() * corrupcao.length)] + corrupcao[Math.floor(Math.random() * corrupcao.length)];
-        }
-        return char;
-    }).join('');
+const CodigosInsanos = {
+    morseMap: {
+        'a': '.-', 'b': '-...', 'c': '-.-.', 'd': '-..', 'e': '.', 'f': '..-.',
+        'g': '--.', 'h': '....', 'i': '..', 'j': '.---', 'k': '-.-', 'l': '.-..',
+        'm': '--', 'n': '-.', 'o': '---', 'p': '.--.', 'q': '--.-', 'r': '.-.',
+        's': '...', 't': '-', 'u': '..-', 'v': '...-', 'w': '.--', 'x': '-..-',
+        'y': '-.--', 'z': '--..', ' ': '/'
+    },
+    paraMorse(txt) {
+        return txt.toLowerCase().split('').map(c => this.morseMap[c] || c).join(' ');
+    },
+    deMorse(txt) {
+        const invertido = Object.fromEntries(Object.entries(this.morseMap).map(([k, v]) => [v, k]));
+        return txt.split(' ').map(c => invertido[c] || (c === '/' ? ' ' : c)).join('');
+    },
+    paraBinario(txt) {
+        return txt.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
+    },
+    deBinario(txt) {
+        return txt.split(' ').map(bin => String.fromCharCode(parseInt(bin, 2))).join('');
+    },
+    paraNumerico(txt) {
+        return txt.toLowerCase().split('').map(c => {
+            const code = c.charCodeAt(0);
+            return (code >= 97 && code <= 122) ? (code - 96) : c;
+        }).join('-');
+    },
+    deNumerico(txt) {
+        return txt.split('-').map(num => {
+            const n = parseInt(num);
+            return (!isNaN(n) && n >= 1 && n <= 26) ? String.fromCharCode(n + 96) : num;
+        }).join('');
+    },
+    paraBlur(txt) {
+        return `<span class="spoiler-blur" onclick="this.classList.toggle('revelado')">${txt}</span>`;
+    }
+};
+
+function inicializarTradutor() {
+    const btnCifrar = document.getElementById('btn-cifrar');
+    const btnDecifrar = document.getElementById('btn-decifrar');
+    const txtInput = document.getElementById('tradutor-input');
+    const selectTipo = document.getElementById('tradutor-tipo');
+    const output = document.getElementById('tradutor-output');
+
+    if (!btnCifrar || !btnDecifrar || !txtInput) return;
+
+    btnCifrar.addEventListener('click', () => {
+        const texto = txtInput.value.trim();
+        const tipo = selectTipo.value;
+        if (!texto) return;
+
+        if (tipo === 'morse') output.innerText = CodigosInsanos.paraMorse(texto);
+        else if (tipo === 'binario') output.innerText = CodigosInsanos.paraBinario(texto);
+        else if (tipo === 'numerico') output.innerText = CodigosInsanos.paraNumerico(texto);
+        else if (tipo === 'blur') output.innerHTML = CodigosInsanos.paraBlur(texto);
+        else if (tipo === 'bugado') output.innerText = embaralharInsanidade(texto);
+    });
+
+    btnDecifrar.addEventListener('click', () => {
+        const texto = txtInput.value.trim();
+        const tipo = selectTipo.value;
+        if (!texto) return;
+
+        if (tipo === 'morse') output.innerText = CodigosInsanos.deMorse(texto);
+        else if (tipo === 'binario') output.innerText = CodigosInsanos.deBinario(texto);
+        else if (tipo === 'numerico') output.innerText = CodigosInsanos.deNumerico(texto);
+        else output.innerText = texto;
+    });
 }
+
 
 // Modifique o envio na window.enviarMensagemChat:
 // Adicione esta declaração antes da linha que utiliza a variável "estado":
@@ -2551,3 +2651,46 @@ function atualizarBotaoEfeitosChat() {
 // Chame atualizarBotaoEfeitosChat() no final de renderizarPerfil()
 // Garantir que iniciarChatAvancado seja chamado no fluxo antigo caso o login já esteja atrelado lá.
 // Se você possuía uma chamada `iniciarChatAvancado()` na sua função `login()`, ela chamará essa nova automaticamente.
+
+
+let tutorialAtivo = false;
+const tutoriais = {
+    'tab-grimoire': 'Aqui você armazena e conjura magias, poções e itens especiais. Utilize a busca rápida para filtrar.',
+    'tab-dice': 'Efetue rolagens de dados com múltiplos lados e modificadores de atributos positivos ou negativos.',
+    'tab-calc': 'Calculadora mística para operações aritméticas diretas e compartilhamento de contas no chat.',
+    'tab-craft': 'Forja de itens, gestão de ingredientes e estoque de tintas de Diógenes.',
+    'tab-perfil': 'Gerencie sua sanidade, karma, estados físicos/mentais e avatares do personagem.',
+    'tab-chat': 'Canal de comunicação entre jogadores e o Mestre. Enter duplo envia a mensagem.',
+    'tab-tradutor': 'Decodifique transmissões cifradas em binário, morse, números e textos corrompidos pelo vazio.'
+};
+
+function inicializarTutorial() {
+    const btnToggle = document.getElementById('btn-toggle-tutorial');
+    const modal = document.getElementById('modal-tutorial');
+    const btnFechar = document.getElementById('btn-fechar-tutorial');
+
+    if (btnToggle) {
+        btnToggle.addEventListener('click', () => {
+            tutorialAtivo = !tutorialAtivo;
+            btnToggle.innerText = `📚 Tutorial: ${tutorialAtivo ? 'Ativo' : 'Desativado'}`;
+            btnToggle.classList.toggle('ativo', tutorialAtivo);
+        });
+    }
+
+    if (btnFechar && modal) {
+        btnFechar.addEventListener('click', () => modal.classList.add('hidden'));
+    }
+
+    // Vincula a troca de abas
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.getAttribute('data-target');
+            if (tutorialAtivo && tutoriais[target] && modal) {
+                document.getElementById('tutorial-title').innerText = btn.innerText;
+                document.getElementById('tutorial-body').innerText = tutoriais[target];
+                modal.classList.remove('hidden');
+            }
+        });
+    });
+}
+
