@@ -1092,6 +1092,7 @@ function renderizarPerfil() {
     }
     let fGraves = fichaAtual.ferimentos ? fichaAtual.ferimentos.graves : 0;
     let fCriticos = fichaAtual.ferimentos ? fichaAtual.ferimentos.criticos : 0;
+    let estado = (fichaAtual && fichaAtual.estadoAtual) ? fichaAtual.estadoAtual : 'saudavel'
     let penalidadeGrave = fGraves * -1;
    painelFerimentos.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
