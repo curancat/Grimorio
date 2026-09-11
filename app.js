@@ -28,7 +28,6 @@ let userGrimoire = [];
 let currentSpellId = null;
 let isMasterAuthenticated = false;
 let fatorKarma = 0;
-let dadosNpc = null;
 let canalAtual = 'taverna';
 let canalRolagemDestino = 'taverna';
 let unsubscribeChat = null;
