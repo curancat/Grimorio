@@ -1062,60 +1062,57 @@ function carregarFichaDoFirebase() {
 
 function renderizarPerfil() {
     if (!fichaAtual) return;
-        const styleFix = document.createElement('style');
+
+    // Declaração do estado no início da função
+    let estado = fichaAtual.estadoAtual || 'saudavel';
+    let sys = BibliotecaSistemas[fichaAtual.sistema] || BibliotecaSistemas["KULT"];
+
+    // Injeção de estilos visuais
+    let styleFix = document.getElementById('style-fix-perfil');
+    if (!styleFix) {
+        styleFix = document.createElement('style');
+        styleFix.id = 'style-fix-perfil';
         styleFix.innerHTML = `
            .chat-mensagem .avatar, .perfil-npc-icone { width: 65px !important; height: 65px !important; border-radius: 50%; object-fit: cover; }
            .btn-remover-efeitos-insano { background: #8b0000; color: white; padding: 5px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; display: none; margin-top: 5px; }
          `;
-       document.head.appendChild(styleFix);
-    let sys = BibliotecaSistemas[fichaAtual.sistema];
-    if (!sys) {
-        sys = BibliotecaSistemas["KULT"];
+        document.head.appendChild(styleFix);
     }
-  document.head.appendChild(styleFix);
-    // Atualiza dados básicos na tela
+
+    // Atualização dos dados básicos na tela
     document.getElementById('nome-personagem').innerText = fichaAtual.nome.toUpperCase();
     document.getElementById('sistema-personagem').innerText = sys.nome;
     document.getElementById('display-xp').innerText = fichaAtual.xp;
   
-   const medidorSanidade = document.getElementById('medidor-sanidade');
+    const medidorSanidade = document.getElementById('medidor-sanidade');
     if (medidorSanidade) {
-        medidorSanidade.value = fichaAtual.sanidade || 100; // Se não tiver valor, assume 100
+        medidorSanidade.value = fichaAtual.sanidade || 100;
     }
-  let painelFerimentos = document.getElementById('painel-ferimentos-jogador');
+
+    // Painel de Ferimentos
+    let painelFerimentos = document.getElementById('painel-ferimentos-jogador');
     if (!painelFerimentos) {
         const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
         painelFerimentos = document.createElement('div');
         painelFerimentos.id = 'painel-ferimentos-jogador';
-        painelFerimentos.style.cssText = "margin: 15px 0; padding: 10px; background: rgba(50,0,0,0.4); border: 1px solid #800; border-radius: 5px;";
         containerPerfil.appendChild(painelFerimentos);
     }
+
     let fGraves = fichaAtual.ferimentos ? fichaAtual.ferimentos.graves : 0;
     let fCriticos = fichaAtual.ferimentos ? fichaAtual.ferimentos.criticos : 0;
-    estado = (fichaAtual && fichaAtual.estadoAtual) ? fichaAtual.estadoAtual : 'saudavel'
     let penalidadeGrave = fGraves * -1;
-   painelFerimentos.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
-        <span>⚠️ Graves: <strong>${fGraves}/4</strong> ${fGraves > 0 ? `(Mod: ${penalidadeGrave})` : ''}</span>
-        <span style="color: ${fCriticos > 0 ? '#ff4444' : 'inherit'}">💀 Críticos: <strong>${fCriticos}/1</strong></span>
-    </div>
-`;
-painelFerimentos.style.cssText = "margin: 10px 0; padding: 6px 10px; background: rgba(50,0,0,0.3); border: 1px solid #600; border-radius: 4px;";
-    
-  // ADICIONE ESTAS 3 LINHAS PARA ATUALIZAR A IMAGEM DE PERFIL:
-    let estado = fichaAtual.estadoAtual || 'saudavel';
-    let fotoAtual = (fichaAtual.avatares && fichaAtual.avatares[estado]) ? fichaAtual.avatares[estado] : 'https://via.placeholder.com/150';
+
+    painelFerimentos.style.cssText = "margin: 10px 0; padding: 6px 10px; background: rgba(50,0,0,0.3); border: 1px solid #600; border-radius: 4px;";
+    painelFerimentos.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+            <span>⚠️ Graves: <strong>${fGraves}/4</strong> ${fGraves > 0 ? `(Mod: ${penalidadeGrave})` : ''}</span>
+            <span style="color: ${fCriticos > 0 ? '#ff4444' : 'inherit'}">💀 Críticos: <strong>${fCriticos}/1</strong></span>
+        </div>
+    `;
+
+    // Atualização de Avatar e Camadas
     let avatarLayers = [];
-  // (Dentro de renderizarPerfil, após calcular avatarLayers)
-    const containerFichaImg = document.getElementById('imagem-perfil-ficha'); // Crie esta div no seu HTML
-    if (containerFichaImg) {
-        if (avatarLayers.length > 0) {
-            containerFichaImg.innerHTML = `<img src="${avatarLayers[avatarLayers.length - 1]}" class="avatar-destaque" onclick="window.open(this.src, '_blank')" title="Clique para ampliar">`;
-        } else {
-            containerFichaImg.innerHTML = `<img src="https://via.placeholder.com/150" class="avatar-destaque">`;
-        }
-    }
-    if (typeof fichaAtual !== 'undefined' && fichaAtual && fichaAtual.avatares) {
+    if (fichaAtual.avatares) {
         if (fichaAtual.avatares['saudavel']) avatarLayers.push(fichaAtual.avatares['saudavel']);
         
         let eFisico = fichaAtual.estadoFisico || 'saudavel';
@@ -1125,12 +1122,20 @@ painelFerimentos.style.cssText = "margin: 10px 0; padding: 6px 10px; background:
         if (eMental !== 'sao' && fichaAtual.avatares[eMental]) avatarLayers.push(fichaAtual.avatares[eMental]);
     }
 
-    // Se for NPC, sobrepõe a lógica e usa apenas a foto do NPC
     if (dadosNpc && dadosNpc.foto) {
         avatarLayers = [dadosNpc.foto];
     }
 
-    // Lógica de Level Up
+    const containerFichaImg = document.getElementById('imagem-perfil-ficha');
+    if (containerFichaImg) {
+        if (avatarLayers.length > 0) {
+            containerFichaImg.innerHTML = `<img src="${avatarLayers[avatarLayers.length - 1]}" class="avatar-destaque" onclick="window.open(this.src, '_blank')" title="Clique para ampliar">`;
+        } else {
+            containerFichaImg.innerHTML = `<img src="https://via.placeholder.com/150" class="avatar-destaque">`;
+        }
+    }
+
+    // Nível e Experiência
     const areaUpar = document.getElementById('area-level-up');
     if (areaUpar) {
         if (fichaAtual.xp >= sys.custoXpPorNivel) {
@@ -1139,211 +1144,160 @@ painelFerimentos.style.cssText = "margin: 10px 0; padding: 6px 10px; background:
             areaUpar.classList.add('hidden');
         }
     }
-    // Injeta painel de edição de Fotos de Perfil (Avatares por Estado) com botão de galeria
-let painelAvatares = document.getElementById('painel-avatares-jogador');
-if (!painelAvatares) {
-    const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
-    painelAvatares = document.createElement('div');
-    painelAvatares.id = 'painel-avatares-jogador';
-    painelAvatares.style.cssText = "margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--borda-ouro); border-radius: 5px;";
-    
-    const estados = ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'];
-    
-    let htmlInputs = `<h4 style="color: var(--borda-ouro); margin-top: 0;">Fotos de Perfil (Estados)</h4><div class="avatar-config-grid">`;
-    estados.forEach(est => {
-        htmlInputs += `
-            <div>
-                <label style="font-size: 0.75rem; text-transform: capitalize;">${est}</label>
-                <div style="display: flex; gap: 5px; align-items: center;">
-                    <input type="text" id="avatar-${est}" class="input-mystic w-full" placeholder="URL ou selecione">
-                    <button type="button" class="btn-mystic btn-galeria" data-estado="${est}" style="padding: 8px 12px; cursor: pointer;" title="Escolher da galeria/dispositivo">📁</button>
+
+    // Configuração do Painel de Edição de Avatares
+    let painelAvatares = document.getElementById('painel-avatares-jogador');
+    if (!painelAvatares) {
+        const containerPerfil = document.querySelector('.card-perfil') || document.getElementById('app-screen');
+        painelAvatares = document.createElement('div');
+        painelAvatares.id = 'painel-avatares-jogador';
+        painelAvatares.style.cssText = "margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--borda-ouro); border-radius: 5px;";
+        
+        const estados = ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'];
+        
+        let htmlInputs = `<h4 style="color: var(--borda-ouro); margin-top: 0;">Fotos de Perfil (Estados)</h4><div class="avatar-config-grid">`;
+        estados.forEach(est => {
+            htmlInputs += `
+                <div>
+                    <label style="font-size: 0.75rem; text-transform: capitalize;">${est}</label>
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        <input type="text" id="avatar-${est}" class="input-mystic w-full" placeholder="URL ou selecione">
+                        <button type="button" class="btn-mystic btn-galeria" data-estado="${est}" style="padding: 8px 12px; cursor: pointer;" title="Escolher da galeria/dispositivo">📁</button>
+                    </div>
                 </div>
-            </div>
-        `;
-    });
-    // Input oculto atualizado para aceitar também vídeos
-    htmlInputs += `</div>
-        <input type="file" id="input-arquivo-avatar" accept="image/*, video/*" style="display: none;">
-        <button id="btn-salvar-avatares" class="btn-mystic w-full mt-15">Salvar Fotos</button>`;
-    
-    painelAvatares.innerHTML = htmlInputs;
-    containerPerfil.appendChild(painelAvatares);
+            `;
+        });
 
-    // Lógica para abrir o seletor de arquivos
-    let estadoSelecionadoParaUpload = null;
-    const fileInputAvatar = document.getElementById('input-arquivo-avatar');
+        htmlInputs += `</div>
+            <input type="file" id="input-arquivo-avatar" accept="image/*, video/*" style="display: none;">
+            <button id="btn-salvar-avatares" class="btn-mystic w-full mt-15">Salvar Fotos</button>`;
+        
+        painelAvatares.innerHTML = htmlInputs;
+        containerPerfil.appendChild(painelAvatares);
 
-    painelAvatares.querySelectorAll('.btn-galeria').forEach(btn => {
-        btn.onclick = (e) => {
-            estadoSelecionadoParaUpload = e.currentTarget.getAttribute('data-estado');
-            fileInputAvatar.click(); // Abre a janela de arquivos do usuário
-        };
-    });
+        let estadoSelecionadoParaUpload = null;
+        const fileInputAvatar = document.getElementById('input-arquivo-avatar');
 
-    // NOVA LÓGICA: Envia direto para o ImgBB e converte vídeos por fallback
-    fileInputAvatar.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file || !estadoSelecionadoParaUpload) return;
+        painelAvatares.querySelectorAll('.btn-galeria').forEach(btn => {
+            btn.onclick = (e) => {
+                estadoSelecionadoParaUpload = e.currentTarget.getAttribute('data-estado');
+                fileInputAvatar.click();
+            };
+        });
 
-        const inputTarget = document.getElementById(`avatar-${estadoSelecionadoParaUpload}`);
-        if (!inputTarget) return;
+        fileInputAvatar.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file || !estadoSelecionadoParaUpload) return;
 
-        const originalPlaceholder = inputTarget.placeholder;
-        inputTarget.value = "";
-        inputTarget.disabled = true;
+            const inputTarget = document.getElementById(`avatar-${estadoSelecionadoParaUpload}`);
+            if (!inputTarget) return;
 
-        // --- TOLERÂNCIA PARA VÍDEOS ---
-        if (file.type.startsWith('video/')) {
-            inputTarget.placeholder = "Processando vídeo... ⏳";
-            
-            // Trava de segurança: vídeos maiores que 5MB quebram o Firebase
-            if (file.size > 5 * 1024 * 1024) {
-                alert("O vídeo é muito pesado! Escolha um vídeo de até 5MB ou cole um link externo.");
-                inputTarget.disabled = false;
-                inputTarget.placeholder = originalPlaceholder;
-                e.target.value = '';
+            const originalPlaceholder = inputTarget.placeholder;
+            inputTarget.value = "";
+            inputTarget.disabled = true;
+
+            if (file.type.startsWith('video/')) {
+                inputTarget.placeholder = "Processando vídeo... ⏳";
+                if (file.size > 5 * 1024 * 1024) {
+                    alert("O vídeo é muito pesado! Escolha um vídeo de até 5MB.");
+                    inputTarget.disabled = false;
+                    inputTarget.placeholder = originalPlaceholder;
+                    e.target.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(uploadEvent) {
+                    inputTarget.value = uploadEvent.target.result;
+                    inputTarget.disabled = false;
+                    inputTarget.placeholder = originalPlaceholder;
+                };
+                reader.readAsDataURL(file);
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = function(uploadEvent) {
-                inputTarget.value = uploadEvent.target.result;
-                inputTarget.disabled = false;
-                inputTarget.placeholder = originalPlaceholder;
-            };
-            reader.readAsDataURL(file);
-            return;
-        }
+            inputTarget.placeholder = "Enviando foto para a nuvem... ⏳";
+            const formData = new FormData();
+            formData.append("image", file);
 
-        // --- UPLOAD PARA IMGBB (IMAGENS) ---
-        inputTarget.placeholder = "Enviando foto para a nuvem... ⏳";
-        const formData = new FormData();
-        formData.append("image", file);
-
-        try {
-            // Reaproveita a mesma variável IMGBB_API_KEY que você já possui no seu código global
-            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            
-            if(data.success) {
-                inputTarget.value = data.data.url; // Retorna a URL curta!
-            } else {
-                alert("Falha na magia de upload da ImgBB.");
-            }
-        } catch (err) {
-            alert("As correntes místicas (Conexão) falharam.");
-        }
-        
-        inputTarget.disabled = false;
-        inputTarget.placeholder = originalPlaceholder;
-        e.target.value = ''; // Limpa o input para permitir nova seleção
-    };
-
-    document.getElementById('btn-salvar-avatares').onclick = () => {
-        let avatares = {};
-        estados.forEach(est => {
-            const campo = document.getElementById(`avatar-${est}`);
-            if (campo) avatares[est] = campo.value;
-        });
-        update(ref(db, `characters/${currentUser}`), { avatares })
-            .then(() => alert('Fotos de perfil atualizadas com sucesso!'))
-            .catch(err => console.error("Erro ao salvar avatares:", err));
-    };
-}
-
-if (fichaAtual.avatares) {
-    ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'].forEach(est => {
-         const input = document.getElementById(`avatar-${est}`);
-         if (input && fichaAtual.avatares[est]) input.value = fichaAtual.avatares[est];
-    });
-}
-    // Calcula penalidade de bônus negativo baseada nos ferimentos graves (-1 por ferimento grave)
-
-    // Gerar Botões de Atributos (já aplicando a penalidade dos ferimentos)
-const container = document.getElementById('botoes-atributos');
-if (container) {
-    // Layout anti-estique: 3 colunas e margens/espaçamentos mínimos para celular
-    container.style.cssText = "display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 5px;";
-    container.innerHTML = "";
-    
-    for (let attr in fichaAtual.atributos) {
-        const valorBase = fichaAtual.atributos[attr];
-        const valorFinal = valorBase + penalidadeGrave;
-        
-        const btn = document.createElement('button');
-        btn.className = "btn-rolagem-rapida";
-        // Estilo ultra-compacto para economizar espaço vertical no mobile
-        btn.style.cssText = "background: #2a2a2a; border: 1px solid #444; padding: 4px 2px; border-radius: 4px; color: white; cursor: pointer; font-size: 0.75rem; line-height: 1.1; text-align: center;";
-        btn.innerText = `${attr}\n(${valorFinal >= 0 ? '+' : ''}${valorFinal})`;
-        
-        btn.onclick = () => {
-            // 1. Configura os parâmetros do rolador principal
-            document.getElementById('dice-qtd').value = sys.quantidadeDados;
-            document.getElementById('dice-type').value = sys.tipoDado;
-            document.getElementById('dice-mod').value = Math.abs(valorFinal);
-            document.getElementById('mod-sign').value = valorFinal >= 0 ? '+' : '-';
-            
-            // 2. Dispara a rolagem nativa
-            document.getElementById('btn-roll').click();
-            
-            // 3. Espera 450ms (garantindo que o dado já terminou de rodar) para capturar o resultado real
-            setTimeout(() => {
-                const resultadoApp = document.getElementById('dice-result').innerText;
+            try {
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
                 
-                // Pega os detalhes do último log de dados para ficar idêntico ao menu de dados
-                const logElements = document.getElementById('dice-log').children;
-                let detalheLog = logElements.length > 0 ? logElements[0].innerText : `${sys.quantidadeDados}D${sys.tipoDado}`;
-                const textoChatFicha = `Teste de Atributo: ${attr} (${sys.nome})\nDetalhes: ${detalheLog}\n**${resultadoApp}**`;
-                if (typeof window.enviarMensagemChat === "function") {
-                    window.enviarMensagemChat(textoChatFicha, 'roll');
+                if (data.success) {
+                    inputTarget.value = data.data.url;
+                } else {
+                    alert("Falha no upload para a ImgBB.");
                 }
-                // Mensagem formatada para o WhatsApp (idêntica ao sistema de dados)
-                const textoMensagem = `🎲 *Teste de ${attr} (${sys.nome})* 🎲\n\nPersonagem: *${currentUser.toUpperCase()}*\nResultado Final: *${resultadoApp}*\nDetalhes: _${detalheLog}_\n\n🔮 _Enviado do Grimório Vivo_`;
-                
-                // Remove modal anterior se houver
-                const modalAntigo = document.getElementById('modal-rolagem-custom');
-                if (modalAntigo) modalAntigo.remove();
-                
-                // Cria o Popup customizado
-                const modal = document.createElement('div');
-                modal.id = 'modal-rolagem-custom';
-                modal.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 15px;";
-                
-                modal.innerHTML = `
-                    <div style="background: #1e1e1e; border: 1px solid #444; padding: 20px; border-radius: 8px; width: 100%; max-width: 300px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.6);">
-                        <h3 style="margin-top: 0; color: #4af; font-size: 1.1rem; margin-bottom: 5px;">Resultado do Teste</h3>
-                        <p style="font-size: 0.85rem; color: #bbb; margin: 0 0 10px 0;">${attr} (${sys.nome})</p>
-                        
-                        <div style="font-size: 2.5rem; font-weight: bold; background: #111; padding: 12px; border-radius: 6px; margin: 10px 0; color: #0f0; border: 1px solid #333;">
-                            ${resultadoApp}
-                        </div>
-                        
-                        <p style="font-size: 0.75rem; color: #888; margin-bottom: 15px;">Detalhes: ${detalheLog}</p>
-                        
-                        <div style="display: flex; gap: 8px; justify-content: center;">
-                            <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(textoMensagem)}" target="_blank" style="flex: 1; background: #25d366; color: white; padding: 8px; border-radius: 4px; text-decoration: none; font-size: 0.8rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 4px;">📲 Zap</a>
-                            <button id="btn-fechar-modal" style="flex: 1; background: #444; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">Fechar</button>
-                        </div>
-                    </div>
-                `;
-                
-                document.body.appendChild(modal);
-                
-                // Eventos para fechar o popup
-                document.getElementById('btn-fechar-modal').onclick = () => modal.remove();
-                modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-            }, 450); // Tempo sincronizado com o término do dado
+            } catch (err) {
+                alert("Falha de conexão.");
+            }
             
-            if (typeof registrarLog === "function") registrarLog(`Testou ${attr} (${sys.nome}).`);
+            inputTarget.disabled = false;
+            inputTarget.placeholder = originalPlaceholder;
+            e.target.value = '';
         };
-        container.appendChild(btn);
-    }
-  atualizarBotaoEfeitosChat();
-}
 
+        document.getElementById('btn-salvar-avatares').onclick = () => {
+            let avatares = {};
+            estados.forEach(est => {
+                const campo = document.getElementById(`avatar-${est}`);
+                if (campo) avatares[est] = campo.value;
+            });
+            update(ref(db, `characters/${currentUser}`), { avatares })
+                .then(() => alert('Fotos de perfil atualizadas!'))
+                .catch(err => console.error("Erro ao salvar avatares:", err));
+        };
+    }
+
+    if (fichaAtual.avatares) {
+        ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'].forEach(est => {
+             const input = document.getElementById(`avatar-${est}`);
+             if (input && fichaAtual.avatares[est]) input.value = fichaAtual.avatares[est];
+        });
+    }
+
+    // Botões de Atributos
+    const container = document.getElementById('botoes-atributos');
+    if (container) {
+        container.style.cssText = "display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 5px;";
+        container.innerHTML = "";
+        
+        for (let attr in fichaAtual.atributos) {
+            const valorBase = fichaAtual.atributos[attr];
+            const valorFinal = valorBase + penalidadeGrave;
+            
+            const btn = document.createElement('button');
+            btn.className = "btn-rolagem-rapida";
+            btn.style.cssText = "background: #2a2a2a; border: 1px solid #444; padding: 4px 2px; border-radius: 4px; color: white; cursor: pointer; font-size: 0.75rem; line-height: 1.1; text-align: center;";
+            btn.innerText = `${attr}\n(${valorFinal >= 0 ? '+' : ''}${valorFinal})`;
+            
+            btn.onclick = () => {
+                document.getElementById('dice-qtd').value = sys.quantidadeDados;
+                document.getElementById('dice-type').value = sys.tipoDado;
+                document.getElementById('dice-mod').value = Math.abs(valorFinal);
+                document.getElementById('mod-sign').value = valorFinal >= 0 ? '+' : '-';
+                
+                document.getElementById('btn-roll').click();
+                
+                setTimeout(() => {
+                    const resultadoApp = document.getElementById('dice-result').innerText;
+                    const logElements = document.getElementById('dice-log').children;
+                    let detalheLog = logElements.length > 0 ? logElements[0].innerText : `${sys.quantidadeDados}D${sys.tipoDado}`;
+                    const textoChatFicha = `Teste de Atributo: ${attr} (${sys.nome})\nDetalhes: ${detalheLog}\n**${resultadoApp}**`;
+                    
+                    if (typeof window.enviarMensagemChat === "function") {
+                        window.enviarMensagemChat(textoChatFicha, 'roll');
+                    }
+                }, 450);
+            };
+            container.appendChild(btn);
+        }
+    }
+}
     // ==========================================
     // RENDERIZAR PAINEL DE FERIMENTOS NA FICHA
     // ==========================================
@@ -2474,6 +2428,12 @@ window.mudarDestinoRolagens = function(idCanalDestino) { set(ref(db, 'configurac
 window.abrirModalAudio = function() { document.getElementById('audio-modal').style.display = 'flex'; }
 window.fecharModalAudio = function() { document.getElementById('audio-modal').style.display = 'none'; }
 window.pararAudio = function() { remove(ref(db, 'configuracoes/audio_ambiente')); fecharModalAudio(); }
+window.rolarParaFundo = function() {
+    const chatContainer = document.getElementById('chat-messages') || document.getElementById('chat-container') || document.getElementById('lista-mensagens');
+    if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+};
 window.sincronizarAudio = function() {
     const rawUrl = document.getElementById('youtube-url').value.trim();
     if (!rawUrl) return;
