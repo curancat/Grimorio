@@ -1051,13 +1051,38 @@ function renderizarPerfil() {
 
     const containerFichaImg = document.getElementById('imagem-perfil-ficha');
     if (containerFichaImg) {
+        // Prepara o container para sobreposição de camadas
+        containerFichaImg.style.position = "relative";
+        containerFichaImg.style.display = "inline-block";
+        containerFichaImg.innerHTML = ""; 
+
         if (avatarLayers.length > 0) {
-            containerFichaImg.innerHTML = `<img src="${avatarLayers[avatarLayers.length - 1]}" class="avatar-destaque" onclick="window.open(this.src, '_blank')" title="Clique para ampliar">`;
+            avatarLayers.forEach((camada, idx) => {
+                const img = document.createElement('img');
+                img.src = camada;
+                img.className = "avatar-destaque";
+                
+                // Se for a camada base (saudável), ela dita o tamanho.
+                // Camadas de ferimento/insanidade ficam sobrepostas.
+                if (idx > 0) {
+                    img.style.position = "absolute";
+                    img.style.top = "0";
+                    img.style.left = "0";
+                    img.style.width = "100%";
+                    img.style.height = "100%";
+                    img.style.background = "transparent"; 
+                    img.style.pointerEvents = "none"; // Evita conflito de cliques
+                } else {
+                    img.onclick = () => window.open(camada, '_blank');
+                    img.title = "Clique para ampliar";
+                }
+                
+                containerFichaImg.appendChild(img);
+            });
         } else {
             containerFichaImg.innerHTML = `<img src="https://via.placeholder.com/150" class="avatar-destaque">`;
         }
     }
-
     const areaUpar = document.getElementById('area-level-up');
     if (areaUpar) {
         if (fichaAtual.xp >= sys.custoXpPorNivel) {
@@ -1334,7 +1359,7 @@ document.getElementById('btn-gm-xp').onclick = async () => {
     });
 };
 
-document.getElementById('btn-gm-mudar-estado').onclick = () => {
+document.getElementById('btn-gm-mudar-estado').onclick = async () => {
     const alvo = document.getElementById('gm-select-alvo').value;
     const novoFisico = document.getElementById('gm-select-estado-fisico').value;
     const novoMental = document.getElementById('gm-select-estado-mental').value;
@@ -1344,6 +1369,13 @@ document.getElementById('btn-gm-mudar-estado').onclick = () => {
     update(ref(db, `characters/${alvo}`), { estadoFisico: novoFisico, estadoMental: novoMental }).then(() => {
         alert(`O estado de ${alvo.toUpperCase()} foi atualizado! Físico: ${novoFisico} | Mental: ${novoMental}`);
         if (typeof registrarLog === "function") registrarLog(`GM alterou o estado de ${alvo}.`);
+        
+        // Dispara aviso dramático no chat
+        let msg = `⚠️ **ATUALIZAÇÃO DE ESTADO: ${alvo.toUpperCase()}**\nO corpo e a mente reagem ao ambiente...\nFísico: ➔ ${novoFisico.toUpperCase()}\nMental: ➔ ${novoMental.toUpperCase()}`;
+        if (novoMental === 'insano' || novoMental === 'fragmentado') {
+            msg += `\n\n🧠 *"A mente vacila e as sombras sussurram. A loucura se aproxima..."*`;
+        }
+        if (typeof window.enviarMensagemChat === "function") window.enviarMensagemChat(msg, 'roll', 'O Mestre', true);
     });
 };
 
@@ -1376,17 +1408,9 @@ document.getElementById('btn-gm-ferimento').onclick = async () => {
 
     if (acao === 'adicionar') {
         if (tipo === 'grave') {
-            if (graves < 4) {
-                graves++;
-            } else {
-                graves = 4;
-                criticos++;
-                alert(`⚠️ O limite de Ferimentos Graves estourou! O ferimento se agravou e virou um FERIMENTO CRÍTICO!`);
-            }
+            if (graves < 4) graves++;
+            else { graves = 4; criticos++; alert(`⚠️ O limite de Ferimentos Graves estourou!`); }
         } else if (tipo === 'critico') {
-            if (criticos >= 1) {
-                alert(`💀 FATALIDADE: ${alvo.toUpperCase()} já possuía um Ferimento Crítico e recebeu outro! O personagem desmaiou ou faleceu.`);
-            }
             criticos++;
         }
     } else if (acao === 'curar') {
@@ -1395,8 +1419,13 @@ document.getElementById('btn-gm-ferimento').onclick = async () => {
     }
 
     update(charRef, { ferimentos: { graves, criticos } }).then(() => {
-        alert(`Ferimentos de ${alvo.toUpperCase()} atualizados com sucesso! (Graves: ${graves}, Críticos: ${criticos})`);
-        if (typeof registrarLog === "function") registrarLog(`GM alterou os ferimentos de ${alvo} (${tipo}: ${acao}).`);
+        alert(`Ferimentos de ${alvo.toUpperCase()} atualizados!`);
+        
+        // Dispara aviso médico no chat
+        let verbo = acao === 'adicionar' ? 'sofreu' : 'curou';
+        let msg = `🩸 **ALERTA: ${alvo.toUpperCase()}**\nO personagem ${verbo} um ferimento ${tipo.toUpperCase()}!\nStatus ➔ Graves: ${graves}/4 | Críticos: ${criticos}/1`;
+        if (acao === 'adicionar') msg += `\n\n⚠️ *"A dor consome a carne, o fôlego falta..."*`;
+        if (typeof window.enviarMensagemChat === "function") window.enviarMensagemChat(msg, 'roll', 'O Mestre', true);
     });
 };
 
@@ -2297,3 +2326,52 @@ function mostrarTelinhaRolagem(atributo, resultado, detalhe) {
 
     document.body.appendChild(modal);
 }
+// ==========================================
+// 21. CONTROLE DINÂMICO DE SANIDADE (GM)
+// ==========================================
+function injetarBotaoSanidadeGM() {
+    // Tenta injetar apenas quando o painel do GM for ativado
+    const gmControls = document.getElementById('gm-controls');
+    if (gmControls && !document.getElementById('btn-gm-sanidade')) {
+        const btnSanidade = document.createElement('button');
+        btnSanidade.id = 'btn-gm-sanidade';
+        btnSanidade.className = 'btn-mystic';
+        btnSanidade.style.cssText = 'background: #4B0082; color: white; width: 100%; padding: 10px; margin-top: 10px; border-radius: 4px; border: 1px solid #9932CC; font-weight: bold; cursor: pointer;';
+        btnSanidade.innerText = '🧠 Alterar Sanidade';
+        
+        btnSanidade.onclick = async () => {
+            const alvo = document.getElementById('gm-select-alvo').value;
+            if (!alvo) return alert("Selecione um alvo na lista!");
+            
+            const charRef = ref(db, `characters/${alvo}`);
+            const snapshot = await get(charRef);
+            if (!snapshot.exists()) return alert("Personagem não encontrado.");
+            
+            const dados = snapshot.val();
+            const sanidadeAtual = dados.sanidade !== undefined ? dados.sanidade : 100;
+            
+            const inputNovo = prompt(`A Sanidade atual de ${alvo.toUpperCase()} é ${sanidadeAtual}.\nDigite o novo valor (0 a 100):`, sanidadeAtual);
+            
+            if (inputNovo !== null && !isNaN(inputNovo) && inputNovo !== "") {
+                let valorFinal = parseInt(inputNovo);
+                if (valorFinal < 0) valorFinal = 0;
+                if (valorFinal > 100) valorFinal = 100;
+                
+                update(charRef, { sanidade: valorFinal }).then(() => {
+                    alert(`Sanidade de ${alvo.toUpperCase()} alterada para ${valorFinal}/100.`);
+                    
+                    let msg = `🧠 **SANIDADE ALTERADA: ${alvo.toUpperCase()}**\nO limite mental de ${alvo.toUpperCase()} mudou para ${valorFinal}/100.`;
+                    if (valorFinal <= 30) {
+                        msg += `\n\n⚠️ *"As barreiras da mente se partem. Os piores pesadelos começam a vazar para a realidade..."*`;
+                    }
+                    if (typeof window.enviarMensagemChat === "function") window.enviarMensagemChat(msg, 'roll', 'O Mestre', true);
+                });
+            }
+        };
+        
+        gmControls.appendChild(btnSanidade);
+    }
+}
+
+// Observa mudanças para injetar o botão de sanidade quando o GM logar
+setInterval(injetarBotaoSanidadeGM, 2000);
