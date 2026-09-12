@@ -257,6 +257,228 @@ function obterEstadoGeral(ficha) {
     if (ficha.estadoMental === 'ansiedade' || ficha.estadoMental === 'insano' || ficha.estadoMental === 'fragmentado') return ficha.estadoMental;
     return ficha.estadoFisico || 'saudavel';
 }
+document.getElementById('input-pesquisa-chat').addEventListener('input', (e) => {
+    const termo = e.target.value.toLowerCase();
+    document.querySelectorAll('.chat-msg-wrapper').forEach(msg => {
+        msg.style.display = msg.innerText.toLowerCase().includes(termo) ? 'flex' : 'none';
+    });
+});
+
+let suprimirInsanidadeVisual = false;
+document.getElementById('btn-anti-glitch').addEventListener('click', () => {
+    suprimirInsanidadeVisual = !suprimirInsanidadeVisual;
+    document.body.classList.toggle('glitch-extremo', !suprimirInsanidadeVisual && obterEstadoGeral(fichaAtual) === 'fragmentado');
+    alert(suprimirInsanidadeVisual ? "👁️ Filtros Ativados. A visão clareou no chat." : "👁️ Filtros Desativados. A loucura retorna.");
+});
+
+// ==========================================
+// 3. CRIAÇÃO DE CANAIS (COM APROVAÇÃO DO MESTRE) E SALAS PRIVADAS
+// ==========================================
+let canalPendenteAtual = null;
+
+window.solicitarNovoCanal = function() {
+    document.getElementById('modal-criar-sala').style.display = 'flex';
+}
+
+window.enviarSugestaoCanal = function() {
+    const nome = document.getElementById('novo-canal-nome').value.trim();
+    const privado = document.getElementById('novo-canal-privado').checked;
+    const senha = document.getElementById('novo-canal-senha').value.trim();
+
+    if (!nome) return alert("Dê um nome à sala.");
+
+    push(ref(db, 'canais_pendentes'), {
+        nome: nome,
+        privado: privado,
+        senha: senha || null,
+        criador: currentUser,
+        timestamp: Date.now()
+    }).then(() => {
+        alert("Sua sugestão foi enviada aos Deuses (Mestre). Aguarde aprovação.");
+        document.getElementById('modal-criar-sala').style.display = 'none';
+    });
+}
+
+// Mestre Escuta Canais Pendentes (Coloque isso na função liberarAcessoMestre)
+function escutarCanaisPendentes() {
+    onValue(ref(db, 'canais_pendentes'), (snapshot) => {
+        const lista = document.getElementById('gm-pending-list');
+        lista.innerHTML = "";
+        if(snapshot.exists()) {
+            Object.entries(snapshot.val()).forEach(([id, canal]) => {
+                const div = document.createElement('div');
+                div.style.cssText = "display: flex; justify-content: space-between; background: #330000; padding: 5px; margin-bottom: 5px;";
+                div.innerHTML = `
+                    <span>${canal.nome} ${canal.privado ? '🔒' : ''} (por ${canal.criador})</span>
+                    <div>
+                        <button onclick="aprovarCanal('${id}', '${canal.nome}', ${canal.privado}, '${canal.senha}')" style="color: lime; background: none; border: none; cursor:pointer;">✔</button>
+                        <button onclick="negarCanal('${id}')" style="color: red; background: none; border: none; cursor:pointer;">✖</button>
+                    </div>
+                `;
+                lista.appendChild(div);
+            });
+        } else {
+            lista.innerHTML = "Nenhuma sala aguardando.";
+        }
+    });
+}
+
+window.aprovarCanal = function(id_pendente, nome, privado, senha) {
+    const id_canal = nome.toLowerCase().replace(/\s+/g, '-');
+    set(ref(db, `canais_aprovados/${id_canal}`), { nome, privado, senha }).then(() => {
+        remove(ref(db, `canais_pendentes/${id_pendente}`));
+    });
+}
+window.negarCanal = function(id_pendente) {
+    remove(ref(db, `canais_pendentes/${id_pendente}`));
+}
+
+// Desbloquear Sala Privada (Blur)
+window.tentarDesbloquearSala = function() {
+    const senhaDigitada = document.getElementById('input-tentativa-senha').value;
+    // Checar no firebase se a senha bate com a do canalAtual
+    get(ref(db, `canais_aprovados/${canalAtual}`)).then((snap) => {
+        if(snap.exists() && snap.val().senha === senhaDigitada) {
+            document.getElementById('chat-fundo').classList.remove('sala-trancada');
+            document.getElementById('modal-senha-sala').style.display = 'none';
+            // Salvar no localstorage para não pedir de novo na mesma sessão
+            sessionStorage.setItem(`senha_${canalAtual}`, senhaDigitada);
+        } else {
+            alert("Senha Incorreta!");
+        }
+    });
+}
+
+// ==========================================
+// 4. MÚSICA DE FUNDO COM LINK DO YOUTUBE
+// ==========================================
+window.sincronizarAudio = function() {
+    const url = document.getElementById('youtube-url').value;
+    if(!url) return;
+    
+    // Extrai o ID do vídeo do youtube (ex: v=123456)
+    const videoIdMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+    if (videoId) {
+        set(ref(db, 'audio_global'), { videoId: videoId, timestamp: Date.now() }).then(() => {
+            alert("Música enviada para todos!");
+            fecharModalAudio();
+        });
+    } else {
+        alert("Link do YouTube inválido.");
+    }
+}
+
+window.pararAudio = function() {
+    remove(ref(db, 'audio_global')).then(() => alert("Música parada para todos."));
+}
+
+// Cliente Escuta a Música Global
+onValue(ref(db, 'audio_global'), (snapshot) => {
+    const container = document.getElementById('global-audio-container');
+    const iframe = document.getElementById('youtube-player');
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        container.style.display = 'block';
+        // Autoplay ativado via query param (nota: browsers modernos exigem interação prévia do usuário)
+        iframe.src = `https://www.youtube.com/embed/${data.videoId}?autoplay=1&loop=1&playlist=${data.videoId}`;
+    } else {
+        container.style.display = 'none';
+        iframe.src = "";
+    }
+});
+
+// ==========================================
+// 5. CRIAÇÃO DE NPCs E FALAR COMO PLAYER (MESTRE)
+// ==========================================
+window.salvarNovoNPC = function() {
+    const nome = document.getElementById('novo-npc-nome').value.trim();
+    const foto = document.getElementById('novo-npc-foto').value.trim();
+    
+    if(!nome) return alert("O NPC precisa de um nome.");
+    
+    const idNpc = nome.toLowerCase().replace(/\s+/g, '_');
+    
+    set(ref(db, `npcs/${idNpc}`), { nome, foto }).then(() => {
+        alert(`${nome} materializado com sucesso!`);
+        document.getElementById('novo-npc-nome').value = "";
+        document.getElementById('novo-npc-foto').value = "";
+    });
+}
+
+// Preencher Dropdown de NPCs para o Mestre
+onValue(ref(db, 'npcs'), (snapshot) => {
+    const select = document.getElementById('select-npc-salvo');
+    if(!select) return;
+    
+    select.innerHTML = '<option value="">👤 Falar como Mim Mesmo / Mestre</option>';
+    if (snapshot.exists()) {
+        Object.entries(snapshot.val()).forEach(([id, npc]) => {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.dataset.foto = npc.foto; // Guarda a foto no dataset
+            opt.innerText = `🎭 ${npc.nome}`;
+            select.appendChild(opt);
+        });
+    }
+});
+
+// ==========================================
+// 6. SISTEMA DE SILENCIAR (MUTE)
+// ==========================================
+window.silenciarJogador = function() {
+    const alvo = document.getElementById('mute-player-name').value.trim().toLowerCase();
+    const minutos = parseInt(document.getElementById('mute-time').value) || 1;
+    
+    if (!alvo) return;
+    
+    const desmuteTime = Date.now() + (minutos * 60000);
+    set(ref(db, `silenciados/${alvo}`), { ate: desmuteTime }).then(() => {
+        alert(`${alvo.toUpperCase()} foi silenciado por ${minutos} minutos.`);
+        document.getElementById('mute-player-name').value = "";
+    });
+}
+
+// O Cliente verifica constantemente se está mutado
+onValue(ref(db, `silenciados/${currentUser}`), (snapshot) => {
+    const inputChat = document.getElementById('chat-input');
+    const btnSend = document.getElementById('btn-send-chat');
+    const warning = document.getElementById('mute-warning');
+    
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        if (Date.now() < data.ate) {
+            jogadorSilenciado = true;
+            inputChat.disabled = true;
+            btnSend.disabled = true;
+            warning.style.display = 'block';
+            
+            // Timer visual
+            clearInterval(intervaloMute);
+            intervaloMute = setInterval(() => {
+                const restante = Math.max(0, data.ate - Date.now());
+                if (restante <= 0) {
+                    remove(ref(db, `silenciados/${currentUser}`));
+                } else {
+                    document.getElementById('mute-timer').innerText = new Date(restante).toISOString().substr(14, 5);
+                }
+            }, 1000);
+        } else {
+            removerMute(inputChat, btnSend, warning);
+        }
+    } else {
+        removerMute(inputChat, btnSend, warning);
+    }
+});
+
+function removerMute(inputChat, btnSend, warning) {
+    jogadorSilenciado = false;
+    inputChat.disabled = false;
+    btnSend.disabled = false;
+    warning.style.display = 'none';
+    clearInterval(intervaloMute);
+}
 window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = null, forcarEnvioMestre = false) {
     if (!currentUser || !texto.trim()) return;
 
@@ -2166,21 +2388,17 @@ if (btnSend) {
     btnSend.addEventListener('click', enviarMensagemCompleta);
 }
 
-if (chatInput) {
-    chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            const agora = Date.now();
-            if (agora - ultimoEnterTime < 500 && !e.shiftKey) {
-                e.preventDefault();
-                if (btnSend) btnSend.click();
-                ultimoEnterTime = 0;
-            } else {
-                ultimoEnterTime = agora;
-            }
-        }
-    });
-}
 
+chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        // Enter simples apenas dá quebra de linha (comportamento nativo do textarea)
+        // Se quiser auto-expandir o textarea:
+        setTimeout(() => {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = (chatInput.scrollHeight) + 'px';
+        }, 10);
+    }
+});
 // ==========================================
 // F. MURAL DE FITAS (ARQUIVOS DO MESTRE)
 // ==========================================
@@ -2203,24 +2421,13 @@ window.apagarArquivoMural = function(id) {
 // ==========================================
 // G. FORMATAÇÃO DE TEXTO DO CHAT E FUNÇÕES AUXILIARES FALTANTES
 // ==========================================
-function formatarTextoChat(texto) {
-    if (!texto) return '';
-
-    let res = texto
-        // Bloco de código: ```código```
-        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-        // Negrito: **texto**
-        .replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>')
-        // Itálico: *texto*
-        .replace(/\*([^\*]+)\*/g, '<em>$1</em>')
-        // Riscado: ~~texto~~
-        .replace(/~~([^~]+)~~/g, '<del>$1</del>')
-        // Quebras de linha
-        .replace(/\n/g, '<br>');
-
-    return res;
+function formatarEstiloZap(texto) {
+    return texto
+        .replace(/\*(.*?)\*/g, '<strong>$1</strong>') // Negrito
+        .replace(/_(.*?)_/g, '<em>$1</em>')           // Itálico
+        .replace(/~(.*?)~/g, '<del>$1</del>')         // Tachado
+        .replace(/\n/g, '<br>');                      // Quebra de linha
 }
-
 function rolarParaFundo() {
     const container = document.getElementById('chat-messages');
     if (container) {
