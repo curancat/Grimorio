@@ -1209,9 +1209,14 @@ function renderizarPerfil() {
                     let detalheLog = logElements.length > 0 ? logElements[0].innerText : `${sys.quantidadeDados}D${sys.tipoDado}`;
                     const textoChatFicha = `Teste de Atributo: ${attr} (${sys.nome})\nDetalhes: ${detalheLog}\n**${resultadoApp}**`;
                     
+                    // Envia para o chat automaticamente
                     if (typeof window.enviarMensagemChat === "function") {
                         window.enviarMensagemChat(textoChatFicha, 'roll');
                     }
+
+                    // Exibe a telinha flutuante
+                    mostrarTelinhaRolagem(attr, resultadoApp, detalheLog);
+
                 }, 450);
             };
             container.appendChild(btn);
@@ -2239,4 +2244,56 @@ window.aprovarFirebase = function(path) {
     update(ref(db, path), { aprovado: true }).then(() => {
         alert("Aprovado com sucesso!");
     });
+}
+
+// ==========================================
+// 20. MODAL DE RESULTADO DE ATRIBUTO
+// ==========================================
+function mostrarTelinhaRolagem(atributo, resultado, detalhe) {
+    // Remove o modal se já existir um aberto
+    let modalExistente = document.getElementById('modal-rolagem-attr');
+    if (modalExistente) modalExistente.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-rolagem-attr';
+    
+    // Estilização do modal via CSS inline
+    modal.style.cssText = `
+        position: fixed; 
+        top: 50%; 
+        left: 50%; 
+        transform: translate(-50%, -50%); 
+        background: rgba(20, 20, 20, 0.98); 
+        border: 2px solid #c9b037; 
+        padding: 25px; 
+        border-radius: 8px; 
+        z-index: 9999; 
+        color: white; 
+        text-align: center; 
+        min-width: 280px; 
+        box-shadow: 0 0 25px rgba(0,0,0,0.9); 
+        font-family: sans-serif;
+    `;
+
+    // Configuração do texto para o WhatsApp
+    const textoZap = `🎲 *Teste de ${atributo} (${currentUser})* 🎲\n\nResultado Final: *${resultado}*\nDetalhes: _${detalhe}_\n\n🔮 _Enviado do Grimório Vivo_`;
+    const urlZap = `https://api.whatsapp.com/send?text=${encodeURIComponent(textoZap)}`;
+
+    modal.innerHTML = `
+        <h3 style="color: #c9b037; margin-top: 0; margin-bottom: 15px;">Teste de ${atributo}</h3>
+        <div style="font-size: 4rem; font-weight: bold; margin: 15px 0; text-shadow: 0 0 15px rgba(201, 176, 55, 0.6);">${resultado}</div>
+        <p style="font-size: 0.9rem; color: #ccc; margin-bottom: 15px;">${detalhe}</p>
+        <p style="font-size: 0.85rem; color: #4CAF50; font-weight: bold;">✅ Enviado ao Akasha (Chat)!</p>
+        
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 25px;">
+            <button onclick="window.open('${urlZap}', '_blank')" style="background: #25D366; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; flex: 1;">
+                📱 Enviar WhatsApp
+            </button>
+            <button onclick="this.parentElement.parentElement.remove()" style="background: #333; color: white; border: 1px solid #555; padding: 12px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                Fechar
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
 }
