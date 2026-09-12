@@ -326,8 +326,17 @@ function escutarCanaisPendentes() {
 
 window.aprovarCanal = function(id_pendente, nome, privado, senha) {
     const id_canal = nome.toLowerCase().replace(/\s+/g, '-');
-    set(ref(db, `canais_aprovados/${id_canal}`), { nome, privado, senha }).then(() => {
+    
+    // CORREÇÃO: Salvando diretamente no nó 'canais' para o chat conseguir enxergar
+    set(ref(db, `canais/${id_canal}`), { 
+        nome: nome, 
+        privado: privado, 
+        senha: senha || null,
+        aprovado: true, // Garante que a sala já nasce visível aos jogadores
+        criador: 'Mestre'
+    }).then(() => {
         remove(ref(db, `canais_pendentes/${id_pendente}`));
+        alert(`Sala "${nome}" criada com sucesso!`);
     });
 }
 window.negarCanal = function(id_pendente) {
@@ -2093,7 +2102,11 @@ function iniciarChatAvancado() {
     mudarCanal('taverna', 'Taverna');
     escutarMuralFitas();
 }
-
+window.aprovarFirebase = function(caminhoFirebase) {
+    update(ref(db, caminhoFirebase), { aprovado: true })
+        .then(() => alert("Sala aprovada e aberta para os jogadores!"))
+        .catch(err => alert("Erro ao aprovar pelas correntes místicas: " + err));
+}
 window.abrirModalGmChat = function() { document.getElementById('modal-gm-chat-controls').style.display = 'flex'; }
 window.fecharModalGmChat = function() { document.getElementById('modal-gm-chat-controls').style.display = 'none'; }
 
