@@ -2381,20 +2381,24 @@ window.enviarMensagemCompleta = function() {
 const chatInput = document.getElementById('chat-input');
 const btnSend = document.getElementById('btn-send-chat');
 
-if (btnSend) {
-    btnSend.addEventListener('click', enviarMensagemCompleta);
+if (chatInput) {
+    chatInput.addEventListener('keydown', function(e) {
+        // Verifica se a tecla foi Enter E se o Shift NÃO está pressionado
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // 🛑 O SEGREDO ESTÁ AQUI: Bloqueia a quebra de linha!
+            
+            const texto = this.value.trim();
+            if (texto) {
+                // Chama sua função global passando o texto
+                window.enviarMensagemChat(texto);
+            }
+            
+            // Limpa o campo visualmente e reseta a altura, se houver redimensionamento automático
+            this.value = '';
+            this.style.height = 'auto'; // Opcional: essencial se você ajusta a altura dinamicamente
+        }
+    });
 }
-
-
-chatInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        // Enter simples apenas dá quebra de linha (comportamento nativo do textarea)
-        // Se quiser auto-expandir o textarea:
-        setTimeout(() => {
-            chatInput.style.height = 'auto';
-            chatInput.style.height = (chatInput.scrollHeight) + 'px';
-        }, 10);
-    }
 });
 // ==========================================
 // F. MURAL DE FITAS (ARQUIVOS DO MESTRE)
