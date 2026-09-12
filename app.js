@@ -2421,7 +2421,7 @@ window.apagarArquivoMural = function(id) {
 // ==========================================
 // G. FORMATAÇÃO DE TEXTO DO CHAT E FUNÇÕES AUXILIARES FALTANTES
 // ==========================================
-function formatarEstiloZap(texto) {
+function formatarTextoChat(texto) {
     return texto
         .replace(/\*(.*?)\*/g, '<strong>$1</strong>') // Negrito
         .replace(/_(.*?)_/g, '<em>$1</em>')           // Itálico
@@ -2594,3 +2594,10 @@ function injetarBotaoSanidadeGM() {
 
 // Observa mudanças para injetar o botão de sanidade quando o GM logar
 setInterval(injetarBotaoSanidadeGM, 2000);
+window.abrirMenuCanais = function() {
+    abrirModalGmChat();
+};
+
+window.gerenciarCanalGm = function() {
+    abrirModalGmChat();
+};
