@@ -1194,6 +1194,7 @@ function carregarFichaDoFirebase() {
       const data = snapshot.val();
     if (data) {
         fichaAtual = data;
+       let estado = obterEstadoGeral(fichaAtual);
         // Substitua as linhas que usam document.body.classList
         const chatContainer = document.getElementById('chat-messages');
         if (estado === 'fragmentado' && chatContainer) {
