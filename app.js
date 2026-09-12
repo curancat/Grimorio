@@ -267,10 +267,11 @@ document.getElementById('input-pesquisa-chat').addEventListener('input', (e) => 
 let suprimirInsanidadeVisual = false;
 document.getElementById('btn-anti-glitch').addEventListener('click', () => {
     suprimirInsanidadeVisual = !suprimirInsanidadeVisual;
-    document.body.classList.toggle('glitch-extremo', !suprimirInsanidadeVisual && obterEstadoGeral(fichaAtual) === 'fragmentado');
-    alert(suprimirInsanidadeVisual ? "👁️ Filtros Ativados. A visão clareou no chat." : "👁️ Filtros Desativados. A loucura retorna.");
+    const chatContainer = document.getElementById('chat-messages'); // ou a div principal do chat
+    if (chatContainer) {
+        chatContainer.classList.toggle('glitch-extremo', !suprimirInsanidadeVisual && obterEstadoGeral(fichaAtual) === 'fragmentado');
+    }
 });
-
 // ==========================================
 // 3. CRIAÇÃO DE CANAIS (COM APROVAÇÃO DO MESTRE) E SALAS PRIVADAS
 // ==========================================
@@ -922,6 +923,7 @@ function liberarAcessoMestre() {
     document.getElementById('tab-gm').classList.remove('hidden');
 
     iniciarEscutaDeLogs();
+    escutarCanaisPendentes();
 }
 
 function iniciarEscutaDeLogs() {
@@ -1192,12 +1194,13 @@ function carregarFichaDoFirebase() {
       const data = snapshot.val();
     if (data) {
         fichaAtual = data;
-        let estado = obterEstadoGeral(fichaAtual);
-        if (estado === 'fragmentado') {
-            document.body.classList.add('glitch-extremo');
-        } else {
-            document.body.classList.remove('glitch-extremo');
-        }
+        // Substitua as linhas que usam document.body.classList
+        const chatContainer = document.getElementById('chat-messages');
+        if (estado === 'fragmentado' && chatContainer) {
+            chatContainer.classList.add('glitch-extremo');
+        } else if (chatContainer) {
+        chatContainer.classList.remove('glitch-extremo');
+      }
         renderizarPerfil();
         } else {
             const novaFicha = {
@@ -2043,32 +2046,7 @@ function iniciarChatAvancado() {
         }
     });
 
-    onValue(ref(db, 'mutes/' + currentUser.toLowerCase()), (snapshot) => {
-        const data = snapshot.val();
-        if (data && data.expiraEm > Date.now()) {
-            jogadorSilenciado = true;
-            document.getElementById('chat-input').disabled = true;
-            document.getElementById('btn-send-chat').disabled = true;
-            document.getElementById('mute-warning').style.display = 'block';
-            
-            if (intervaloMute) clearInterval(intervaloMute);
-            intervaloMute = setInterval(() => {
-                const restante = Math.max(0, data.expiraEm - Date.now());
-                if (restante <= 0) {
-                    clearInterval(intervaloMute);
-                    remove(ref(db, 'mutes/' + currentUser.toLowerCase())); 
-                } else {
-                    document.getElementById('mute-timer').innerText = `${Math.floor(restante / 60000)}m ${Math.floor((restante % 60000) / 1000)}s`;
-                }
-            }, 1000);
-        } else {
-            jogadorSilenciado = false;
-            document.getElementById('chat-input').disabled = false;
-            document.getElementById('btn-send-chat').disabled = false;
-            document.getElementById('mute-warning').style.display = 'none';
-            if (intervaloMute) clearInterval(intervaloMute);
-        }
-    });
+    
 
     onValue(ref(db, 'canais'), (snapshot) => {
         const lista = document.getElementById('channel-list');
@@ -2600,4 +2578,12 @@ window.abrirMenuCanais = function() {
 
 window.gerenciarCanalGm = function() {
     abrirModalGmChat();
+};
+
+window.abrirModalAudio = function() {
+    document.getElementById('audio-modal').style.display = 'flex';
+};
+
+window.fecharModalAudio = function() {
+    document.getElementById('audio-modal').style.display = 'none';
 };
