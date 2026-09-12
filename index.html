@@ -93,7 +93,7 @@
                     <canvas id="craft-canvas" class="craft-canvas"></canvas>
                     <div id="forja-lista" class="forja-lista"></div>
                     <div id="status-forja" class="text-muted">Adicione itens do inventário </div>
-                   
+                    
                     <div class="craft-result-setup mt-15" style="display: flex; gap: 10px; position: relative; z-index: 2;">
                         <input type="text" id="craft-emoji-input" class="input-mystic" placeholder="Ícone (ex: 🗡️)" maxlength="2" style="width: 100px; text-align: center; font-size: 1.5rem;">
                         <input type="text" id="craft-result-name" class="input-mystic w-full" placeholder="Nome do Item Forjado">
@@ -166,7 +166,7 @@
                                 <button id="btn-gm-xp" style="padding: 5px; cursor: pointer;">Dar XP</button>
                                 <button id="btn-gm-ferimento" class="btn-mestre" style="padding: 5px; cursor: pointer;">Gerenciar Ferimentos</button>
                             </div>
-                           
+                            
                             <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">
                                 <input type="text" id="gm-missao-texto" placeholder="Escreva uma nova missão..." class="input-mystic w-full" style="margin-bottom: 5px; width: 100%; padding: 5px; background: #333; color: white; border: 1px solid #555;">
                                 <button id="btn-add-missao" class="btn-mystic w-full" style="width: 100%; padding: 5px; cursor: pointer;">Adicionar Missão ao Mural</button>
@@ -370,34 +370,35 @@
             <button id="btn-submit-gm-auth" class="btn-mystic w-full">Desbloquear Visão</button>
         </div>
     </div>
+    
     <!-- Modal Criar Sala -->
-<div id="modal-criar-sala" class="modal">
-    <div class="modal-content alive-container">
-        <span class="close-btn" onclick="document.getElementById('modal-criar-sala').style.display='none'">&times;</span>
-        <h2>Forjar Novo Canal</h2>
-        <input type="text" id="novo-canal-nome" class="input-mystic w-full mb-10" placeholder="Nome da Sala (ex: Porão Escuro)">
-        
-        <label style="color: #aaa; font-size: 0.8rem;">
-            <input type="checkbox" id="novo-canal-privado" onchange="document.getElementById('box-senha-canal').style.display = this.checked ? 'block' : 'none'"> Sala Privada (Requer Senha)
-        </label>
-        
-        <div id="box-senha-canal" style="display: none; margin-top: 10px;">
-            <input type="password" id="novo-canal-senha" class="input-mystic w-full mb-10" placeholder="Senha da Sala">
+    <div id="modal-criar-sala" class="modal">
+        <div class="modal-content alive-container">
+            <span class="close-btn" onclick="document.getElementById('modal-criar-sala').style.display='none'">&times;</span>
+            <h2>Forjar Novo Canal</h2>
+            <input type="text" id="novo-canal-nome" class="input-mystic w-full mb-10" placeholder="Nome da Sala (ex: Porão Escuro)">
+            
+            <label style="color: #aaa; font-size: 0.8rem;">
+                <input type="checkbox" id="novo-canal-privado" onchange="document.getElementById('box-senha-canal').style.display = this.checked ? 'block' : 'none'"> Sala Privada (Requer Senha)
+            </label>
+            
+            <div id="box-senha-canal" style="display: none; margin-top: 10px;">
+                <input type="password" id="novo-canal-senha" class="input-mystic w-full mb-10" placeholder="Senha da Sala">
+            </div>
+            
+            <button onclick="enviarSugestaoCanal()" class="btn-mystic w-full mt-15">Sugerir Sala ao Mestre</button>
         </div>
-        
-        <button onclick="enviarSugestaoCanal()" class="btn-mystic w-full mt-15">Sugerir Sala ao Mestre</button>
     </div>
-</div>
 
-<!-- Modal Desbloquear Sala Privada -->
-<div id="modal-senha-sala" class="modal">
-    <div class="modal-content alive-container text-center">
-        <span class="close-btn" onclick="document.getElementById('modal-senha-sala').style.display='none'">&times;</span>
-        <h2 style="color: var(--borda-ouro);">Sala Trancada</h2>
-        <input type="password" id="input-tentativa-senha" class="input-mystic w-full mb-10" placeholder="Digite a Senha">
-        <button onclick="tentarDesbloquearSala()" class="btn-mystic w-full">Quebrar Selo</button>
+    <!-- Modal Desbloquear Sala Privada -->
+    <div id="modal-senha-sala" class="modal">
+        <div class="modal-content alive-container text-center">
+            <span class="close-btn" onclick="document.getElementById('modal-senha-sala').style.display='none'">&times;</span>
+            <h2 style="color: var(--borda-ouro);">Sala Trancada</h2>
+            <input type="password" id="input-tentativa-senha" class="input-mystic w-full mb-10" placeholder="Digite a Senha">
+            <button onclick="tentarDesbloquearSala()" class="btn-mystic w-full">Quebrar Selo</button>
+        </div>
     </div>
-</div>
 
     <script type="module" src="app.js"></script>
 </body>
