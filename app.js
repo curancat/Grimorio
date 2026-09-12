@@ -442,36 +442,39 @@ window.silenciarJogador = function() {
 }
 
 // O Cliente verifica constantemente se está mutado
-onValue(ref(db, `silenciados/${currentUser}`), (snapshot) => {
-    const inputChat = document.getElementById('chat-input');
-    const btnSend = document.getElementById('btn-send-chat');
-    const warning = document.getElementById('mute-warning');
-    
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        if (Date.now() < data.ate) {
-            jogadorSilenciado = true;
-            inputChat.disabled = true;
-            btnSend.disabled = true;
-            warning.style.display = 'block';
-            
-            // Timer visual
-            clearInterval(intervaloMute);
-            intervaloMute = setInterval(() => {
-                const restante = Math.max(0, data.ate - Date.now());
-                if (restante <= 0) {
-                    remove(ref(db, `silenciados/${currentUser}`));
-                } else {
-                    document.getElementById('mute-timer').innerText = new Date(restante).toISOString().substr(14, 5);
-                }
-            }, 1000);
+// Envolva o ouvinte em uma função
+function iniciarEscutaMute() {
+    onValue(ref(db, `silenciados/${currentUser}`), (snapshot) => {
+        const inputChat = document.getElementById('chat-input');
+        const btnSend = document.getElementById('btn-send-chat');
+        const warning = document.getElementById('mute-warning');
+        
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            if (Date.now() < data.ate) {
+                jogadorSilenciado = true;
+                if(inputChat) inputChat.disabled = true;
+                if(btnSend) btnSend.disabled = true;
+                if(warning) warning.style.display = 'block';
+                
+                clearInterval(intervaloMute);
+                intervaloMute = setInterval(() => {
+                    const restante = Math.max(0, data.ate - Date.now());
+                    if (restante <= 0) {
+                        remove(ref(db, `silenciados/${currentUser}`));
+                    } else {
+                        const timerEl = document.getElementById('mute-timer');
+                        if(timerEl) timerEl.innerText = new Date(restante).toISOString().substring(14, 19);
+                    }
+                }, 1000);
+            } else {
+                removerMute(inputChat, btnSend, warning);
+            }
         } else {
             removerMute(inputChat, btnSend, warning);
         }
-    } else {
-        removerMute(inputChat, btnSend, warning);
-    }
-});
+    });
+}
 
 function removerMute(inputChat, btnSend, warning) {
     jogadorSilenciado = false;
@@ -491,14 +494,14 @@ window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = nul
         alert("Você está DESACORDADO. Não pode falar ou realizar ações.");
         return;
     }
-
+    
     let textoFinal = texto;
 
     let sanidade = (ficha && typeof ficha.sanidade !== 'undefined') ? Number(ficha.sanidade) : 100;
     if ((estado === 'fragmentado' || estado === 'insano' || sanidade < 30) && !forcarEnvioMestre) {
         textoFinal = embaralharInsanidade(textoFinal);
     }
-
+    textoFinal = formatarTextoChat(textoFinal);
     const canalDestino = (tipoMensagem === 'roll' && canalRolagemDestino) ? canalRolagemDestino : canalAtual;
 
     const novaMsg = {
@@ -546,7 +549,8 @@ function login(username) {
 
     if (jogadoresAutorizados.includes(currentUser.toLowerCase())) {
         btnGerenciarCanais.style.display = 'inline-block';
-        btnGerenciarCanais.onclick = () => abrirMenuCanais(); 
+        btnGerenciarCanais.onclick = () => abrirModalGmChat(); 
+        escutarCanaisPendentes();
     } else {
         btnGerenciarCanais.style.display = 'none'; 
     }
@@ -573,6 +577,7 @@ function login(username) {
     }
     
     iniciarChatAvancado();
+    iniciarEscutaMute();
 }
 
 // ==========================================
@@ -2401,11 +2406,16 @@ window.apagarArquivoMural = function(id) {
 // G. FORMATAÇÃO DE TEXTO DO CHAT E FUNÇÕES AUXILIARES FALTANTES
 // ==========================================
 function formatarTextoChat(texto) {
-    return texto
-        .replace(/\*(.*?)\*/g, '<strong>$1</strong>') // Negrito
-        .replace(/_(.*?)_/g, '<em>$1</em>')           // Itálico
-        .replace(/~(.*?)~/g, '<del>$1</del>')         // Tachado
-        .replace(/\n/g, '<br>');                      // Quebra de linha
+   if (!texto) return texto;
+    // Citação (começa com >)
+    let formatado = texto.replace(/^>\s?(.*)$/gm, '<blockquote style="border-left: 4px solid #25d366; background: rgba(0,0,0,0.3); margin: 4px 0; padding: 4px 8px; font-style: italic; color: #ccc;">$1</blockquote>');
+    // Negrito (*texto*)
+    formatado = formatado.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+    // Itálico (_texto_)
+    formatado = formatado.replace(/_(.*?)_/g, '<em>$1</em>');
+    // Riscado (~texto~)
+    formatado = formatado.replace(/~(.*?)~/g, '<del>$1</del>');
+    return formatado;
 }
 function rolarParaFundo() {
     const container = document.getElementById('chat-messages');
