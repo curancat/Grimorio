@@ -254,10 +254,9 @@ function embaralharAcoes(texto) {
 function obterEstadoGeral(ficha) {
     if (!ficha) return 'saudavel';
     if (ficha.estadoFisico === 'desacordado') return 'desacordado';
-    if (ficha.estadoMental === 'insano' || ficha.estadoMental === 'fragmentado') return ficha.estadoMental;
+    if (ficha.estadoMental === 'ansiedade' || ficha.estadoMental === 'insano' || ficha.estadoMental === 'fragmentado') return ficha.estadoMental;
     return ficha.estadoFisico || 'saudavel';
 }
-
 window.enviarMensagemChat = function(texto, tipoMensagem = 'chat', nomeNpc = null, forcarEnvioMestre = false) {
     if (!currentUser || !texto.trim()) return;
 
@@ -1099,7 +1098,7 @@ function renderizarPerfil() {
         painelAvatares.id = 'painel-avatares-jogador';
         painelAvatares.style.cssText = "margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--borda-ouro); border-radius: 5px;";
         
-        const estados = ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'];
+       const estados = ['saudavel', 'ferido', 'grave', 'desacordado', 'ansiedade', 'insano', 'fragmentado'];
         
         let htmlInputs = `<h4 style="color: var(--borda-ouro); margin-top: 0;">Fotos de Perfil (Estados)</h4><div class="avatar-config-grid">`;
         estados.forEach(est => {
@@ -1200,7 +1199,7 @@ function renderizarPerfil() {
     }
 
     if (fichaAtual.avatares) {
-        ['saudavel', 'ferido', 'grave', 'desacordado', 'insano', 'fragmentado'].forEach(est => {
+        ['saudavel', 'ferido', 'grave', 'desacordado','ansiedade', 'insano', 'fragmentado'].forEach(est => {
              const input = document.getElementById(`avatar-${est}`);
              if (input && fichaAtual.avatares[est]) input.value = fichaAtual.avatares[est];
         });
@@ -1359,6 +1358,15 @@ document.getElementById('btn-gm-xp').onclick = async () => {
     });
 };
 
+const selectMental = document.getElementById('gm-select-estado-mental');
+if (selectMental && !selectMental.querySelector('option[value="ansiedade"]')) {
+    const opt = document.createElement('option');
+    opt.value = "ansiedade";
+    opt.innerText = "Ansiedade";
+    // Insere logo antes de 'insano'
+    selectMental.insertBefore(opt, selectMental.querySelector('option[value="insano"]'));
+}
+
 document.getElementById('btn-gm-mudar-estado').onclick = async () => {
     const alvo = document.getElementById('gm-select-alvo').value;
     const novoFisico = document.getElementById('gm-select-estado-fisico').value;
@@ -1372,9 +1380,13 @@ document.getElementById('btn-gm-mudar-estado').onclick = async () => {
         
         // Dispara aviso dramático no chat
         let msg = `⚠️ **ATUALIZAÇÃO DE ESTADO: ${alvo.toUpperCase()}**\nO corpo e a mente reagem ao ambiente...\nFísico: ➔ ${novoFisico.toUpperCase()}\nMental: ➔ ${novoMental.toUpperCase()}`;
-        if (novoMental === 'insano' || novoMental === 'fragmentado') {
+        
+        if (novoMental === 'ansiedade') {
+            msg += `\n\n😰 *"O coração acelera, a respiração fica curta. O pavor invisível se instala na mente..."*`;
+        } else if (novoMental === 'insano' || novoMental === 'fragmentado') {
             msg += `\n\n🧠 *"A mente vacila e as sombras sussurram. A loucura se aproxima..."*`;
         }
+        
         if (typeof window.enviarMensagemChat === "function") window.enviarMensagemChat(msg, 'roll', 'O Mestre', true);
     });
 };
