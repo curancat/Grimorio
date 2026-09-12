@@ -356,3 +356,20 @@ header h1 { margin: 0; color: var(--borda-ouro); font-size: 1.5rem; text-shadow:
     75% { transform: translate(-2px, -3px) skew(-2deg); }
     100% { transform: translate(0, 0) skew(0deg); }
 }
+/* Efeito de Sala Trancada (Blur) */
+.sala-trancada #chat-messages {
+    filter: blur(8px);
+    pointer-events: none;
+    user-select: none;
+}
+.sala-trancada #chat-fundo::after {
+    content: "🔒 SALA PRIVADA - REQUER SENHA";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--borda-ouro);
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-shadow: 0 0 10px #000;
+    z-index: 10;
+}
