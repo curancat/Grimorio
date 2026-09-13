@@ -37,13 +37,13 @@ let intervaloMute = null;
 // Variáveis para Menções e NPCs
 let respondendoA = null;
 let npcsSalvos = {};
-let limiteTintaDiogenes = 9;      // Limite padrão pela qualidade (Boa = 5)
+let limiteTintaDiogenes = 10;      // Limite padrão pela qualidade (Boa = 5)
 let filtroCorDiogenes = 'todos';   // Filtro de cor ativo
 let tintaEspecialLiberada = false; // Controla se preto/branco foram liberados por dados iguais
 let estoqueTintasDiogenes = {
     vermelha: 10,
     azul: 10,
-    amarela: 10,
+    amarela: 9,
     preta: 0,
     branca: 0,
     mescla: 0
