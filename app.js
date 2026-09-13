@@ -44,8 +44,8 @@ let estoqueTintasDiogenes = {
     vermelha: 10,
     azul: 9,
     amarela: 9,
-    preta: 0,
-    branca: 0,
+    preta: 10,
+    branca: 10,
     mescla: 0
 };
 // Quando carregar/atualizar os dados do personagem:
