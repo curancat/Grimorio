@@ -42,7 +42,7 @@ let filtroCorDiogenes = 'todos';   // Filtro de cor ativo
 let tintaEspecialLiberada = false; // Controla se preto/branco foram liberados por dados iguais
 let estoqueTintasDiogenes = {
     vermelha: 10,
-    azul: 10,
+    azul: 9,
     amarela: 9,
     preta: 0,
     branca: 0,
