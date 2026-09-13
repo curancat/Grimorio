@@ -43,7 +43,7 @@ let tintaEspecialLiberada = true; // Controla se preto/branco foram liberados po
 let estoqueTintasDiogenes = {
     vermelha: 10,
     azul: 9,
-    amarela: 9,
+    amarela: 8,
     preta: 10,
     branca: 10,
     mescla: 0
