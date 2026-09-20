@@ -44,7 +44,7 @@ let estoqueTintasDiogenes = {
     vermelha: 10,
     azul: 9,
     amarela: 8,
-    preta: 10,
+    preta: 6,
     branca: 10,
     mescla: 0
 };
