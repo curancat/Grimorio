@@ -41,11 +41,11 @@ let limiteTintaDiogenes = 10;      // Limite padrão pela qualidade (Boa = 5)
 let filtroCorDiogenes = 'todos';   // Filtro de cor ativo
 let tintaEspecialLiberada = true; // Controla se preto/branco foram liberados por dados iguais
 let estoqueTintasDiogenes = {
-    vermelha: 10,
-    azul: 9,
-    amarela: 8,
-    preta: 6,
-    branca: 10,
+    vermelha: 3,
+    azul: 3,
+    amarela: 3,
+    preta: 0,
+    branca: 0,
     mescla: 0
 };
 // Quando carregar/atualizar os dados do personagem:
